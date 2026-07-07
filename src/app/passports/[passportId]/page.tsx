@@ -26,9 +26,14 @@ export default function PassportDetailPage({ params }: { params: { passportId: s
         title={passport.nickname}
         description={passport.publicNotes ?? "Private setup documentation and readiness notes."}
         action={
-          <Link href={`/passports/${passport.id}/edit`} className="inline-flex rounded-md bg-ink px-4 py-2 text-sm font-semibold text-white">
-            Edit passport
-          </Link>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Link href={`/passports/${passport.id}/public-preview`} className="inline-flex justify-center rounded-md border border-ink/15 bg-white px-4 py-2 text-sm font-semibold text-ink">
+              Public preview
+            </Link>
+            <Link href={`/passports/${passport.id}/edit`} className="inline-flex justify-center rounded-md bg-ink px-4 py-2 text-sm font-semibold text-white">
+              Edit passport
+            </Link>
+          </div>
         }
       />
 

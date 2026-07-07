@@ -1,6 +1,7 @@
+import Link from "next/link";
 import { PageHeader } from "@/components/PageHeader";
 import { Tag } from "@/components/Tag";
-import { publicPassports } from "@/data/mockData";
+import { sanitizedPublicPassports } from "@/data/publicDiscovery";
 
 export default function DiscoverPage() {
   return (
@@ -8,10 +9,10 @@ export default function DiscoverPage() {
       <PageHeader
         eyebrow="Discover"
         title="Public setup snapshots"
-        description="Browse sanitized equipment profiles shared for research, comparison, and community setup documentation."
+        description="Browse sanitized equipment profiles shared for setup discovery, range-log context, and community documentation."
       />
       <div className="grid gap-4 lg:grid-cols-2">
-        {publicPassports.map((snapshot) => (
+        {sanitizedPublicPassports.map((snapshot) => (
           <article key={snapshot.id} className="overflow-hidden rounded-md border border-ink/10 bg-white shadow-soft">
             <div className="h-56 bg-cover bg-center" style={{ backgroundImage: `url(${snapshot.coverPhotoUrl})` }} aria-hidden="true" />
             <div className="p-5">
@@ -26,20 +27,27 @@ export default function DiscoverPage() {
                   <Tag key={tag}>{tag}</Tag>
                 ))}
               </div>
-              <dl className="mt-5 grid grid-cols-3 gap-3 text-sm">
+              <dl className="mt-5 grid gap-3 text-sm sm:grid-cols-2">
                 <div>
-                  <dt className="font-semibold text-ink">Sessions</dt>
-                  <dd className="text-ink/65">{snapshot.publicStats.loggedSessions}</dd>
+                  <dt className="font-semibold text-ink">Optic / sight</dt>
+                  <dd className="text-ink/65">{snapshot.opticOrSightSummary ?? "Not shared"}</dd>
                 </div>
                 <div>
-                  <dt className="font-semibold text-ink">Care logs</dt>
-                  <dd className="text-ink/65">{snapshot.publicStats.maintenanceEntries}</dd>
+                  <dt className="font-semibold text-ink">Projectile / ammo</dt>
+                  <dd className="text-ink/65">{snapshot.projectileSummary ?? "Not shared"}</dd>
                 </div>
                 <div>
-                  <dt className="font-semibold text-ink">Status</dt>
-                  <dd className="text-ink/65">{snapshot.publicStats.lastUpdatedLabel}</dd>
+                  <dt className="font-semibold text-ink">Public range reports</dt>
+                  <dd className="text-ink/65">{snapshot.publicRangeSessions.length}</dd>
+                </div>
+                <div>
+                  <dt className="font-semibold text-ink">Reactions</dt>
+                  <dd className="text-ink/65">{snapshot.reactions.helpful + snapshot.reactions.similar + snapshot.reactions.wellDocumented} placeholder reactions</dd>
                 </div>
               </dl>
+              <Link href={`/discover/passports/${snapshot.id}`} className="mt-5 inline-flex rounded-md bg-ink px-4 py-2 text-sm font-semibold text-white">
+                View public setup
+              </Link>
             </div>
           </article>
         ))}

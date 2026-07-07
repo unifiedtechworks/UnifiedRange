@@ -204,7 +204,7 @@ export const rangeSessions: RangeSession[] = [
     isCleanBarrel: false,
     isSuppressed: false,
     confidenceRating: 4,
-    sessionNotes: "Documented group history and equipment feel. No aiming corrections recorded.",
+    sessionNotes: "Documented group history and equipment feel for historical review.",
     isPublicSummary: true,
     createdAt: "2026-07-03T18:30:00Z",
     updatedAt: "2026-07-03T19:00:00Z"

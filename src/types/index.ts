@@ -180,6 +180,49 @@ export interface PublicPassportSnapshot extends Timestamped {
   };
 }
 
+export interface PublicRangeSessionSummary {
+  id: string;
+  date: string;
+  distanceLabel: string;
+  discipline: string;
+  position: string;
+  supportType: string;
+  groupOrScore?: string;
+  confidenceRating: number;
+  notes?: string;
+}
+
+export interface PublicTargetPhotoPlaceholder {
+  id: string;
+  caption?: string;
+  manualEntry?: string;
+}
+
+export interface SanitizedPublicPassport {
+  id: string;
+  equipmentPassportId: string;
+  title: string;
+  equipmentType: EquipmentType;
+  manufacturer: string;
+  model: string;
+  category: string;
+  caliber?: string;
+  opticOrSightSummary?: string;
+  projectileSummary?: string;
+  useCaseTags: string[];
+  publicNotes?: string;
+  coverPhotoUrl?: string;
+  publicRangeSessions: PublicRangeSessionSummary[];
+  publicPhotoPlaceholders: PublicTargetPhotoPlaceholder[];
+  hiddenFields: string[];
+  publicFields: string[];
+  reactions: {
+    helpful: number;
+    similar: number;
+    wellDocumented: number;
+  };
+}
+
 export interface Comment extends Timestamped {
   id: string;
   authorId: string;
