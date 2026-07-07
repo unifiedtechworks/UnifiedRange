@@ -27,7 +27,7 @@ Do not implement ballistic calculators, scope adjustment outputs, holdover recom
 6. Add mock TypeScript types in `src/types`.
 7. Add mock data in `src/data`.
 8. Create simple list/detail screens using mock data.
-9. Add TODO comments for future Supabase integration.
+9. Add TODO comments for future AWS integration.
 10. Update README with local run instructions.
 
 ## Suggested Screens

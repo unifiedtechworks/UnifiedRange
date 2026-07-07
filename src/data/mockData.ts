@@ -10,7 +10,7 @@ import type {
   UserProfile
 } from "@/types";
 
-// TODO: Replace mock records with Supabase queries once auth, RLS, and storage are wired.
+// TODO: Replace mock records with AWS AppSync queries once Cognito auth, DynamoDB data, and S3 storage are wired.
 export const currentUser: UserProfile = {
   id: "user-1",
   displayName: "Seth B.",

@@ -8,7 +8,7 @@ export default function SettingsPage() {
       <PageHeader
         eyebrow="Settings"
         title="Privacy and account defaults"
-        description="Prepare account preferences for future Supabase auth, private storage, and sanitized public sharing controls."
+        description="Prepare account preferences for future Cognito auth, private S3 storage, and sanitized public sharing controls."
       />
       <div className="grid gap-6 lg:grid-cols-2">
         <article className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
@@ -21,12 +21,12 @@ export default function SettingsPage() {
           </dl>
         </article>
         <article className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
-          <h3 className="text-xl font-bold text-ink">Future Supabase Work</h3>
+          <h3 className="text-xl font-bold text-ink">Future AWS Work</h3>
           <ul className="mt-4 space-y-3 text-sm leading-6 text-ink/70">
-            <li>TODO: Add Supabase authentication and profile tables.</li>
-            <li>TODO: Store target photos in private buckets with metadata cleanup.</li>
-            <li>TODO: Enforce row-level security for private passports, sessions, and maintenance records.</li>
-            <li>TODO: Publish only sanitized public passport snapshots to discovery.</li>
+            <li>TODO: Add Amazon Cognito authentication and user profile records.</li>
+            <li>TODO: Store target photos and setup images in private S3 buckets with metadata cleanup.</li>
+            <li>TODO: Use AppSync authorization and DynamoDB access patterns for private passports, sessions, and maintenance records.</li>
+            <li>TODO: Use Lambda workflows to publish only sanitized public passport snapshots to discovery.</li>
           </ul>
         </article>
       </div>

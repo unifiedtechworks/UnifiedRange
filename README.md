@@ -34,12 +34,15 @@ The app may store user-entered logs, setup details, target photos, range notes, 
 - Next.js
 - TypeScript
 - Tailwind CSS
-- Supabase for auth/database/storage
-- PostgreSQL
-- Row Level Security
-- Vercel deployment
+- AWS Amplify Gen 2 for full-stack app structure
+- Amazon Cognito for authentication
+- AWS AppSync GraphQL for the API layer
+- DynamoDB for app data
+- S3 for target photos and setup images
+- Lambda for public passport sanitization and image metadata stripping
+- Amplify Hosting for deployment
 
-A mobile app can come later using Expo/React Native against the same backend.
+A mobile app can come later using Expo/React Native against the same AWS backend.
 
 ## Local Development
 
@@ -70,7 +73,7 @@ The initial web app uses:
 - Domain types in `src/types`
 - Responsive app navigation for dashboard, passports, projectiles/ammo, optics/sights, range sessions, maintenance, hunting readiness, discovery, and settings
 
-Supabase integration is intentionally left as TODOs for a later task. Private records, target photo storage, row-level security, and sanitized public setup snapshots should be implemented at the data boundary before replacing mock data.
+AWS backend integration is intentionally left as TODOs for a later task. Private records, AppSync authorization, DynamoDB access patterns, S3 image storage, Lambda metadata cleanup, and sanitized public setup snapshots should be implemented at the data boundary before replacing mock data.
 
 ## Project Docs
 

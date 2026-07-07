@@ -36,7 +36,7 @@ Tasks:
 6. Build basic list/detail screens using mock data.
 7. Make the UI responsive and mobile-friendly.
 8. Update `README.md` with run instructions.
-9. Add comments/TODOs where Supabase integration will be added later.
+9. Add comments/TODOs where AWS Amplify, Cognito, AppSync, DynamoDB, S3, and Lambda integration will be added later.
 10. Keep product language focused on logging, documentation, readiness, and setup discovery.
 
 Do not add any ballistic calculator or aiming-correction functionality.
