@@ -46,6 +46,17 @@ export const optics: OpticSightProfile[] = [
     publicNotes: "Simple sight profile for close-range practice logging.",
     createdAt: "2026-07-02T11:30:00Z",
     updatedAt: "2026-07-04T09:20:00Z"
+  },
+  {
+    id: "optic-3",
+    ownerId: currentUser.id,
+    sightType: "bow_sight",
+    manufacturer: "Spot Hogg",
+    model: "Fast Eddie",
+    reticleOrPinSetup: "Multi-pin hunting setup",
+    publicNotes: "Future archery sight profile for readiness and practice notes.",
+    createdAt: "2026-07-03T11:30:00Z",
+    updatedAt: "2026-07-06T09:20:00Z"
   }
 ];
 
@@ -80,6 +91,23 @@ export const projectiles: ProjectileProfile[] = [
     publicNotes: "Hunting-season inventory and confirmation notes.",
     createdAt: "2026-07-02T12:00:00Z",
     updatedAt: "2026-07-05T12:00:00Z"
+  },
+  {
+    id: "proj-3",
+    ownerId: currentUser.id,
+    projectileType: "arrow",
+    manufacturer: "Easton",
+    productLine: "Axis 5mm",
+    caliber: "340 spine arrow",
+    arrowShaft: "Axis 5mm",
+    arrowSpine: "340",
+    pointOrBroadhead: "Field point placeholder",
+    fletching: "3 vane",
+    totalWeight: "Logged by user",
+    privateNotes: "Keep detailed build notes private until reviewed for public sharing.",
+    publicNotes: "Future archery projectile profile for practice and readiness documentation.",
+    createdAt: "2026-07-03T12:00:00Z",
+    updatedAt: "2026-07-06T12:00:00Z"
   }
 ];
 
@@ -129,6 +157,30 @@ export const equipmentPassports: EquipmentPassport[] = [
     isPublic: false,
     createdAt: "2026-07-02T12:00:00Z",
     updatedAt: "2026-07-05T13:00:00Z"
+  },
+  {
+    id: "passport-3",
+    ownerId: currentUser.id,
+    equipmentType: "bow",
+    nickname: "Range Bow Prototype",
+    manufacturer: "Mathews",
+    model: "VXR",
+    category: "Compound bow",
+    drawWeight: "Logged by user",
+    drawLength: "Logged by user",
+    bowType: "Compound",
+    opticOrSightId: "optic-3",
+    accessories: ["Quiver", "Stabilizer"],
+    preferredProjectileId: "proj-3",
+    useCaseTags: ["Archery practice", "Future support", "Hunting readiness"],
+    roundOrShotCount: 124,
+    maintenanceNotes: "String and accessory inspection placeholder.",
+    privateNotes: "Keep exact storage and purchase notes private.",
+    publicNotes: "Archery-style example showing the passport model can support future bow workflows.",
+    coverPhotoUrl: "https://images.unsplash.com/photo-1519817914152-22d216bb9170?auto=format&fit=crop&w=1200&q=80",
+    isPublic: false,
+    createdAt: "2026-07-03T12:00:00Z",
+    updatedAt: "2026-07-06T13:00:00Z"
   }
 ];
 
@@ -179,6 +231,30 @@ export const rangeSessions: RangeSession[] = [
     isPublicSummary: false,
     createdAt: "2026-07-05T15:30:00Z",
     updatedAt: "2026-07-05T16:00:00Z"
+  },
+  {
+    id: "session-3",
+    ownerId: currentUser.id,
+    equipmentPassportId: "passport-3",
+    projectileProfileId: "proj-3",
+    date: "2026-07-06",
+    distance: 20,
+    distanceUnit: "yards",
+    discipline: "Archery practice",
+    position: "Standing",
+    supportType: "Unsupported",
+    weatherNotes: "Indoor lane practice.",
+    windNotesFreeText: "Not applicable; indoor notes only.",
+    groupSize: "Manual note pending",
+    score: "Practice card pending",
+    isColdBore: false,
+    isCleanBarrel: false,
+    isSuppressed: false,
+    confidenceRating: 4,
+    sessionNotes: "Future archery-style session record using the same logbook structure.",
+    isPublicSummary: false,
+    createdAt: "2026-07-06T15:30:00Z",
+    updatedAt: "2026-07-06T16:00:00Z"
   }
 ];
 

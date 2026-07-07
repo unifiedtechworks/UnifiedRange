@@ -1,10 +1,11 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { DetailRow } from "@/components/DetailRow";
 import { PageHeader } from "@/components/PageHeader";
-import { getPassportById, getProjectileById, getSessionById, getTargetPhotosForSession } from "@/data/selectors";
+import { getOpticById, getPassportById, getProjectileById, getSessionById, getTargetPhotosForSession } from "@/data/selectors";
 
-export default function SessionDetailPage({ params }: { params: { id: string } }) {
-  const session = getSessionById(params.id);
+export default function SessionDetailPage({ params }: { params: { sessionId: string } }) {
+  const session = getSessionById(params.sessionId);
 
   if (!session) {
     notFound();
@@ -12,6 +13,7 @@ export default function SessionDetailPage({ params }: { params: { id: string } }
 
   const passport = getPassportById(session.equipmentPassportId);
   const projectile = getProjectileById(session.projectileProfileId);
+  const optic = getOpticById(passport?.opticOrSightId);
   const photos = getTargetPhotosForSession(session.id);
 
   return (
@@ -19,7 +21,12 @@ export default function SessionDetailPage({ params }: { params: { id: string } }
       <PageHeader
         eyebrow={new Date(`${session.date}T00:00:00`).toLocaleDateString()}
         title={session.discipline}
-        description="A historical practice record with user-entered context, notes, and target-photo references."
+        description="A historical practice record with user-entered context, free-text notes, and target-photo references."
+        action={
+          <Link href={`/sessions/${session.id}/edit`} className="inline-flex rounded-md bg-ink px-4 py-2 text-sm font-semibold text-white">
+            Edit session
+          </Link>
+        }
       />
 
       <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
@@ -28,12 +35,14 @@ export default function SessionDetailPage({ params }: { params: { id: string } }
           <dl className="mt-4">
             <DetailRow label="Equipment" value={passport?.nickname} />
             <DetailRow label="Projectile" value={projectile ? `${projectile.manufacturer} ${projectile.productLine}` : undefined} />
+            <DetailRow label="Optic / sight" value={optic ? `${optic.manufacturer} ${optic.model}` : undefined} />
             <DetailRow label="Distance" value={`${session.distance} ${session.distanceUnit}`} />
             <DetailRow label="Position" value={session.position} />
             <DetailRow label="Support" value={session.supportType} />
             <DetailRow label="Group / score" value={session.groupSize ?? session.score} />
-            <DetailRow label="Cold-bore marker" value={session.isColdBore ? "Yes" : "No"} />
-            <DetailRow label="Clean barrel marker" value={session.isCleanBarrel ? "Yes" : "No"} />
+            <DetailRow label="Cold-bore / first-shot marker" value={session.isColdBore ? "Yes" : "No"} />
+            <DetailRow label="Clean / fouled marker" value={session.isCleanBarrel ? "Yes" : "No"} />
+            <DetailRow label="Suppressed / accessory marker" value={session.isSuppressed ? "Yes" : "No"} />
             <DetailRow label="Confidence rating" value={`${session.confidenceRating}/5`} />
           </dl>
         </article>
@@ -43,11 +52,12 @@ export default function SessionDetailPage({ params }: { params: { id: string } }
             <h3 className="text-xl font-bold text-ink">Notes</h3>
             <p className="mt-3 text-sm leading-6 text-ink/70">{session.sessionNotes}</p>
             <p className="mt-3 text-sm leading-6 text-ink/70">{session.weatherNotes}</p>
-            {session.windNotesFreeText ? <p className="mt-3 text-sm leading-6 text-ink/70">{session.windNotesFreeText}</p> : null}
+            {session.windNotesFreeText ? <p className="mt-3 text-sm leading-6 text-ink/70">Wind notes: {session.windNotesFreeText}</p> : null}
           </article>
 
           <article className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
             <h3 className="text-xl font-bold text-ink">Target Photos</h3>
+            <p className="mt-2 text-sm leading-6 text-ink/65">Target photos are private unless explicitly shared. Real upload is not implemented yet.</p>
             <div className="mt-4 grid gap-4 md:grid-cols-2">
               {photos.map((photo) => (
                 <div key={photo.id} className="overflow-hidden rounded-md border border-ink/10">
@@ -58,7 +68,9 @@ export default function SessionDetailPage({ params }: { params: { id: string } }
                   </div>
                 </div>
               ))}
-              {photos.length === 0 ? <p className="text-sm text-ink/65">No target photos attached yet.</p> : null}
+              {photos.length === 0 ? (
+                <div className="rounded-md border border-dashed border-ink/20 bg-paper p-5 text-sm text-ink/65">No target photos attached yet.</div>
+              ) : null}
             </div>
           </article>
         </div>
