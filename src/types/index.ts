@@ -1,6 +1,6 @@
 export type PrivacyDefault = "private" | "public_sanitized";
 
-export type EquipmentType = "rifle" | "pistol" | "bow" | "crossbow" | "other";
+export type EquipmentType = "rifle" | "pistol" | "bow" | "crossbow" | "shotgun" | "other";
 
 export type ProjectileType = "ammo" | "arrow" | "bolt" | "pellet" | "other";
 

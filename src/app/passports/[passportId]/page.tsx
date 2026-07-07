@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { DetailRow } from "@/components/DetailRow";
 import { PageHeader } from "@/components/PageHeader";
@@ -5,8 +6,8 @@ import { SessionCard } from "@/components/SessionCard";
 import { Tag } from "@/components/Tag";
 import { getChecklistForPassport, getMaintenanceForPassport, getOpticById, getPassportById, getProjectileById, getSessionsForPassport } from "@/data/selectors";
 
-export default function PassportDetailPage({ params }: { params: { id: string } }) {
-  const passport = getPassportById(params.id);
+export default function PassportDetailPage({ params }: { params: { passportId: string } }) {
+  const passport = getPassportById(params.passportId);
 
   if (!passport) {
     notFound();
@@ -24,6 +25,11 @@ export default function PassportDetailPage({ params }: { params: { id: string } 
         eyebrow={passport.equipmentType}
         title={passport.nickname}
         description={passport.publicNotes ?? "Private setup documentation and readiness notes."}
+        action={
+          <Link href={`/passports/${passport.id}/edit`} className="inline-flex rounded-md bg-ink px-4 py-2 text-sm font-semibold text-white">
+            Edit passport
+          </Link>
+        }
       />
 
       <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
