@@ -281,6 +281,9 @@ export const maintenanceEntries: MaintenanceLogEntry[] = [
     roundOrShotCount: 642,
     maintenanceType: "Cleaning",
     partsChanged: [],
+    cleaningNotes: "Bore cleaned and exterior wiped down.",
+    torqueCheckNotes: "Action screws checked during routine inspection.",
+    privateNotes: "Keep detailed maintenance preferences private.",
     notes: "Bore cleaned, exterior wiped down, fasteners inspected.",
     createdAt: "2026-07-04T20:00:00Z",
     updatedAt: "2026-07-04T20:00:00Z"
@@ -293,9 +296,27 @@ export const maintenanceEntries: MaintenanceLogEntry[] = [
     roundOrShotCount: 318,
     maintenanceType: "Inspection",
     partsChanged: ["Sling swivel replaced"],
+    cleaningNotes: "Exterior inspection and wipe-down.",
+    torqueCheckNotes: "Sling hardware inspected.",
+    privateNotes: "Private pre-season inspection notes.",
     notes: "Pre-season gear inspection logged.",
     createdAt: "2026-07-05T20:00:00Z",
     updatedAt: "2026-07-05T20:00:00Z"
+  },
+  {
+    id: "maint-3",
+    ownerId: currentUser.id,
+    equipmentPassportId: "passport-3",
+    date: "2026-07-06",
+    roundOrShotCount: 124,
+    maintenanceType: "Bow inspection",
+    partsChanged: ["Peep alignment checked"],
+    cleaningNotes: "Cables and string visually inspected.",
+    torqueCheckNotes: "Accessory fasteners checked by user notes.",
+    privateNotes: "Keep storage and shop notes private.",
+    notes: "Archery equipment inspection logged for readiness tracking.",
+    createdAt: "2026-07-06T20:00:00Z",
+    updatedAt: "2026-07-06T20:00:00Z"
   }
 ];
 
@@ -323,6 +344,30 @@ export const huntingChecklists: HuntingChecklist[] = [
     notes: "Private readiness checklist for the season.",
     createdAt: "2026-07-05T08:00:00Z",
     updatedAt: "2026-07-06T10:00:00Z"
+  },
+  {
+    id: "hunt-2",
+    ownerId: currentUser.id,
+    equipmentPassportId: "passport-3",
+    huntName: "Archery field prep",
+    season: "2026 Archery Practice",
+    species: "Deer / field course",
+    checklistItems: [
+      { id: "arch-item-1", label: "License/tag confirmed", isComplete: false },
+      { id: "arch-item-2", label: "Equipment confirmed at range", isComplete: true },
+      { id: "arch-item-3", label: "First-shot/cold-bore practice logged", isComplete: true },
+      { id: "arch-item-4", label: "Field-position practice logged", isComplete: false },
+      { id: "arch-item-5", label: "Ammo/projectile verified", isComplete: true },
+      { id: "arch-item-6", label: "Optic/sight checked", isComplete: true },
+      { id: "arch-item-7", label: "Gear inspected", isComplete: true },
+      { id: "arch-item-8", label: "Pack list complete", isComplete: false },
+      { id: "arch-item-9", label: "Emergency contact plan", isComplete: false },
+      { id: "arch-item-10", label: "Offline maps prepared", isComplete: false },
+      { id: "arch-item-11", label: "Weather checked", isComplete: false }
+    ],
+    notes: "Private archery readiness checklist example.",
+    createdAt: "2026-07-06T08:00:00Z",
+    updatedAt: "2026-07-06T11:00:00Z"
   }
 ];
 

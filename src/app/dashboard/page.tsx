@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/PageHeader";
 import { PassportCard } from "@/components/PassportCard";
+import { ReadinessProgress } from "@/components/ReadinessProgress";
 import { SessionCard } from "@/components/SessionCard";
 import { StatCard } from "@/components/StatCard";
 import { equipmentPassports, huntingChecklists, maintenanceEntries, optics, projectiles, rangeSessions } from "@/data/mockData";
@@ -11,7 +12,9 @@ export default function DashboardPage() {
     { href: "/passports/new", label: "Add passport" },
     { href: "/sessions/new", label: "Log range session" },
     { href: "/projectiles/new", label: "Add projectile / ammo" },
-    { href: "/optics/new", label: "Add optic / sight" }
+    { href: "/optics/new", label: "Add optic / sight" },
+    { href: "/maintenance/new", label: "Add maintenance" },
+    { href: "/readiness/new", label: "Create readiness checklist" }
   ];
 
   return (
@@ -62,7 +65,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div>
+        <div className="space-y-6">
           <div className="mb-3 flex items-center justify-between">
             <h3 className="text-xl font-bold text-ink">Recent Sessions</h3>
             <Link href="/sessions" className="text-sm font-semibold text-moss">
@@ -74,16 +77,67 @@ export default function DashboardPage() {
               <SessionCard key={session.id} session={session} />
             ))}
           </div>
+
+          <section>
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="text-xl font-bold text-ink">Recent Maintenance</h3>
+              <Link href="/maintenance" className="text-sm font-semibold text-moss">
+                View all
+              </Link>
+            </div>
+            <div className="space-y-3">
+              {maintenanceEntries.slice(0, 2).map((entry) => (
+                <article key={entry.id} className="rounded-md border border-ink/10 bg-white p-4 shadow-soft">
+                  <p className="text-sm font-semibold text-clay">{new Date(`${entry.date}T00:00:00`).toLocaleDateString()}</p>
+                  <h4 className="mt-1 font-bold text-ink">{entry.maintenanceType}</h4>
+                  <p className="mt-1 text-sm text-ink/65">{entry.notes}</p>
+                </article>
+              ))}
+            </div>
+          </section>
+
+          <section>
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="text-xl font-bold text-ink">Readiness Progress</h3>
+              <Link href="/readiness" className="text-sm font-semibold text-moss">
+                Open checklists
+              </Link>
+            </div>
+            <div className="space-y-3">
+              {huntingChecklists.slice(0, 2).map((checklist) => (
+                <article key={checklist.id} className="rounded-md border border-ink/10 bg-white p-4 shadow-soft">
+                  <h4 className="font-bold text-ink">{checklist.huntName}</h4>
+                  <p className="mt-1 text-sm text-ink/65">{checklist.season}</p>
+                  <div className="mt-3">
+                    <ReadinessProgress checklist={checklist} />
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
         </div>
       </div>
 
-      <section className="mt-8 rounded-md border border-ink/10 bg-white p-5 shadow-soft">
-        <h3 className="text-xl font-bold text-ink">Privacy Reminder</h3>
-        <p className="mt-2 max-w-3xl text-sm leading-6 text-ink/70">
-          Public discovery uses sanitized setup snapshots. Private notes, serial numbers, exact locations, personal records, and photo metadata should stay out of public profiles.
-        </p>
-        <p className="mt-3 text-sm font-semibold text-clay">AWS Amplify, Cognito, AppSync, DynamoDB, S3, and Lambda workflows will replace this mock dashboard in a later task.</p>
-      </section>
+      <div className="mt-8 grid gap-4 lg:grid-cols-2">
+        <section className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
+          <h3 className="text-xl font-bold text-ink">Public Sharing Reminder</h3>
+          <p className="mt-2 text-sm leading-6 text-ink/70">
+            Public Passport sharing should happen only after preview. Keep serial numbers, exact locations, private purchase details, and sensitive personal info out of public snapshots.
+          </p>
+          <Link href="/discover" className="mt-4 inline-flex rounded-md border border-ink/15 bg-white px-3 py-2 text-sm font-semibold text-ink">
+            Review Discover
+          </Link>
+        </section>
+        <section className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
+          <h3 className="text-xl font-bold text-ink">Privacy-First Reminder</h3>
+          <p className="mt-2 text-sm leading-6 text-ink/70">
+            AWS Amplify, Cognito, AppSync, DynamoDB, S3, and Lambda workflows will replace mock data later. Private records stay private by default.
+          </p>
+          <Link href="/settings/privacy" className="mt-4 inline-flex rounded-md border border-ink/15 bg-white px-3 py-2 text-sm font-semibold text-ink">
+            Privacy settings
+          </Link>
+        </section>
+      </div>
     </section>
   );
 }

@@ -24,6 +24,14 @@ export function getSessionById(id: string) {
   return rangeSessions.find((session) => session.id === id);
 }
 
+export function getMaintenanceById(id: string) {
+  return maintenanceEntries.find((entry) => entry.id === id);
+}
+
+export function getChecklistById(id: string) {
+  return huntingChecklists.find((checklist) => checklist.id === id);
+}
+
 export function getSessionsForPassport(passportId: string) {
   return rangeSessions.filter((session) => session.equipmentPassportId === passportId);
 }

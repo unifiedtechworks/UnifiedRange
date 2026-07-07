@@ -138,6 +138,9 @@ export interface MaintenanceLogEntry extends Timestamped {
   roundOrShotCount: number;
   maintenanceType: string;
   partsChanged: string[];
+  cleaningNotes?: string;
+  torqueCheckNotes?: string;
+  privateNotes?: string;
   notes?: string;
 }
 

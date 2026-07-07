@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { DetailRow } from "@/components/DetailRow";
 import { PageHeader } from "@/components/PageHeader";
 import { getPassportById } from "@/data/selectors";
@@ -10,6 +11,11 @@ export default function MaintenancePage() {
         eyebrow="Maintenance"
         title="Care and inspection history"
         description="Keep equipment maintenance, cleaning, parts changes, and inspection records tied to each passport."
+        action={
+          <Link href="/maintenance/new" className="inline-flex rounded-md bg-ink px-4 py-2 text-sm font-semibold text-white">
+            Add maintenance
+          </Link>
+        }
       />
       <div className="space-y-4">
         {maintenanceEntries.map((entry) => {
@@ -28,6 +34,9 @@ export default function MaintenancePage() {
                 <DetailRow label="Parts changed" value={entry.partsChanged.length ? entry.partsChanged.join(", ") : "None"} />
                 <DetailRow label="Notes" value={entry.notes} />
               </dl>
+              <Link href={`/maintenance/${entry.id}`} className="mt-4 inline-flex rounded-md border border-ink/15 bg-white px-3 py-2 text-sm font-semibold text-ink">
+                View record
+              </Link>
             </article>
           );
         })}

@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { PageHeader } from "@/components/PageHeader";
+import { ReadinessProgress } from "@/components/ReadinessProgress";
 import { getPassportById } from "@/data/selectors";
 import { huntingChecklists } from "@/data/mockData";
 
@@ -9,6 +11,11 @@ export default function ReadinessPage() {
         eyebrow="Hunting readiness"
         title="Season prep checklists"
         description="Track license confirmation, equipment checks, field-practice logs, pack prep, maps, weather, and emergency planning."
+        action={
+          <Link href="/readiness/new" className="inline-flex rounded-md bg-ink px-4 py-2 text-sm font-semibold text-white">
+            Create checklist
+          </Link>
+        }
       />
       <div className="grid gap-5 xl:grid-cols-2">
         {huntingChecklists.map((checklist) => {
@@ -26,6 +33,9 @@ export default function ReadinessPage() {
                   {completed}/{checklist.checklistItems.length} complete
                 </span>
               </div>
+              <div className="mt-5">
+                <ReadinessProgress checklist={checklist} />
+              </div>
               <div className="mt-5 grid gap-2">
                 {checklist.checklistItems.map((item) => (
                   <div key={item.id} className="flex items-center gap-3 rounded-md border border-ink/10 px-3 py-2">
@@ -34,6 +44,9 @@ export default function ReadinessPage() {
                   </div>
                 ))}
               </div>
+              <Link href={`/readiness/${checklist.id}`} className="mt-4 inline-flex rounded-md border border-ink/15 bg-white px-3 py-2 text-sm font-semibold text-ink">
+                View checklist
+              </Link>
             </article>
           );
         })}

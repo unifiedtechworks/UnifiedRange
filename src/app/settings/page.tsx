@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { DetailRow } from "@/components/DetailRow";
 import { PageHeader } from "@/components/PageHeader";
 import { currentUser } from "@/data/mockData";
@@ -28,6 +29,15 @@ export default function SettingsPage() {
             <li>TODO: Use AppSync authorization and DynamoDB access patterns for private passports, sessions, and maintenance records.</li>
             <li>TODO: Use Lambda workflows to publish only sanitized public passport snapshots to discovery.</li>
           </ul>
+        </article>
+        <article className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
+          <h3 className="text-xl font-bold text-ink">Privacy Controls</h3>
+          <p className="mt-3 text-sm leading-6 text-ink/70">
+            Configure mock privacy defaults for Public Passport preview, metadata stripping, lot number hiding, and private-note protection.
+          </p>
+          <Link href="/settings/privacy" className="mt-4 inline-flex rounded-md bg-ink px-4 py-2 text-sm font-semibold text-white">
+            Open privacy settings
+          </Link>
         </article>
       </div>
     </section>
