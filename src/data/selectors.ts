@@ -1,0 +1,41 @@
+import {
+  equipmentPassports,
+  huntingChecklists,
+  maintenanceEntries,
+  optics,
+  projectiles,
+  rangeSessions,
+  targetPhotos
+} from "@/data/mockData";
+
+export function getPassportById(id: string) {
+  return equipmentPassports.find((passport) => passport.id === id);
+}
+
+export function getProjectileById(id?: string) {
+  return projectiles.find((projectile) => projectile.id === id);
+}
+
+export function getOpticById(id?: string) {
+  return optics.find((optic) => optic.id === id);
+}
+
+export function getSessionById(id: string) {
+  return rangeSessions.find((session) => session.id === id);
+}
+
+export function getSessionsForPassport(passportId: string) {
+  return rangeSessions.filter((session) => session.equipmentPassportId === passportId);
+}
+
+export function getMaintenanceForPassport(passportId: string) {
+  return maintenanceEntries.filter((entry) => entry.equipmentPassportId === passportId);
+}
+
+export function getChecklistForPassport(passportId: string) {
+  return huntingChecklists.find((checklist) => checklist.equipmentPassportId === passportId);
+}
+
+export function getTargetPhotosForSession(sessionId: string) {
+  return targetPhotos.filter((photo) => photo.rangeSessionId === sessionId);
+}
