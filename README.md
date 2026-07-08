@@ -112,6 +112,17 @@ Then test Cognito auth:
 
 Dashboard and product screens continue to use mock data for signed-out and signed-in users.
 
+### Manual UserProfile Test
+
+With the Amplify sandbox and dev server running:
+
+1. Sign in at `http://localhost:3000/auth/sign-in`.
+2. Open `http://localhost:3000/settings`.
+3. In the **UserProfile** card, create a profile with display name, username, bio, and privacy default.
+4. Refresh the page and confirm the profile loads from AppSync.
+5. Edit the profile and save.
+6. Sign out and confirm the profile controls are hidden or disabled while mock product screens remain available.
+
 ## MVP App Structure
 
 The initial web app uses:

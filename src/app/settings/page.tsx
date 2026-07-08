@@ -2,6 +2,7 @@ import Link from "next/link";
 import { AuthStatusCard } from "@/components/AuthStatusCard";
 import { DetailRow } from "@/components/DetailRow";
 import { PageHeader } from "@/components/PageHeader";
+import { UserProfilePanel } from "@/components/UserProfilePanel";
 import { currentUser } from "@/data/mockData";
 
 export default function SettingsPage() {
@@ -13,8 +14,9 @@ export default function SettingsPage() {
         description="Prepare account preferences for future Cognito auth, private S3 storage, and sanitized public sharing controls."
       />
       <div className="grid gap-6 lg:grid-cols-2">
+        <UserProfilePanel />
         <article className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
-          <h3 className="text-xl font-bold text-ink">Profile</h3>
+          <h3 className="text-xl font-bold text-ink">Mock Profile</h3>
           <dl className="mt-4">
             <DetailRow label="Display name" value={currentUser.displayName} />
             <DetailRow label="Username" value={currentUser.username} />
