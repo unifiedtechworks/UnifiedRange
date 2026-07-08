@@ -76,10 +76,11 @@ Local setup for the backend foundation:
 
 ```bash
 npm install
+npm run amplify:typecheck
 npm run amplify:sandbox
 ```
 
-`npm run amplify:sandbox` uses the AWS profile from your shell or `.env` and generates `amplify_outputs.json` for local client configuration. You will need AWS credentials with permission to create the sandbox resources. No AWS Console work is required by the app itself, but you may need to configure an AWS profile before running the sandbox.
+`npm run amplify:typecheck` validates the backend TypeScript contract without deploying anything. `npm run amplify:sandbox` uses the AWS profile from your shell or `.env` and generates `amplify_outputs.json` for local client configuration. You will need AWS credentials with permission to create the sandbox resources. No AWS Console work is required by the app itself, but you may need to configure an AWS profile before running the sandbox.
 
 Current backend draft:
 
@@ -90,7 +91,7 @@ Current backend draft:
 - Signed-in-only comments, reactions, and reports
 - Owner-scoped private records for passports, projectiles/ammo, optics/sights, sessions, maintenance, and hunting checklists
 
-The frontend keeps using mock data until the generated Amplify outputs are wired into live data flows.
+The frontend keeps using mock data until the generated Amplify outputs are wired into live data flows. Do not gate the app behind Cognito or replace mock screens until the data boundary is implemented deliberately.
 
 ## MVP App Structure
 

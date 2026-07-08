@@ -10,9 +10,8 @@
 - TargetPhoto
 - MaintenanceLogEntry
 - HuntingChecklist
-- HuntingChecklistItem
 
-Each private model should include an owner identity field tied to Cognito. AppSync authorization should restrict read and write access to the owner.
+Each private model should include an `ownerId` identity field tied to Cognito. AppSync authorization should use `allow.ownerDefinedIn("ownerId")` or the model-specific owner field so private reads and writes stay scoped to the signed-in owner.
 
 ## Public Discovery Models
 
@@ -24,6 +23,8 @@ Each private model should include an owner identity field tied to Cognito. AppSy
 - Report
 
 PublicPassportSnapshot should be generated from private records through a sanitization workflow. It should duplicate safe public fields instead of joining directly to private records.
+
+Comments and reactions can be readable to signed-in users for community workflows, but create/update/delete access should remain scoped to the author. Reports should stay scoped to the reporter until an admin/moderation workflow exists.
 
 ## DynamoDB Access Patterns
 
@@ -38,3 +39,15 @@ PublicPassportSnapshot should be generated from private records through a saniti
 ## Notes
 
 Private notes, lot numbers, purchase details, exact locations, maintenance details, and image metadata must not be copied into public records.
+
+Run this local validation before deploying a sandbox:
+
+```bash
+npm run amplify:typecheck
+```
+
+Run the local sandbox only after AWS credentials are configured:
+
+```bash
+npm run amplify:sandbox
+```

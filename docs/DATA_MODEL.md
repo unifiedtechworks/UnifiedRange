@@ -19,7 +19,7 @@ Use a broad model so UnifiedRange can support rifles first, then pistols and arc
 
 - id
 - ownerId
-- equipmentType: rifle | pistol | bow | crossbow | other
+- equipmentType: rifle | pistol | bow | crossbow | shotgun | other
 - nickname
 - manufacturer
 - model
@@ -166,6 +166,8 @@ A sanitized public representation of an EquipmentPassport.
 - publicNotes
 - coverPhotoUrl
 - publicStats
+- publicRangeSessions
+- publicPhotoPlaceholders
 - createdAt
 - updatedAt
 
