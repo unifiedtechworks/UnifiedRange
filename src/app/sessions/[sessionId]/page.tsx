@@ -23,9 +23,14 @@ export default function SessionDetailPage({ params }: { params: { sessionId: str
         title={session.discipline}
         description="A historical practice record with user-entered context, free-text notes, and target-photo references."
         action={
-          <Link href={`/sessions/${session.id}/edit`} className="inline-flex rounded-md bg-ink px-4 py-2 text-sm font-semibold text-white">
-            Edit session
-          </Link>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Link href="/sessions" className="inline-flex justify-center rounded-md border border-ink/15 bg-white px-4 py-2 text-sm font-semibold text-ink">
+              Back to Range Sessions
+            </Link>
+            <Link href={`/sessions/${session.id}/edit`} className="inline-flex justify-center rounded-md bg-ink px-4 py-2 text-sm font-semibold text-white">
+              Edit session
+            </Link>
+          </div>
         }
       />
 

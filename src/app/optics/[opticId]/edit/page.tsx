@@ -16,7 +16,7 @@ export default function EditOpticPage({ params }: { params: { opticId: string } 
     model: optic.model,
     reticleOrPinSetup: optic.reticleOrPinSetup ?? "",
     magnification: optic.magnification ?? "",
-    adjustmentUnit: optic.adjustmentUnit ?? "",
+    sightUnit: optic.sightUnit ?? "",
     clickValue: optic.clickValue ?? "",
     privateNotes: optic.privateNotes ?? "",
     publicNotes: optic.publicNotes ?? ""

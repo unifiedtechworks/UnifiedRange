@@ -14,7 +14,7 @@ export function OpticSightCard({ optic }: { optic: OpticSightProfile }) {
       <dl className="mt-4">
         <DetailRow label="Reticle / pin setup" value={optic.reticleOrPinSetup} />
         <DetailRow label="Magnification" value={optic.magnification} />
-        <DetailRow label="Adjustment unit" value={optic.adjustmentUnit} />
+        <DetailRow label="Sight unit" value={optic.sightUnit} />
       </dl>
     </Link>
   );

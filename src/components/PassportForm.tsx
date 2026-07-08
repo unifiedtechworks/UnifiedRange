@@ -100,7 +100,7 @@ export function PassportForm({ mode, initialValues, cancelHref }: PassportFormPr
     };
 
     console.log(`Passport ${mode} placeholder submit`, payload);
-    setSuccessMessage(mode === "create" ? "Passport draft captured locally. Backend save will come later." : "Passport updates captured locally. Backend save will come later.");
+    setSuccessMessage(mode === "create" ? "Draft saved locally for this mock MVP. No backend write occurred." : "Updates saved locally for this mock MVP. No backend write occurred.");
   }
 
   return (

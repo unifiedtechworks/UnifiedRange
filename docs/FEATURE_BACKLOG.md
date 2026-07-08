@@ -18,10 +18,11 @@
 
 ## V1.1
 
-- Supabase auth
-- Supabase database persistence
-- Supabase storage for photos
-- Row Level Security
+- Amazon Cognito auth
+- AppSync GraphQL API
+- DynamoDB persistence
+- S3 storage for photos
+- AppSync authorization rules
 - Public/private sharing controls
 - EXIF metadata stripping
 - Public profile pages

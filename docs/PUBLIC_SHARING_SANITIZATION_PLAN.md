@@ -45,4 +45,4 @@ Reports should support reasons for unsafe weapon content, illegal hunting / poac
 
 ## Safety Boundary
 
-Public pages are for setup discovery and range-log sharing. They must not include firing solutions, instructions for changing equipment settings, or aiming guidance.
+Public pages are for setup discovery and range-log sharing. They must stay focused on sanitized documentation and community setup context.

@@ -30,7 +30,7 @@ export const optics: OpticSightProfile[] = [
     model: "Diamondback Tactical",
     reticleOrPinSetup: "EBR-style reticle",
     magnification: "4-16x",
-    adjustmentUnit: "MOA",
+    sightUnit: "MOA",
     clickValue: "1/4 MOA",
     publicNotes: "Reliable practice optic with clear documentation notes.",
     createdAt: "2026-07-01T10:30:00Z",

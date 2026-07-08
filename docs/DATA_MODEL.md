@@ -76,7 +76,7 @@ For firearms, this means ammo. For archery, this means arrows/bolts.
 - model
 - reticleOrPinSetup
 - magnification
-- adjustmentUnit
+- sightUnit
 - clickValue
 - privateNotes
 - publicNotes

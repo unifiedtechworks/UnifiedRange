@@ -12,7 +12,7 @@ export interface OpticSightFormValues {
   model: string;
   reticleOrPinSetup: string;
   magnification: string;
-  adjustmentUnit: string;
+  sightUnit: string;
   clickValue: string;
   privateNotes: string;
   publicNotes: string;
@@ -30,7 +30,7 @@ const defaultValues: OpticSightFormValues = {
   model: "",
   reticleOrPinSetup: "",
   magnification: "",
-  adjustmentUnit: "",
+  sightUnit: "",
   clickValue: "",
   privateNotes: "",
   publicNotes: ""
@@ -78,7 +78,7 @@ export function OpticSightForm({ mode, initialValues, cancelHref }: OpticSightFo
     }
 
     console.log(`Optic / sight ${mode} placeholder submit`, values);
-    setSuccessMessage(mode === "create" ? "Optic / sight profile draft captured locally." : "Optic / sight updates captured locally.");
+    setSuccessMessage(mode === "create" ? "Draft saved locally for this mock MVP. No backend write occurred." : "Updates saved locally for this mock MVP. No backend write occurred.");
   }
 
   return (
@@ -86,7 +86,7 @@ export function OpticSightForm({ mode, initialValues, cancelHref }: OpticSightFo
       <section className="rounded-md border border-steel/20 bg-white p-4 shadow-soft sm:p-5">
         <h3 className="text-lg font-bold text-ink">Sight Profile</h3>
         <p className="mt-2 text-sm leading-6 text-ink/70">
-          Store optic and sight details for setup documentation only. UnifiedRange does not calculate corrections or provide adjustment instructions.
+          Store optic and sight details for setup documentation only. UnifiedRange keeps this as recordkeeping, not field-use guidance.
         </p>
         <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           <FormField label="Sight type">
@@ -106,7 +106,7 @@ export function OpticSightForm({ mode, initialValues, cancelHref }: OpticSightFo
           <TextField label="Model" value={values.model} error={errors.model} required onChange={(value) => updateField("model", value)} />
           <TextField label="Reticle / pin setup" value={values.reticleOrPinSetup} onChange={(value) => updateField("reticleOrPinSetup", value)} />
           <TextField label="Magnification" value={values.magnification} onChange={(value) => updateField("magnification", value)} />
-          <TextField label="Adjustment unit" value={values.adjustmentUnit} onChange={(value) => updateField("adjustmentUnit", value)} />
+          <TextField label="Sight unit" value={values.sightUnit} onChange={(value) => updateField("sightUnit", value)} />
           <TextField label="Click value" value={values.clickValue} onChange={(value) => updateField("clickValue", value)} />
         </div>
       </section>

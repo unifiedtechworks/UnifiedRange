@@ -30,4 +30,4 @@ Create strong TypeScript models for the MVP entities.
 
 - Types compile.
 - Mock data renders on existing screens.
-- Models are documented enough for future Supabase schema creation.
+- Models are documented enough for future Amplify Gen 2, AppSync, and DynamoDB schema planning.

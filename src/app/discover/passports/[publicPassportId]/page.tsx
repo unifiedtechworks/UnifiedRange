@@ -19,7 +19,7 @@ export default function PublicPassportDetailPage({ params }: { params: { publicP
       <PageHeader
         eyebrow="Public setup discovery"
         title={passport.title}
-        description="Public pages are for setup discovery and range-log sharing, not firing solutions, corrections, or aiming guidance."
+        description="Public pages are for Setup Discovery and range-log sharing, with sanitized documentation only."
         action={
           <Link href="/discover" className="inline-flex rounded-md border border-ink/15 bg-white px-4 py-2 text-sm font-semibold text-ink">
             Back to Discover

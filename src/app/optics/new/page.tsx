@@ -7,7 +7,7 @@ export default function NewOpticPage() {
       <PageHeader
         eyebrow="New optic / sight"
         title="Create a sight profile"
-        description="Document optic, sight, reticle, or pin setup details for setup history. No adjustment or aiming guidance is generated."
+        description="Document optic, sight, reticle, or pin setup details for setup history and private records."
       />
       <OpticSightForm mode="create" cancelHref="/optics" />
     </section>

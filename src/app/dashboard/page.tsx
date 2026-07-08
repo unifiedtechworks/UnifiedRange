@@ -22,7 +22,7 @@ export default function DashboardPage() {
       <PageHeader
         eyebrow="Private by default"
         title="Your range logbook and setup passport"
-        description="Document equipment, range sessions, maintenance, hunting readiness, and public setup snapshots without turning records into aiming guidance."
+        description="Document equipment, range sessions, maintenance, Hunting Readiness, and Public Passport snapshots in one private-first logbook."
         action={
           <Link href="/passports" className="inline-flex rounded-md bg-ink px-4 py-2 text-sm font-semibold text-white">
             View passports

@@ -65,7 +65,7 @@ Future archery fields:
 - Model
 - Type
 - Reticle/pin configuration
-- Adjustment unit if applicable
+- Sight unit if applicable
 - Notes
 
 No aiming corrections should be calculated.

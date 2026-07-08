@@ -106,7 +106,7 @@ export function ProjectileForm({ mode, initialValues, cancelHref }: ProjectileFo
     };
 
     console.log(`Projectile ${mode} placeholder submit`, payload);
-    setSuccessMessage(mode === "create" ? "Projectile profile draft captured locally." : "Projectile profile updates captured locally.");
+    setSuccessMessage(mode === "create" ? "Draft saved locally for this mock MVP. No backend write occurred." : "Updates saved locally for this mock MVP. No backend write occurred.");
   }
 
   return (

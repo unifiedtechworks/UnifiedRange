@@ -93,7 +93,7 @@ export function HuntingReadinessForm({
     if (!validate()) return;
 
     console.log(`Readiness ${mode} placeholder submit`, values);
-    setSuccessMessage(mode === "create" ? "Readiness checklist captured locally." : "Readiness checklist updates captured locally.");
+    setSuccessMessage(mode === "create" ? "Draft saved locally for this mock MVP. No backend write occurred." : "Updates saved locally for this mock MVP. No backend write occurred.");
   }
 
   const completed = values.checklistItems.filter((item) => item.isComplete).length;

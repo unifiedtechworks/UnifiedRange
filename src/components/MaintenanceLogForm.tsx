@@ -81,7 +81,7 @@ export function MaintenanceLogForm({
     };
 
     console.log(`Maintenance ${mode} placeholder submit`, payload);
-    setSuccessMessage(mode === "create" ? "Maintenance record captured locally." : "Maintenance updates captured locally.");
+    setSuccessMessage(mode === "create" ? "Draft saved locally for this mock MVP. No backend write occurred." : "Updates saved locally for this mock MVP. No backend write occurred.");
   }
 
   return (

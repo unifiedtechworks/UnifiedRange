@@ -90,7 +90,7 @@ export interface OpticSightProfile extends Timestamped {
   model: string;
   reticleOrPinSetup?: string;
   magnification?: string;
-  adjustmentUnit?: string;
+  sightUnit?: string;
   clickValue?: string;
   privateNotes?: string;
   publicNotes?: string;

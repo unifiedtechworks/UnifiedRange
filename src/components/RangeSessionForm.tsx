@@ -125,7 +125,7 @@ export function RangeSessionForm({
     };
 
     console.log(`Range session ${mode} placeholder submit`, payload);
-    setSuccessMessage(mode === "create" ? "Range session draft captured locally." : "Range session updates captured locally.");
+    setSuccessMessage(mode === "create" ? "Draft saved locally for this mock MVP. No backend write occurred." : "Updates saved locally for this mock MVP. No backend write occurred.");
   }
 
   return (
@@ -133,7 +133,7 @@ export function RangeSessionForm({
       <section className="rounded-md border border-moss/20 bg-field p-4">
         <h3 className="text-base font-bold text-ink">Logbook Boundary</h3>
         <p className="mt-2 text-sm leading-6 text-ink/70">
-          Range sessions store historical notes and user-entered results. Wind notes are free text only, and this form does not calculate holds, corrections, or aiming guidance.
+          Range sessions store historical notes and user-entered results. Wind notes are free text only and remain part of the written log.
         </p>
       </section>
 
@@ -178,7 +178,7 @@ export function RangeSessionForm({
         <h3 className="text-lg font-bold text-ink">Notes</h3>
         <div className="mt-5 grid gap-4 lg:grid-cols-3">
           <TextArea label="Weather notes" value={values.weatherNotes} onChange={(value) => updateField("weatherNotes", value)} />
-          <TextArea label="Wind notes" value={values.windNotesFreeText} helper="Free text only. No wind hold or correction calculation." onChange={(value) => updateField("windNotesFreeText", value)} />
+          <TextArea label="Wind notes" value={values.windNotesFreeText} helper="Free text only for historical conditions." onChange={(value) => updateField("windNotesFreeText", value)} />
           <TextArea label="Session notes" value={values.sessionNotes} onChange={(value) => updateField("sessionNotes", value)} />
         </div>
       </section>

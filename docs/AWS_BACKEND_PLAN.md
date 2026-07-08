@@ -40,4 +40,4 @@ Public data is a separate sanitized snapshot. Public Passport records should nev
 
 ## Safety Boundary
 
-The backend must support logging, documentation, readiness, and setup discovery only. It must not compute firing solutions, output instructions for equipment adjustment, or provide aiming guidance.
+The backend must support logging, documentation, readiness, and setup discovery only. It must not produce field-use directions or live-use guidance.

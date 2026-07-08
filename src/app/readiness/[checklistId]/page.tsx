@@ -20,9 +20,14 @@ export default function ReadinessDetailPage({ params }: { params: { checklistId:
         title={checklist.huntName}
         description="Readiness records are private by default and help organize responsible field preparation."
         action={
-          <Link href={`/readiness/${checklist.id}/edit`} className="inline-flex rounded-md bg-ink px-4 py-2 text-sm font-semibold text-white">
-            Edit checklist
-          </Link>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Link href="/readiness" className="inline-flex justify-center rounded-md border border-ink/15 bg-white px-4 py-2 text-sm font-semibold text-ink">
+              Back to Hunting Readiness
+            </Link>
+            <Link href={`/readiness/${checklist.id}/edit`} className="inline-flex justify-center rounded-md bg-ink px-4 py-2 text-sm font-semibold text-white">
+              Edit checklist
+            </Link>
+          </div>
         }
       />
       <div className="grid gap-6 lg:grid-cols-[0.85fr_1.15fr]">
