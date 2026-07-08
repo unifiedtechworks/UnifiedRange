@@ -93,6 +93,25 @@ Current backend draft:
 
 The frontend keeps using mock data until the generated Amplify outputs are wired into live data flows. Do not gate the app behind Cognito or replace mock screens until the data boundary is implemented deliberately.
 
+### Manual Auth Test
+
+Start the app after the sandbox has generated `amplify_outputs.json`:
+
+```bash
+npm run dev
+```
+
+Then test Cognito auth:
+
+1. Open `http://localhost:3000/auth/sign-in`.
+2. Choose **Sign up** and create an account with an email and password that satisfies the Cognito password policy.
+3. If Cognito sends an email code, enter it in the confirmation form.
+4. Sign in with the confirmed email and password.
+5. Verify the Auth Status card shows the signed-in email or username.
+6. Use **Sign out** and verify the Auth Status card returns to signed-out state.
+
+Dashboard and product screens continue to use mock data for signed-out and signed-in users.
+
 ## MVP App Structure
 
 The initial web app uses:
