@@ -62,6 +62,36 @@ npm run lint
 npm run build
 ```
 
+## Amplify Gen 2 Foundation
+
+The repository includes a minimal AWS Amplify Gen 2 backend draft in `amplify/`. The mock MVP still works without a deployed backend.
+
+Declared AWS packages:
+
+- `aws-amplify`
+- `@aws-amplify/backend`
+- `@aws-amplify/backend-cli`
+
+Local setup for the backend foundation:
+
+```bash
+npm install
+npm run amplify:sandbox
+```
+
+`npm run amplify:sandbox` uses the AWS profile from your shell or `.env` and generates `amplify_outputs.json` for local client configuration. You will need AWS credentials with permission to create the sandbox resources. No AWS Console work is required by the app itself, but you may need to configure an AWS profile before running the sandbox.
+
+Current backend draft:
+
+- Amazon Cognito email/password auth
+- AWS AppSync GraphQL data layer
+- DynamoDB-backed app models
+- Publicly readable sanitized Public Passport snapshots
+- Signed-in-only comments, reactions, and reports
+- Owner-scoped private records for passports, projectiles/ammo, optics/sights, sessions, maintenance, and hunting checklists
+
+The frontend keeps using mock data until the generated Amplify outputs are wired into live data flows.
+
 ## MVP App Structure
 
 The initial web app uses:
@@ -73,7 +103,7 @@ The initial web app uses:
 - Domain types in `src/types`
 - Responsive app navigation for dashboard, passports, projectiles/ammo, optics/sights, range sessions, maintenance, hunting readiness, discovery, and settings
 
-AWS backend integration is intentionally left as TODOs for a later task. Private records, AppSync authorization, DynamoDB access patterns, S3 image storage, Lambda metadata cleanup, and sanitized public setup snapshots should be implemented at the data boundary before replacing mock data.
+AWS backend integration is intentionally staged. Private records, AppSync authorization, DynamoDB access patterns, S3 image storage, Lambda metadata cleanup, and sanitized public setup snapshots should be connected at the data boundary before replacing mock data.
 
 ## Project Docs
 

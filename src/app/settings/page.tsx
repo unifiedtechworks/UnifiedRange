@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AuthStatusCard } from "@/components/AuthStatusCard";
 import { DetailRow } from "@/components/DetailRow";
 import { PageHeader } from "@/components/PageHeader";
 import { currentUser } from "@/data/mockData";
@@ -24,12 +25,13 @@ export default function SettingsPage() {
         <article className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
           <h3 className="text-xl font-bold text-ink">Future AWS Work</h3>
           <ul className="mt-4 space-y-3 text-sm leading-6 text-ink/70">
-            <li>TODO: Add Amazon Cognito authentication and user profile records.</li>
+            <li>TODO: Connect Amazon Cognito authentication and user profile records after the Amplify sandbox is available.</li>
             <li>TODO: Store target photos and setup images in private S3 buckets with metadata cleanup.</li>
             <li>TODO: Use AppSync authorization and DynamoDB access patterns for private passports, sessions, and maintenance records.</li>
             <li>TODO: Use Lambda workflows to publish only sanitized public passport snapshots to discovery.</li>
           </ul>
         </article>
+        <AuthStatusCard />
         <article className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
           <h3 className="text-xl font-bold text-ink">Privacy Controls</h3>
           <p className="mt-3 text-sm leading-6 text-ink/70">
