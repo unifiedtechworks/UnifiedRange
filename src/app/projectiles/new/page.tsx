@@ -1,5 +1,5 @@
 import { PageHeader } from "@/components/PageHeader";
-import { ProjectileForm } from "@/components/ProjectileForm";
+import { ProjectileProfileCreate } from "@/components/ProjectileProfileCreate";
 
 export default function NewProjectilePage() {
   return (
@@ -7,9 +7,9 @@ export default function NewProjectilePage() {
       <PageHeader
         eyebrow="New projectile / ammo"
         title="Create a projectile profile"
-        description="Add ammunition now, or use the broader fields for future arrow, bolt, pellet, or other projectile support."
+        description="Add ammunition now, or use the broader fields for future arrow, bolt, pellet, or other projectile support. Signed-in users save this record to private AppSync account data."
       />
-      <ProjectileForm mode="create" cancelHref="/projectiles" />
+      <ProjectileProfileCreate />
     </section>
   );
 }

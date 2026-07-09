@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/PageHeader";
-import { ProjectileCard } from "@/components/ProjectileCard";
-import { projectiles } from "@/data/mockData";
+import { ProjectileProfileList } from "@/components/ProjectileProfileList";
 
 export default function ProjectilesPage() {
   return (
@@ -16,11 +15,7 @@ export default function ProjectilesPage() {
           </Link>
         }
       />
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {projectiles.map((projectile) => (
-          <ProjectileCard key={projectile.id} projectile={projectile} />
-        ))}
-      </div>
+      <ProjectileProfileList />
     </section>
   );
 }

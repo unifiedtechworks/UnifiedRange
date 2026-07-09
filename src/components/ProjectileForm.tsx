@@ -29,6 +29,11 @@ interface ProjectileFormProps {
   mode: "create" | "edit";
   initialValues?: Partial<ProjectileFormValues>;
   cancelHref: string;
+  submitLabel?: string;
+  successMessage?: string;
+  errorMessage?: string;
+  isSubmitting?: boolean;
+  onSubmit?: (values: ProjectileFormValues) => Promise<void> | void;
 }
 
 const defaultValues: ProjectileFormValues = {
@@ -58,16 +63,16 @@ const projectileOptions: { value: ProjectileType; label: string }[] = [
   { value: "other", label: "Other" }
 ];
 
-export function ProjectileForm({ mode, initialValues, cancelHref }: ProjectileFormProps) {
+export function ProjectileForm({ mode, initialValues, cancelHref, submitLabel, successMessage, errorMessage, isSubmitting = false, onSubmit }: ProjectileFormProps) {
   const mergedValues = useMemo(() => ({ ...defaultValues, ...initialValues }), [initialValues]);
   const [values, setValues] = useState<ProjectileFormValues>(mergedValues);
   const [errors, setErrors] = useState<Partial<Record<keyof ProjectileFormValues, string>>>({});
-  const [successMessage, setSuccessMessage] = useState("");
+  const [localSuccessMessage, setLocalSuccessMessage] = useState("");
 
   function updateField<K extends keyof ProjectileFormValues>(field: K, value: ProjectileFormValues[K]) {
     setValues((current) => ({ ...current, [field]: value }));
     setErrors((current) => ({ ...current, [field]: undefined }));
-    setSuccessMessage("");
+    setLocalSuccessMessage("");
   }
 
   function validate() {
@@ -91,22 +96,21 @@ export function ProjectileForm({ mode, initialValues, cancelHref }: ProjectileFo
     return Object.keys(nextErrors).length === 0;
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (!validate()) {
-      setSuccessMessage("");
+      setLocalSuccessMessage("");
       return;
     }
 
-    const payload = {
-      ...values,
-      roundsPurchased: Number(values.roundsPurchased || 0),
-      roundsRemaining: Number(values.roundsRemaining || 0)
-    };
+    if (onSubmit) {
+      await onSubmit(values);
+      return;
+    }
 
-    console.log(`Projectile ${mode} placeholder submit`, payload);
-    setSuccessMessage(mode === "create" ? "Draft saved locally for this mock MVP. No backend write occurred." : "Updates saved locally for this mock MVP. No backend write occurred.");
+    console.log(`Projectile ${mode} placeholder submit`, values);
+    setLocalSuccessMessage(mode === "create" ? "Demo draft saved locally. Sign in to save this profile to your account." : "Demo updates saved locally. Sign in to save projectile changes to your account.");
   }
 
   return (
@@ -164,14 +168,24 @@ export function ProjectileForm({ mode, initialValues, cancelHref }: ProjectileFo
         </div>
       </section>
 
-      {successMessage ? <div className="rounded-md border border-moss/30 bg-field px-4 py-3 text-sm font-semibold text-moss">{successMessage}</div> : null}
+      {errorMessage ? (
+        <div className="rounded-md border border-clay/30 bg-clay/10 px-4 py-3 text-sm font-semibold text-clay" role="alert">
+          {errorMessage}
+        </div>
+      ) : null}
+
+      {successMessage || localSuccessMessage ? (
+        <div className="rounded-md border border-moss/30 bg-field px-4 py-3 text-sm font-semibold text-moss" role="status">
+          {successMessage ?? localSuccessMessage}
+        </div>
+      ) : null}
 
       <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
         <Link href={cancelHref} className="inline-flex justify-center rounded-md border border-ink/15 bg-white px-4 py-2 text-sm font-semibold text-ink">
           Cancel
         </Link>
-        <button type="submit" className="inline-flex justify-center rounded-md bg-ink px-4 py-2 text-sm font-semibold text-white">
-          {mode === "create" ? "Create projectile draft" : "Save projectile draft"}
+        <button type="submit" disabled={isSubmitting} className="inline-flex justify-center rounded-md bg-ink px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60">
+          {isSubmitting ? "Saving..." : submitLabel ?? (mode === "create" ? "Create projectile draft" : "Save projectile draft")}
         </button>
       </div>
     </form>
