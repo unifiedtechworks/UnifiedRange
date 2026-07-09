@@ -123,6 +123,19 @@ With the Amplify sandbox and dev server running:
 5. Edit the profile and save.
 6. Sign out and confirm the profile controls are hidden or disabled while mock product screens remain available.
 
+### Manual Equipment Passport CRUD Test
+
+With the Amplify sandbox and dev server running, restart or rerun the sandbox after pulling this change so AppSync includes the latest `EquipmentPassport` fields:
+
+1. Sign in at `http://localhost:3000/auth/sign-in`.
+2. Open `http://localhost:3000/passports`.
+3. Use **New passport** to create a saved Equipment Passport.
+4. Refresh the passport list and confirm the saved account record persists above the demo data.
+5. Open the saved passport detail page.
+6. Use **Edit passport**, update the record, and save.
+7. Refresh the detail page and confirm the edits persist.
+8. Sign out and confirm the Equipment Passports area still shows clearly labeled demo data.
+
 ## MVP App Structure
 
 The initial web app uses:

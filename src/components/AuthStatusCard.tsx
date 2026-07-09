@@ -1,47 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { fetchUserAttributes, getCurrentUser, signOut } from "aws-amplify/auth";
-import { useCallback, useEffect, useState } from "react";
+import { signOut } from "aws-amplify/auth";
+import { useState } from "react";
 import { configureAmplifyClient, getAmplifyClientMessage, getAuthErrorMessage, notifyAuthChanged } from "@/lib/amplifyClient";
-
-type AuthState =
-  | { status: "loading"; label: string }
-  | { status: "signed-out"; label: string }
-  | { status: "signed-in"; label: string; username: string };
+import { useAuthUser } from "@/hooks/useAuthUser";
 
 export function AuthStatusCard() {
-  const [authState, setAuthState] = useState<AuthState>({ status: "loading", label: "Checking auth status..." });
+  const { authState, refreshAuthState } = useAuthUser();
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [error, setError] = useState("");
-
-  const loadAuthState = useCallback(async () => {
-    try {
-      configureAmplifyClient();
-      const currentUser = await getCurrentUser();
-      const attributes = await fetchUserAttributes();
-      setAuthState({
-        status: "signed-in",
-        username: currentUser.username,
-        label: attributes.email ?? currentUser.signInDetails?.loginId ?? currentUser.username
-      });
-      setError("");
-    } catch {
-      setAuthState({ status: "signed-out", label: "No active Cognito session" });
-    }
-  }, []);
-
-  useEffect(() => {
-    window.addEventListener("unifiedrange-auth-change", loadAuthState);
-    const loadInitialState = window.setTimeout(() => {
-      void loadAuthState();
-    }, 0);
-
-    return () => {
-      window.clearTimeout(loadInitialState);
-      window.removeEventListener("unifiedrange-auth-change", loadAuthState);
-    };
-  }, [loadAuthState]);
 
   async function handleSignOut() {
     setIsSigningOut(true);
@@ -51,7 +19,7 @@ export function AuthStatusCard() {
       configureAmplifyClient();
       await signOut();
       notifyAuthChanged();
-      setAuthState({ status: "signed-out", label: "Signed out" });
+      await refreshAuthState();
     } catch (signOutError) {
       setError(getAuthErrorMessage(signOutError));
     } finally {
@@ -70,6 +38,7 @@ export function AuthStatusCard() {
           <p className="mt-3 text-sm leading-6 text-ink/70">{getAmplifyClientMessage()}</p>
           <p className="mt-3 text-sm font-semibold text-ink">{authState.label}</p>
           {authState.status === "signed-in" ? <p className="mt-1 text-xs text-ink/55">Cognito username: {authState.username}</p> : null}
+          {authState.error ? <p className="mt-3 rounded-md bg-clay/10 px-3 py-2 text-sm font-semibold text-clay">{authState.error}</p> : null}
           {error ? <p className="mt-3 rounded-md bg-clay/10 px-3 py-2 text-sm font-semibold text-clay">{error}</p> : null}
         </div>
         <span className="w-fit rounded-md bg-field px-3 py-1 text-xs font-semibold text-ink">

@@ -1,7 +1,6 @@
 import Link from "next/link";
+import { EquipmentPassportList } from "@/components/EquipmentPassportList";
 import { PageHeader } from "@/components/PageHeader";
-import { PassportCard } from "@/components/PassportCard";
-import { equipmentPassports } from "@/data/mockData";
 
 export default function PassportsPage() {
   return (
@@ -16,11 +15,7 @@ export default function PassportsPage() {
           </Link>
         }
       />
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {equipmentPassports.map((passport) => (
-          <PassportCard key={passport.id} passport={passport} />
-        ))}
-      </div>
+      <EquipmentPassportList />
     </section>
   );
 }

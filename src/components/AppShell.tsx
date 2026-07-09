@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+import { AuthNav } from "@/components/AuthNav";
 
 const navigation = [
   { href: "/dashboard", label: "Dashboard" },
@@ -21,7 +22,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen bg-paper">
-      <aside className="fixed inset-y-0 left-0 hidden w-72 border-r border-ink/10 bg-white/85 px-5 py-6 backdrop-blur lg:block">
+      <aside className="fixed inset-y-0 left-0 hidden w-72 flex-col border-r border-ink/10 bg-white/85 px-5 py-6 backdrop-blur lg:flex">
         <Link href="/dashboard" className="block">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-moss">UnifiedRange</p>
           <h1 className="mt-2 text-2xl font-bold text-ink">Setup logbook</h1>
@@ -42,6 +43,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             );
           })}
         </nav>
+        <AuthNav />
       </aside>
 
       <div className="lg:pl-72">
@@ -50,7 +52,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Link href="/dashboard">
               <span className="text-sm font-semibold uppercase tracking-[0.18em] text-moss">UnifiedRange</span>
             </Link>
-            <span className="rounded-md bg-field px-2 py-1 text-xs font-semibold text-ink">MVP</span>
+            <AuthNav compact />
           </div>
           <nav className="mt-3 flex gap-2 overflow-x-auto pb-1">
             {navigation.map((item) => {

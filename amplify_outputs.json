@@ -242,6 +242,13 @@
               "isRequired": false,
               "attributes": []
             },
+            "opticSightSummary": {
+              "name": "opticSightSummary",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
             "accessories": {
               "name": "accessories",
               "isArray": true,
@@ -254,6 +261,13 @@
               "name": "preferredProjectileId",
               "isArray": false,
               "type": "ID",
+              "isRequired": false,
+              "attributes": []
+            },
+            "projectileAmmoSummary": {
+              "name": "projectileAmmoSummary",
+              "isArray": false,
+              "type": "String",
               "isRequired": false,
               "attributes": []
             },

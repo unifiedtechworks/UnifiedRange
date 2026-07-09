@@ -22,6 +22,10 @@ export function getAmplifyClientMessage() {
 
 export function getAuthErrorMessage(error: unknown) {
   if (error instanceof Error) {
+    if (error.name === "UserAlreadyAuthenticatedException") {
+      return "You are already signed in.";
+    }
+
     return error.message;
   }
 

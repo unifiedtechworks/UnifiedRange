@@ -1,5 +1,5 @@
+import { EquipmentPassportCreate } from "@/components/EquipmentPassportCreate";
 import { PageHeader } from "@/components/PageHeader";
-import { PassportForm } from "@/components/PassportForm";
 
 export default function NewPassportPage() {
   return (
@@ -7,9 +7,9 @@ export default function NewPassportPage() {
       <PageHeader
         eyebrow="New equipment passport"
         title="Create a private setup record"
-        description="Start with the setup details you want to track. This placeholder form keeps values local until the AWS backend is implemented."
+        description="Start with the setup details you want to track. Signed-in users save this record to their private AppSync account data."
       />
-      <PassportForm mode="create" cancelHref="/passports" />
+      <EquipmentPassportCreate />
     </section>
   );
 }

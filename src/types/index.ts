@@ -50,8 +50,10 @@ export interface EquipmentPassport extends Timestamped {
   drawLength?: string;
   bowType?: string;
   opticOrSightId?: string;
+  opticSightSummary?: string;
   accessories: string[];
   preferredProjectileId?: string;
+  projectileAmmoSummary?: string;
   useCaseTags: string[];
   roundOrShotCount: number;
   maintenanceNotes?: string;

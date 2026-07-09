@@ -24,6 +24,11 @@ interface PassportFormProps {
   mode: "create" | "edit";
   initialValues?: Partial<PassportFormValues>;
   cancelHref: string;
+  submitLabel?: string;
+  successMessage?: string;
+  errorMessage?: string;
+  isSubmitting?: boolean;
+  onSubmit?: (values: PassportFormValues) => Promise<void> | void;
 }
 
 const defaultValues: PassportFormValues = {
@@ -52,16 +57,16 @@ const equipmentOptions: { value: EquipmentType; label: string }[] = [
 
 const requiredFields: Array<keyof PassportFormValues> = ["nickname", "manufacturer", "model", "caliberCategory"];
 
-export function PassportForm({ mode, initialValues, cancelHref }: PassportFormProps) {
+export function PassportForm({ mode, initialValues, cancelHref, submitLabel, successMessage, errorMessage, isSubmitting = false, onSubmit }: PassportFormProps) {
   const mergedValues = useMemo(() => ({ ...defaultValues, ...initialValues }), [initialValues]);
   const [values, setValues] = useState<PassportFormValues>(mergedValues);
   const [errors, setErrors] = useState<Partial<Record<keyof PassportFormValues, string>>>({});
-  const [successMessage, setSuccessMessage] = useState("");
+  const [localSuccessMessage, setLocalSuccessMessage] = useState("");
 
   function updateField<K extends keyof PassportFormValues>(field: K, value: PassportFormValues[K]) {
     setValues((current) => ({ ...current, [field]: value }));
     setErrors((current) => ({ ...current, [field]: undefined }));
-    setSuccessMessage("");
+    setLocalSuccessMessage("");
   }
 
   function validate() {
@@ -82,25 +87,21 @@ export function PassportForm({ mode, initialValues, cancelHref }: PassportFormPr
     return Object.keys(nextErrors).length === 0;
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (!validate()) {
-      setSuccessMessage("");
+      setLocalSuccessMessage("");
       return;
     }
 
-    const payload = {
-      ...values,
-      useCaseTags: values.useCaseTags
-        .split(",")
-        .map((tag) => tag.trim())
-        .filter(Boolean),
-      roundOrShotCount: Number(values.roundOrShotCount || 0)
-    };
+    if (onSubmit) {
+      await onSubmit(values);
+      return;
+    }
 
-    console.log(`Passport ${mode} placeholder submit`, payload);
-    setSuccessMessage(mode === "create" ? "Draft saved locally for this mock MVP. No backend write occurred." : "Updates saved locally for this mock MVP. No backend write occurred.");
+    console.log(`Passport ${mode} placeholder submit`, values);
+    setLocalSuccessMessage(mode === "create" ? "Demo draft saved locally. Sign in to save this passport to your account." : "Demo updates saved locally. Sign in to save passport changes to your account.");
   }
 
   return (
@@ -177,9 +178,15 @@ export function PassportForm({ mode, initialValues, cancelHref }: PassportFormPr
         </label>
       </section>
 
-      {successMessage ? (
+      {errorMessage ? (
+        <div className="rounded-md border border-clay/30 bg-clay/10 px-4 py-3 text-sm font-semibold text-clay" role="alert">
+          {errorMessage}
+        </div>
+      ) : null}
+
+      {successMessage || localSuccessMessage ? (
         <div className="rounded-md border border-moss/30 bg-field px-4 py-3 text-sm font-semibold text-moss" role="status">
-          {successMessage}
+          {successMessage ?? localSuccessMessage}
         </div>
       ) : null}
 
@@ -187,8 +194,8 @@ export function PassportForm({ mode, initialValues, cancelHref }: PassportFormPr
         <Link href={cancelHref} className="inline-flex justify-center rounded-md border border-ink/15 bg-white px-4 py-2 text-sm font-semibold text-ink">
           Cancel
         </Link>
-        <button type="submit" className="inline-flex justify-center rounded-md bg-ink px-4 py-2 text-sm font-semibold text-white">
-          {mode === "create" ? "Create passport draft" : "Save passport draft"}
+        <button type="submit" disabled={isSubmitting} className="inline-flex justify-center rounded-md bg-ink px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60">
+          {isSubmitting ? "Saving..." : submitLabel ?? (mode === "create" ? "Create passport draft" : "Save passport draft")}
         </button>
       </div>
     </form>

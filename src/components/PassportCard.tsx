@@ -3,9 +3,11 @@ import { getOpticById, getProjectileById } from "@/data/selectors";
 import type { EquipmentPassport } from "@/types";
 import { Tag } from "@/components/Tag";
 
-export function PassportCard({ passport }: { passport: EquipmentPassport }) {
+export function PassportCard({ passport, sourceLabel }: { passport: EquipmentPassport; sourceLabel?: string }) {
   const optic = getOpticById(passport.opticOrSightId);
   const projectile = getProjectileById(passport.preferredProjectileId);
+  const opticSummary = optic ? `${optic.manufacturer} ${optic.model}` : passport.opticSightSummary;
+  const projectileSummary = projectile ? projectile.productLine : passport.projectileAmmoSummary;
 
   return (
     <Link href={`/passports/${passport.id}`} className="group rounded-md border border-ink/10 bg-white shadow-soft transition hover:-translate-y-0.5 hover:border-moss/40">
@@ -17,6 +19,7 @@ export function PassportCard({ passport }: { passport: EquipmentPassport }) {
       <div className="p-4">
         <div className="flex flex-wrap items-center gap-2">
           <Tag>{passport.equipmentType}</Tag>
+          {sourceLabel ? <span className="text-xs font-semibold text-moss">{sourceLabel}</span> : null}
           <span className="text-xs font-semibold text-ink/55">{passport.isPublic ? "Public snapshot ready" : "Private"}</span>
         </div>
         <h3 className="mt-3 text-lg font-bold text-ink group-hover:text-moss">{passport.nickname}</h3>
@@ -26,11 +29,11 @@ export function PassportCard({ passport }: { passport: EquipmentPassport }) {
         <dl className="mt-4 grid grid-cols-1 gap-2 text-sm text-ink/70 sm:grid-cols-2">
           <div>
             <dt className="font-semibold text-ink">Optic / sight</dt>
-            <dd>{optic ? `${optic.manufacturer} ${optic.model}` : "Not assigned"}</dd>
+            <dd>{opticSummary || "Not assigned"}</dd>
           </div>
           <div>
-            <dt className="font-semibold text-ink">Projectile</dt>
-            <dd>{projectile ? projectile.productLine : "Not assigned"}</dd>
+            <dt className="font-semibold text-ink">Projectile / ammo</dt>
+            <dd>{projectileSummary || "Not assigned"}</dd>
           </div>
         </dl>
         <div className="mt-4 flex flex-wrap gap-2">
