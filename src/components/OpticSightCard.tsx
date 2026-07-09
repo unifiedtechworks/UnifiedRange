@@ -3,10 +3,13 @@ import type { OpticSightProfile } from "@/types";
 import { DetailRow } from "@/components/DetailRow";
 import { Tag } from "@/components/Tag";
 
-export function OpticSightCard({ optic }: { optic: OpticSightProfile }) {
+export function OpticSightCard({ optic, sourceLabel }: { optic: OpticSightProfile; sourceLabel?: string }) {
   return (
     <Link href={`/optics/${optic.id}`} className="block rounded-md border border-ink/10 bg-white p-5 shadow-soft transition hover:-translate-y-0.5 hover:border-steel/40">
-      <Tag>{optic.sightType.replace("_", " ")}</Tag>
+      <div className="flex flex-wrap items-center gap-2">
+        <Tag>{optic.sightType.replace("_", " ")}</Tag>
+        {sourceLabel ? <span className="text-xs font-semibold text-moss">{sourceLabel}</span> : null}
+      </div>
       <h3 className="mt-3 text-xl font-bold text-ink">
         {optic.manufacturer} {optic.model}
       </h3>

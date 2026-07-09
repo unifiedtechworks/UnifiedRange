@@ -1,7 +1,6 @@
 import Link from "next/link";
-import { OpticSightCard } from "@/components/OpticSightCard";
+import { OpticSightProfileList } from "@/components/OpticSightProfileList";
 import { PageHeader } from "@/components/PageHeader";
-import { optics } from "@/data/mockData";
 
 export default function OpticsPage() {
   return (
@@ -16,11 +15,7 @@ export default function OpticsPage() {
           </Link>
         }
       />
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {optics.map((optic) => (
-          <OpticSightCard key={optic.id} optic={optic} />
-        ))}
-      </div>
+      <OpticSightProfileList />
     </section>
   );
 }

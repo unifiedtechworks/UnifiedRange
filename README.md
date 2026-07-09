@@ -149,6 +149,19 @@ With the Amplify sandbox and dev server running:
 7. Refresh the detail page and confirm the edits persist.
 8. Sign out and confirm the Projectiles / Ammo area still shows clearly labeled demo data.
 
+### Manual Optics / Sights CRUD Test
+
+With the Amplify sandbox and dev server running:
+
+1. Sign in at `http://localhost:3000/auth/sign-in`.
+2. Open `http://localhost:3000/optics`.
+3. Use **Add optic / sight** to create a saved Optic / Sight profile.
+4. Refresh the optics list and confirm the saved account record persists above the demo data.
+5. Open the saved optic detail page.
+6. Use **Edit sight**, update the record, and save.
+7. Refresh the detail page and confirm the edits persist.
+8. Sign out and confirm the Optics / Sights area still shows clearly labeled demo data.
+
 ## MVP App Structure
 
 The initial web app uses:

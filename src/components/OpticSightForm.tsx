@@ -22,6 +22,11 @@ interface OpticSightFormProps {
   mode: "create" | "edit";
   initialValues?: Partial<OpticSightFormValues>;
   cancelHref: string;
+  submitLabel?: string;
+  successMessage?: string;
+  errorMessage?: string;
+  isSubmitting?: boolean;
+  onSubmit?: (values: OpticSightFormValues) => Promise<void> | void;
 }
 
 const defaultValues: OpticSightFormValues = {
@@ -44,16 +49,16 @@ const sightOptions: { value: SightType; label: string }[] = [
   { value: "other", label: "Other" }
 ];
 
-export function OpticSightForm({ mode, initialValues, cancelHref }: OpticSightFormProps) {
+export function OpticSightForm({ mode, initialValues, cancelHref, submitLabel, successMessage, errorMessage, isSubmitting = false, onSubmit }: OpticSightFormProps) {
   const mergedValues = useMemo(() => ({ ...defaultValues, ...initialValues }), [initialValues]);
   const [values, setValues] = useState<OpticSightFormValues>(mergedValues);
   const [errors, setErrors] = useState<Partial<Record<keyof OpticSightFormValues, string>>>({});
-  const [successMessage, setSuccessMessage] = useState("");
+  const [localSuccessMessage, setLocalSuccessMessage] = useState("");
 
   function updateField<K extends keyof OpticSightFormValues>(field: K, value: OpticSightFormValues[K]) {
     setValues((current) => ({ ...current, [field]: value }));
     setErrors((current) => ({ ...current, [field]: undefined }));
-    setSuccessMessage("");
+    setLocalSuccessMessage("");
   }
 
   function validate() {
@@ -69,16 +74,21 @@ export function OpticSightForm({ mode, initialValues, cancelHref }: OpticSightFo
     return Object.keys(nextErrors).length === 0;
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (!validate()) {
-      setSuccessMessage("");
+      setLocalSuccessMessage("");
+      return;
+    }
+
+    if (onSubmit) {
+      await onSubmit(values);
       return;
     }
 
     console.log(`Optic / sight ${mode} placeholder submit`, values);
-    setSuccessMessage(mode === "create" ? "Draft saved locally for this mock MVP. No backend write occurred." : "Updates saved locally for this mock MVP. No backend write occurred.");
+    setLocalSuccessMessage(mode === "create" ? "Demo draft saved locally. Sign in to save this sight profile to your account." : "Demo updates saved locally. Sign in to save sight profile changes to your account.");
   }
 
   return (
@@ -119,14 +129,24 @@ export function OpticSightForm({ mode, initialValues, cancelHref }: OpticSightFo
         </div>
       </section>
 
-      {successMessage ? <div className="rounded-md border border-moss/30 bg-field px-4 py-3 text-sm font-semibold text-moss">{successMessage}</div> : null}
+      {errorMessage ? (
+        <div className="rounded-md border border-clay/30 bg-clay/10 px-4 py-3 text-sm font-semibold text-clay" role="alert">
+          {errorMessage}
+        </div>
+      ) : null}
+
+      {successMessage || localSuccessMessage ? (
+        <div className="rounded-md border border-moss/30 bg-field px-4 py-3 text-sm font-semibold text-moss" role="status">
+          {successMessage ?? localSuccessMessage}
+        </div>
+      ) : null}
 
       <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
         <Link href={cancelHref} className="inline-flex justify-center rounded-md border border-ink/15 bg-white px-4 py-2 text-sm font-semibold text-ink">
           Cancel
         </Link>
-        <button type="submit" className="inline-flex justify-center rounded-md bg-ink px-4 py-2 text-sm font-semibold text-white">
-          {mode === "create" ? "Create sight draft" : "Save sight draft"}
+        <button type="submit" disabled={isSubmitting} className="inline-flex justify-center rounded-md bg-ink px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60">
+          {isSubmitting ? "Saving..." : submitLabel ?? (mode === "create" ? "Create sight draft" : "Save sight draft")}
         </button>
       </div>
     </form>
