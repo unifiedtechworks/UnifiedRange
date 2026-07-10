@@ -40,6 +40,12 @@ interface RangeSessionFormProps {
   passportOptions: SelectOption[];
   projectileOptions: SelectOption[];
   opticOptions: SelectOption[];
+  submitLabel?: string;
+  successMessage?: string;
+  errorMessage?: string;
+  isSubmitting?: boolean;
+  onSubmit?: (values: RangeSessionFormValues) => Promise<void> | void;
+  noPassportMessage?: string;
 }
 
 const defaultValues: RangeSessionFormValues = {
@@ -70,17 +76,23 @@ export function RangeSessionForm({
   cancelHref,
   passportOptions,
   projectileOptions,
-  opticOptions
+  opticOptions,
+  submitLabel,
+  successMessage,
+  errorMessage,
+  isSubmitting = false,
+  onSubmit,
+  noPassportMessage
 }: RangeSessionFormProps) {
   const mergedValues = useMemo(() => ({ ...defaultValues, ...initialValues }), [initialValues]);
   const [values, setValues] = useState<RangeSessionFormValues>(mergedValues);
   const [errors, setErrors] = useState<Partial<Record<keyof RangeSessionFormValues, string>>>({});
-  const [successMessage, setSuccessMessage] = useState("");
+  const [localSuccessMessage, setLocalSuccessMessage] = useState("");
 
   function updateField<K extends keyof RangeSessionFormValues>(field: K, value: RangeSessionFormValues[K]) {
     setValues((current) => ({ ...current, [field]: value }));
     setErrors((current) => ({ ...current, [field]: undefined }));
-    setSuccessMessage("");
+    setLocalSuccessMessage("");
   }
 
   function validate() {
@@ -110,22 +122,21 @@ export function RangeSessionForm({
     return Object.keys(nextErrors).length === 0;
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (!validate()) {
-      setSuccessMessage("");
+      setLocalSuccessMessage("");
       return;
     }
 
-    const payload = {
-      ...values,
-      distance: Number(values.distance),
-      confidenceRating: Number(values.confidenceRating)
-    };
+    if (onSubmit) {
+      await onSubmit(values);
+      return;
+    }
 
-    console.log(`Range session ${mode} placeholder submit`, payload);
-    setSuccessMessage(mode === "create" ? "Draft saved locally for this mock MVP. No backend write occurred." : "Updates saved locally for this mock MVP. No backend write occurred.");
+    console.log(`Range session ${mode} placeholder submit`, values);
+    setLocalSuccessMessage(mode === "create" ? "Demo draft saved locally. Sign in to save this range session to your account." : "Demo updates saved locally. Sign in to save range session changes to your account.");
   }
 
   return (
@@ -139,6 +150,7 @@ export function RangeSessionForm({
 
       <section className="rounded-md border border-ink/10 bg-white p-4 shadow-soft sm:p-5">
         <h3 className="text-lg font-bold text-ink">Session Links</h3>
+        {noPassportMessage ? <p className="mt-3 rounded-md bg-clay/10 px-3 py-2 text-sm font-semibold text-clay">{noPassportMessage}</p> : null}
         <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <TextField label="Date" type="date" value={values.date} error={errors.date} required onChange={(value) => updateField("date", value)} />
           <SelectField label="Equipment passport" value={values.equipmentPassportId} error={errors.equipmentPassportId} options={passportOptions} required onChange={(value) => updateField("equipmentPassportId", value)} />
@@ -198,14 +210,24 @@ export function RangeSessionForm({
         </div>
       </section>
 
-      {successMessage ? <div className="rounded-md border border-moss/30 bg-field px-4 py-3 text-sm font-semibold text-moss">{successMessage}</div> : null}
+      {errorMessage ? (
+        <div className="rounded-md border border-clay/30 bg-clay/10 px-4 py-3 text-sm font-semibold text-clay" role="alert">
+          {errorMessage}
+        </div>
+      ) : null}
+
+      {successMessage || localSuccessMessage ? (
+        <div className="rounded-md border border-moss/30 bg-field px-4 py-3 text-sm font-semibold text-moss" role="status">
+          {successMessage ?? localSuccessMessage}
+        </div>
+      ) : null}
 
       <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
         <Link href={cancelHref} className="inline-flex justify-center rounded-md border border-ink/15 bg-white px-4 py-2 text-sm font-semibold text-ink">
           Cancel
         </Link>
-        <button type="submit" className="inline-flex justify-center rounded-md bg-ink px-4 py-2 text-sm font-semibold text-white">
-          {mode === "create" ? "Create session draft" : "Save session draft"}
+        <button type="submit" disabled={isSubmitting || Boolean(noPassportMessage)} className="inline-flex justify-center rounded-md bg-ink px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60">
+          {isSubmitting ? "Saving..." : submitLabel ?? (mode === "create" ? "Create session draft" : "Save session draft")}
         </button>
       </div>
     </form>

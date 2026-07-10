@@ -12,7 +12,7 @@ import { useAuthUser } from "@/hooks/useAuthUser";
 
 type EditState = "loading" | "saved" | "demo" | "missing";
 
-export function ProjectileProfileEdit({ projectileId }: { projectileId: string }) {
+export function ProjectileProfileEdit({ projectileId }: { projectileId?: string }) {
   const router = useRouter();
   const client = useMemo(() => {
     configureAmplifyClient();
@@ -28,7 +28,21 @@ export function ProjectileProfileEdit({ projectileId }: { projectileId: string }
   const loadProjectile = useCallback(async () => {
     setError("");
     setSuccess("");
+
+    if (!projectileId) {
+      setRecord(null);
+      setError("Missing record ID.");
+      setState("missing");
+      return;
+    }
+
     const demoProjectile = getProjectileById(projectileId);
+
+    if (demoProjectile) {
+      setRecord(null);
+      setState("demo");
+      return;
+    }
 
     if (authState.status === "loading") {
       setState("loading");
@@ -49,19 +63,13 @@ export function ProjectileProfileEdit({ projectileId }: { projectileId: string }
           return;
         }
       } catch (loadError) {
-        if (!demoProjectile) {
-          setError(getAuthErrorMessage(loadError));
-        }
+        console.error("Unable to load saved Projectile / Ammo profile for edit", loadError);
+        setError("This saved record could not be loaded.");
       }
     }
 
-    if (demoProjectile) {
-      setRecord(null);
-      setState("demo");
-    } else {
-      setRecord(null);
-      setState("missing");
-    }
+    setRecord(null);
+    setState("missing");
   }, [authState.status, client, projectileId]);
 
   useEffect(() => {

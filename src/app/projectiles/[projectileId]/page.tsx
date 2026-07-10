@@ -1,5 +1,6 @@
 import { ProjectileProfileDetail } from "@/components/ProjectileProfileDetail";
 
-export default function ProjectileDetailPage({ params }: { params: { projectileId: string } }) {
-  return <ProjectileProfileDetail projectileId={params.projectileId} />;
+export default async function ProjectileDetailPage({ params }: { params: Promise<{ projectileId?: string }> }) {
+  const { projectileId } = await params;
+  return <ProjectileProfileDetail projectileId={projectileId} />;
 }

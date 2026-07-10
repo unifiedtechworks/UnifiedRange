@@ -162,6 +162,20 @@ With the Amplify sandbox and dev server running:
 7. Refresh the detail page and confirm the edits persist.
 8. Sign out and confirm the Optics / Sights area still shows clearly labeled demo data.
 
+### Manual Range Sessions CRUD Test
+
+With the Amplify sandbox and dev server running, restart or rerun the sandbox after pulling this change so AppSync includes `RangeSession.opticSightProfileId`:
+
+1. Sign in at `http://localhost:3000/auth/sign-in`.
+2. Confirm you have at least one saved Equipment Passport, Projectile / Ammo profile, and Optic / Sight profile.
+3. Open `http://localhost:3000/sessions`.
+4. Use **Log range session** to create a saved Range Session linked to saved records.
+5. Refresh the session list and confirm the saved account record persists above the demo data.
+6. Open the saved session detail page.
+7. Use **Edit session**, update the record, and save.
+8. Refresh the detail page and confirm the edits persist.
+9. Sign out and confirm the Range Sessions area still shows clearly labeled demo data.
+
 ## MVP App Structure
 
 The initial web app uses:

@@ -8,14 +8,14 @@ import { DetailRow } from "@/components/DetailRow";
 import { PageHeader } from "@/components/PageHeader";
 import { Tag } from "@/components/Tag";
 import { getProjectileById } from "@/data/selectors";
-import { configureAmplifyClient, getAuthErrorMessage } from "@/lib/amplifyClient";
+import { configureAmplifyClient } from "@/lib/amplifyClient";
 import { recordToProjectileProfile, type ProjectileProfileRecord } from "@/lib/projectileProfileData";
 import type { ProjectileProfile } from "@/types";
 import { useAuthUser } from "@/hooks/useAuthUser";
 
 type DetailState = "loading" | "saved" | "demo" | "missing";
 
-export function ProjectileProfileDetail({ projectileId }: { projectileId: string }) {
+export function ProjectileProfileDetail({ projectileId }: { projectileId?: string }) {
   const client = useMemo(() => {
     configureAmplifyClient();
     return generateClient<Schema>();
@@ -27,7 +27,21 @@ export function ProjectileProfileDetail({ projectileId }: { projectileId: string
 
   const loadProjectile = useCallback(async () => {
     setError("");
+
+    if (!projectileId) {
+      setRecord(null);
+      setError("Missing record ID.");
+      setState("missing");
+      return;
+    }
+
     const demoProjectile = getProjectileById(projectileId);
+
+    if (demoProjectile) {
+      setRecord(null);
+      setState("demo");
+      return;
+    }
 
     if (authState.status === "loading") {
       setState("loading");
@@ -48,19 +62,13 @@ export function ProjectileProfileDetail({ projectileId }: { projectileId: string
           return;
         }
       } catch (detailError) {
-        if (!demoProjectile) {
-          setError(getAuthErrorMessage(detailError));
-        }
+        console.error("Unable to load saved Projectile / Ammo profile", detailError);
+        setError("This saved record could not be loaded.");
       }
     }
 
-    if (demoProjectile) {
-      setRecord(null);
-      setState("demo");
-    } else {
-      setRecord(null);
-      setState("missing");
-    }
+    setRecord(null);
+    setState("missing");
   }, [authState.status, client, projectileId]);
 
   useEffect(() => {

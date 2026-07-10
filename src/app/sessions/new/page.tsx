@@ -1,6 +1,5 @@
 import { PageHeader } from "@/components/PageHeader";
-import { RangeSessionForm } from "@/components/RangeSessionForm";
-import { equipmentPassports, optics, projectiles } from "@/data/mockData";
+import { RangeSessionCreate } from "@/components/RangeSessionCreate";
 
 export default function NewSessionPage() {
   return (
@@ -8,15 +7,9 @@ export default function NewSessionPage() {
       <PageHeader
         eyebrow="New range session"
         title="Log a practice record"
-        description="Link equipment, projectiles, and sights to a historical range-session note. This is mock-data-only for now."
+        description="Link saved equipment, projectile, and sight records to a historical range-session note. Wind notes stay free text only."
       />
-      <RangeSessionForm
-        mode="create"
-        cancelHref="/sessions"
-        passportOptions={equipmentPassports.map((passport) => ({ id: passport.id, label: passport.nickname }))}
-        projectileOptions={projectiles.map((projectile) => ({ id: projectile.id, label: `${projectile.manufacturer} ${projectile.productLine}` }))}
-        opticOptions={optics.map((optic) => ({ id: optic.id, label: `${optic.manufacturer} ${optic.model}` }))}
-      />
+      <RangeSessionCreate />
     </section>
   );
 }

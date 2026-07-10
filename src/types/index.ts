@@ -103,6 +103,7 @@ export interface RangeSession extends Timestamped {
   ownerId: string;
   equipmentPassportId: string;
   projectileProfileId?: string;
+  opticSightProfileId?: string;
   date: string;
   distance: number;
   distanceUnit: DistanceUnit;

@@ -9,13 +9,13 @@ import { PageHeader } from "@/components/PageHeader";
 import { Tag } from "@/components/Tag";
 import { getOpticById } from "@/data/selectors";
 import { useAuthUser } from "@/hooks/useAuthUser";
-import { configureAmplifyClient, getAuthErrorMessage } from "@/lib/amplifyClient";
+import { configureAmplifyClient } from "@/lib/amplifyClient";
 import { recordToOpticSightProfile, type OpticSightProfileRecord } from "@/lib/opticSightProfileData";
 import type { OpticSightProfile } from "@/types";
 
 type DetailState = "loading" | "saved" | "demo" | "missing";
 
-export function OpticSightProfileDetail({ opticId }: { opticId: string }) {
+export function OpticSightProfileDetail({ opticId }: { opticId?: string }) {
   const client = useMemo(() => {
     configureAmplifyClient();
     return generateClient<Schema>();
@@ -27,7 +27,21 @@ export function OpticSightProfileDetail({ opticId }: { opticId: string }) {
 
   const loadOptic = useCallback(async () => {
     setError("");
+
+    if (!opticId) {
+      setRecord(null);
+      setError("Missing record ID.");
+      setState("missing");
+      return;
+    }
+
     const demoOptic = getOpticById(opticId);
+
+    if (demoOptic) {
+      setRecord(null);
+      setState("demo");
+      return;
+    }
 
     if (authState.status === "loading") {
       setState("loading");
@@ -48,19 +62,13 @@ export function OpticSightProfileDetail({ opticId }: { opticId: string }) {
           return;
         }
       } catch (detailError) {
-        if (!demoOptic) {
-          setError(getAuthErrorMessage(detailError));
-        }
+        console.error("Unable to load saved Optic / Sight profile", detailError);
+        setError("This saved record could not be loaded.");
       }
     }
 
-    if (demoOptic) {
-      setRecord(null);
-      setState("demo");
-    } else {
-      setRecord(null);
-      setState("missing");
-    }
+    setRecord(null);
+    setState("missing");
   }, [authState.status, client, opticId]);
 
   useEffect(() => {

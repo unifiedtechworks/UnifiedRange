@@ -1,5 +1,6 @@
 import { EquipmentPassportDetail } from "@/components/EquipmentPassportDetail";
 
-export default function PassportDetailPage({ params }: { params: { passportId: string } }) {
-  return <EquipmentPassportDetail passportId={params.passportId} />;
+export default async function PassportDetailPage({ params }: { params: Promise<{ passportId?: string }> }) {
+  const { passportId } = await params;
+  return <EquipmentPassportDetail passportId={passportId} />;
 }

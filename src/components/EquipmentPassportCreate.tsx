@@ -2,6 +2,7 @@
 
 import { generateClient } from "aws-amplify/data";
 import { getCurrentUser } from "aws-amplify/auth";
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Schema } from "../../amplify/data/resource";
@@ -17,11 +18,13 @@ export function EquipmentPassportCreate() {
   }, []);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [showListLink, setShowListLink] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   async function handleCreate(values: PassportFormValues) {
     setError("");
     setSuccess("");
+    setShowListLink(false);
     setIsSaving(true);
 
     try {
@@ -35,6 +38,12 @@ export function EquipmentPassportCreate() {
 
       if (!result.data) {
         throw new Error("The passport was saved, but no record was returned.");
+      }
+
+      if (!result.data.id) {
+        setSuccess("Equipment Passport saved to your account. Return to the list to open it.");
+        setShowListLink(true);
+        return;
       }
 
       setSuccess("Equipment Passport saved to your account.");
@@ -63,6 +72,11 @@ export function EquipmentPassportCreate() {
         isSubmitting={isSaving}
         onSubmit={handleCreate}
       />
+      {showListLink ? (
+        <Link href="/passports" className="inline-flex rounded-md border border-ink/15 bg-white px-4 py-2 text-sm font-semibold text-ink">
+          Return to Equipment Passports
+        </Link>
+      ) : null}
     </div>
   );
 }

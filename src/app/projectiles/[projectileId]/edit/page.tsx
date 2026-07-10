@@ -1,7 +1,9 @@
 import { PageHeader } from "@/components/PageHeader";
 import { ProjectileProfileEdit } from "@/components/ProjectileProfileEdit";
 
-export default function EditProjectilePage({ params }: { params: { projectileId: string } }) {
+export default async function EditProjectilePage({ params }: { params: Promise<{ projectileId?: string }> }) {
+  const { projectileId } = await params;
+
   return (
     <section>
       <PageHeader
@@ -9,7 +11,7 @@ export default function EditProjectilePage({ params }: { params: { projectileId:
         title="Update a projectile profile"
         description="Signed-in users edit saved AppSync records. Demo profiles keep local placeholder behavior."
       />
-      <ProjectileProfileEdit projectileId={params.projectileId} />
+      <ProjectileProfileEdit projectileId={projectileId} />
     </section>
   );
 }

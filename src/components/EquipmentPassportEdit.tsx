@@ -12,7 +12,7 @@ import { toPassportFormValues, toUpdatePassportInput, type EquipmentPassportReco
 
 type EditState = "loading" | "saved" | "demo" | "missing";
 
-export function EquipmentPassportEdit({ passportId }: { passportId: string }) {
+export function EquipmentPassportEdit({ passportId }: { passportId?: string }) {
   const router = useRouter();
   const client = useMemo(() => {
     configureAmplifyClient();
@@ -27,7 +27,21 @@ export function EquipmentPassportEdit({ passportId }: { passportId: string }) {
   const loadPassport = useCallback(async () => {
     setError("");
     setSuccess("");
+
+    if (!passportId) {
+      setRecord(null);
+      setError("Missing record ID.");
+      setState("missing");
+      return;
+    }
+
     const demoPassport = getPassportById(passportId);
+
+    if (demoPassport) {
+      setRecord(null);
+      setState("demo");
+      return;
+    }
 
     try {
       configureAmplifyClient();
@@ -46,18 +60,14 @@ export function EquipmentPassportEdit({ passportId }: { passportId: string }) {
     } catch (loadError) {
       const message = getAuthErrorMessage(loadError);
 
-      if (!demoPassport && !message.toLowerCase().includes("auth") && !message.toLowerCase().includes("user")) {
-        setError(message);
+      if (!message.toLowerCase().includes("auth") && !message.toLowerCase().includes("user")) {
+        console.error("Unable to load saved Equipment Passport for edit", loadError);
+        setError("This saved record could not be loaded.");
       }
     }
 
-    if (demoPassport) {
-      setRecord(null);
-      setState("demo");
-    } else {
-      setRecord(null);
-      setState("missing");
-    }
+    setRecord(null);
+    setState("missing");
   }, [client, passportId]);
 
   useEffect(() => {

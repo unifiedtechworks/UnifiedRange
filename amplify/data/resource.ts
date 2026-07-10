@@ -93,6 +93,7 @@ const schema = a.schema({
       ownerId: a.string().required(),
       equipmentPassportId: a.id().required(),
       projectileProfileId: a.id(),
+      opticSightProfileId: a.id(),
       date: a.date().required(),
       distance: a.float().required(),
       distanceUnit: a.enum(["yards", "meters"]),

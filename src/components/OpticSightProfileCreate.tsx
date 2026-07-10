@@ -2,6 +2,7 @@
 
 import { generateClient } from "aws-amplify/data";
 import { getCurrentUser } from "aws-amplify/auth";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import type { Schema } from "../../amplify/data/resource";
@@ -17,11 +18,13 @@ export function OpticSightProfileCreate() {
   }, []);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [showListLink, setShowListLink] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   async function handleCreate(values: OpticSightFormValues) {
     setError("");
     setSuccess("");
+    setShowListLink(false);
     setIsSaving(true);
 
     try {
@@ -35,6 +38,12 @@ export function OpticSightProfileCreate() {
 
       if (!result.data) {
         throw new Error("The Optic / Sight profile was saved, but no record was returned.");
+      }
+
+      if (!result.data.id) {
+        setSuccess("Optic / Sight profile saved to your account. Return to the list to open it.");
+        setShowListLink(true);
+        return;
       }
 
       setSuccess("Optic / Sight profile saved to your account.");
@@ -63,6 +72,11 @@ export function OpticSightProfileCreate() {
         isSubmitting={isSaving}
         onSubmit={handleCreate}
       />
+      {showListLink ? (
+        <Link href="/optics" className="inline-flex rounded-md border border-ink/15 bg-white px-4 py-2 text-sm font-semibold text-ink">
+          Return to Optics / Sights
+        </Link>
+      ) : null}
     </div>
   );
 }

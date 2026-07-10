@@ -1,7 +1,9 @@
 import { EquipmentPassportEdit } from "@/components/EquipmentPassportEdit";
 import { PageHeader } from "@/components/PageHeader";
 
-export default function EditPassportPage({ params }: { params: { passportId: string } }) {
+export default async function EditPassportPage({ params }: { params: Promise<{ passportId?: string }> }) {
+  const { passportId } = await params;
+
   return (
     <section>
       <PageHeader
@@ -9,7 +11,7 @@ export default function EditPassportPage({ params }: { params: { passportId: str
         title="Update a setup record"
         description="Signed-in users edit saved AppSync records. Demo passports keep local placeholder behavior."
       />
-      <EquipmentPassportEdit passportId={params.passportId} />
+      <EquipmentPassportEdit passportId={passportId} />
     </section>
   );
 }

@@ -16,7 +16,7 @@ import type { EquipmentPassport } from "@/types";
 
 type DetailState = "loading" | "saved" | "demo" | "missing";
 
-export function EquipmentPassportDetail({ passportId }: { passportId: string }) {
+export function EquipmentPassportDetail({ passportId }: { passportId?: string }) {
   const client = useMemo(() => {
     configureAmplifyClient();
     return generateClient<Schema>();
@@ -27,7 +27,21 @@ export function EquipmentPassportDetail({ passportId }: { passportId: string }) 
 
   const loadPassport = useCallback(async () => {
     setError("");
+
+    if (!passportId) {
+      setRecord(null);
+      setError("Missing record ID.");
+      setState("missing");
+      return;
+    }
+
     const demoPassport = getPassportById(passportId);
+
+    if (demoPassport) {
+      setRecord(null);
+      setState("demo");
+      return;
+    }
 
     try {
       configureAmplifyClient();
@@ -46,18 +60,14 @@ export function EquipmentPassportDetail({ passportId }: { passportId: string }) 
     } catch (detailError) {
       const message = getAuthErrorMessage(detailError);
 
-      if (!demoPassport && !message.toLowerCase().includes("auth") && !message.toLowerCase().includes("user")) {
-        setError(message);
+      if (!message.toLowerCase().includes("auth") && !message.toLowerCase().includes("user")) {
+        console.error("Unable to load saved Equipment Passport", detailError);
+        setError("This saved record could not be loaded.");
       }
     }
 
-    if (demoPassport) {
-      setRecord(null);
-      setState("demo");
-    } else {
-      setRecord(null);
-      setState("missing");
-    }
+    setRecord(null);
+    setState("missing");
   }, [client, passportId]);
 
   useEffect(() => {

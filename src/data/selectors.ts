@@ -8,20 +8,36 @@ import {
   targetPhotos
 } from "@/data/mockData";
 
-export function getPassportById(id: string) {
+export function getPassportById(id?: string | null) {
   return equipmentPassports.find((passport) => passport.id === id);
 }
 
-export function getProjectileById(id?: string) {
+export function getProjectileById(id?: string | null) {
   return projectiles.find((projectile) => projectile.id === id);
 }
 
-export function getOpticById(id?: string) {
+export function getOpticById(id?: string | null) {
   return optics.find((optic) => optic.id === id);
 }
 
-export function getSessionById(id: string) {
+export function getSessionById(id?: string | null) {
   return rangeSessions.find((session) => session.id === id);
+}
+
+export function isDemoPassportId(id?: string | null) {
+  return Boolean(getPassportById(id));
+}
+
+export function isDemoProjectileId(id?: string | null) {
+  return Boolean(getProjectileById(id));
+}
+
+export function isDemoOpticId(id?: string | null) {
+  return Boolean(getOpticById(id));
+}
+
+export function isDemoSessionId(id?: string | null) {
+  return Boolean(getSessionById(id));
 }
 
 export function getMaintenanceById(id: string) {

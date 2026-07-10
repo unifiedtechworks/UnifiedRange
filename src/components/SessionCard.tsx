@@ -2,9 +2,21 @@ import Link from "next/link";
 import { getPassportById, getProjectileById } from "@/data/selectors";
 import type { RangeSession } from "@/types";
 
-export function SessionCard({ session }: { session: RangeSession }) {
+export function SessionCard({
+  session,
+  sourceLabel,
+  equipmentSummary,
+  projectileSummary
+}: {
+  session: RangeSession;
+  sourceLabel?: string;
+  equipmentSummary?: string;
+  projectileSummary?: string;
+}) {
   const passport = getPassportById(session.equipmentPassportId);
   const projectile = getProjectileById(session.projectileProfileId);
+  const displayedEquipment = equipmentSummary ?? passport?.nickname ?? "Unknown setup";
+  const displayedProjectile = projectileSummary ?? projectile?.productLine ?? "Not assigned";
 
   return (
     <Link href={`/sessions/${session.id}`} className="block rounded-md border border-ink/10 bg-white p-4 shadow-soft transition hover:-translate-y-0.5 hover:border-steel/40">
@@ -12,7 +24,8 @@ export function SessionCard({ session }: { session: RangeSession }) {
         <div>
           <p className="text-sm font-semibold text-clay">{new Date(`${session.date}T00:00:00`).toLocaleDateString()}</p>
           <h3 className="mt-1 text-lg font-bold text-ink">{session.discipline}</h3>
-          <p className="mt-1 text-sm text-ink/65">{passport?.nickname ?? "Unknown setup"}</p>
+          <p className="mt-1 text-sm text-ink/65">{displayedEquipment}</p>
+          {sourceLabel ? <p className="mt-1 text-xs font-semibold text-moss">{sourceLabel}</p> : null}
         </div>
         <div className="rounded-md bg-field px-3 py-2 text-sm font-semibold text-moss">
           Confidence {session.confidenceRating}/5
@@ -35,7 +48,7 @@ export function SessionCard({ session }: { session: RangeSession }) {
         </div>
         <div>
           <dt className="font-semibold text-ink">Projectile</dt>
-          <dd className="text-ink/65">{projectile?.productLine ?? "Not assigned"}</dd>
+          <dd className="text-ink/65">{displayedProjectile}</dd>
         </div>
       </dl>
     </Link>

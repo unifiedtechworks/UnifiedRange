@@ -12,7 +12,7 @@ import { toOpticSightFormValues, toUpdateOpticSightInput, type OpticSightProfile
 
 type EditState = "loading" | "saved" | "demo" | "missing";
 
-export function OpticSightProfileEdit({ opticId }: { opticId: string }) {
+export function OpticSightProfileEdit({ opticId }: { opticId?: string }) {
   const router = useRouter();
   const client = useMemo(() => {
     configureAmplifyClient();
@@ -28,7 +28,21 @@ export function OpticSightProfileEdit({ opticId }: { opticId: string }) {
   const loadOptic = useCallback(async () => {
     setError("");
     setSuccess("");
+
+    if (!opticId) {
+      setRecord(null);
+      setError("Missing record ID.");
+      setState("missing");
+      return;
+    }
+
     const demoOptic = getOpticById(opticId);
+
+    if (demoOptic) {
+      setRecord(null);
+      setState("demo");
+      return;
+    }
 
     if (authState.status === "loading") {
       setState("loading");
@@ -49,19 +63,13 @@ export function OpticSightProfileEdit({ opticId }: { opticId: string }) {
           return;
         }
       } catch (loadError) {
-        if (!demoOptic) {
-          setError(getAuthErrorMessage(loadError));
-        }
+        console.error("Unable to load saved Optic / Sight profile for edit", loadError);
+        setError("This saved record could not be loaded.");
       }
     }
 
-    if (demoOptic) {
-      setRecord(null);
-      setState("demo");
-    } else {
-      setRecord(null);
-      setState("missing");
-    }
+    setRecord(null);
+    setState("missing");
   }, [authState.status, client, opticId]);
 
   useEffect(() => {

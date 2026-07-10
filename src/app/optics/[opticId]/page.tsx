@@ -1,5 +1,6 @@
 import { OpticSightProfileDetail } from "@/components/OpticSightProfileDetail";
 
-export default function OpticDetailPage({ params }: { params: { opticId: string } }) {
-  return <OpticSightProfileDetail opticId={params.opticId} />;
+export default async function OpticDetailPage({ params }: { params: Promise<{ opticId?: string }> }) {
+  const { opticId } = await params;
+  return <OpticSightProfileDetail opticId={opticId} />;
 }

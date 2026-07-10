@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/PageHeader";
-import { SessionCard } from "@/components/SessionCard";
-import { rangeSessions } from "@/data/mockData";
+import { RangeSessionList } from "@/components/RangeSessionList";
 
 export default function SessionsPage() {
   return (
@@ -16,11 +15,7 @@ export default function SessionsPage() {
           </Link>
         }
       />
-      <div className="space-y-4">
-        {rangeSessions.map((session) => (
-          <SessionCard key={session.id} session={session} />
-        ))}
-      </div>
+      <RangeSessionList />
     </section>
   );
 }

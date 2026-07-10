@@ -709,6 +709,13 @@
               "isRequired": false,
               "attributes": []
             },
+            "opticSightProfileId": {
+              "name": "opticSightProfileId",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": false,
+              "attributes": []
+            },
             "date": {
               "name": "date",
               "isArray": false,
