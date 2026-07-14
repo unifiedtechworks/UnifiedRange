@@ -54,6 +54,7 @@ export function toCreatePassportInput(values: PassportFormValues, ownerId: strin
     privateNotes: values.privateNotes.trim(),
     publicNotes: values.publicNotes.trim(),
     coverPhotoUrl: defaultPassportCoverPhoto,
+    privateCoverPhotoKey: "",
     isPublic: values.isPublic
   };
 }
@@ -106,6 +107,7 @@ export function recordToEquipmentPassport(record: EquipmentPassportRecord): Equi
     privateNotes: record.privateNotes ?? undefined,
     publicNotes: record.publicNotes ?? undefined,
     coverPhotoUrl: record.coverPhotoUrl ?? defaultPassportCoverPhoto,
+    privateCoverPhotoKey: record.privateCoverPhotoKey ?? undefined,
     isPublic: Boolean(record.isPublic),
     createdAt: record.createdAt ?? "",
     updatedAt: record.updatedAt ?? ""

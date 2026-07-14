@@ -60,6 +60,7 @@ export interface EquipmentPassport extends Timestamped {
   privateNotes?: string;
   publicNotes?: string;
   coverPhotoUrl?: string;
+  privateCoverPhotoKey?: string;
   isPublic: boolean;
 }
 
@@ -127,6 +128,7 @@ export interface TargetPhoto extends Timestamped {
   ownerId: string;
   rangeSessionId: string;
   imageUrl: string;
+  storageKey?: string;
   caption?: string;
   manuallyEnteredGroupSize?: string;
   manuallyEnteredScore?: string;

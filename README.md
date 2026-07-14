@@ -90,6 +90,7 @@ Current backend draft:
 - Publicly readable sanitized Public Passport snapshots
 - Signed-in-only comments, reactions, and reports
 - Owner-scoped private records for passports, projectiles/ammo, optics/sights, sessions, maintenance, and hunting checklists
+- Private S3 storage paths for signed-in user equipment/setup images and target photos
 
 The frontend keeps using mock data until the generated Amplify outputs are wired into live data flows. Do not gate the app behind Cognito or replace mock screens until the data boundary is implemented deliberately.
 
@@ -203,6 +204,24 @@ With the Amplify sandbox and dev server running:
 7. Use **Edit checklist**, update checklist items, and save.
 8. Refresh the detail page and confirm the checked/unchecked state persists.
 9. Sign out and confirm the Hunting Readiness area still shows clearly labeled demo data.
+
+### Manual Private Image Upload Test
+
+Restart or rerun the Amplify sandbox after pulling this change so the sandbox includes the new Storage resource and image-key schema fields.
+
+With the Amplify sandbox and dev server running:
+
+1. Sign in at `http://localhost:3000/auth/sign-in`.
+2. Open a saved Equipment Passport detail page.
+3. Upload a private setup photo using JPG, JPEG, PNG, or WEBP under 8MB.
+4. Refresh and confirm the private setup photo still displays.
+5. Open a saved Range Session detail page.
+6. Upload a private target photo.
+7. Refresh and confirm the private target photo still displays.
+8. Sign out and confirm private upload controls are not available.
+9. Confirm demo records still use demo image or placeholder behavior.
+
+Private images are private by default. Public sharing will require a separate sanitized publishing step later. Do not upload images containing serial numbers, exact locations, license plates, or sensitive personal info unless you intend to keep them private. Metadata stripping is not implemented in this slice and is required before public publishing.
 
 ## MVP App Structure
 

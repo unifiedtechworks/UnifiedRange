@@ -5,6 +5,7 @@ import { getCurrentUser } from "aws-amplify/auth";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Schema } from "../../amplify/data/resource";
+import { EquipmentPassportPrivatePhotoPanel } from "@/components/EquipmentPassportPrivatePhotoPanel";
 import { PassportForm, type PassportFormValues } from "@/components/PassportForm";
 import { getOpticById, getPassportById, getProjectileById } from "@/data/selectors";
 import { configureAmplifyClient, getAuthErrorMessage } from "@/lib/amplifyClient";
@@ -128,17 +129,24 @@ export function EquipmentPassportEdit({ passportId }: { passportId?: string }) {
 
   if (state === "saved" && record) {
     return (
-      <PassportForm
-        key={record.id}
-        mode="edit"
-        initialValues={toPassportFormValues(record)}
-        cancelHref={`/passports/${record.id}`}
-        submitLabel="Save account passport"
-        successMessage={success || undefined}
-        errorMessage={error || undefined}
-        isSubmitting={isSaving}
-        onSubmit={handleUpdate}
-      />
+      <div className="space-y-6">
+        <PassportForm
+          key={record.id}
+          mode="edit"
+          initialValues={toPassportFormValues(record)}
+          cancelHref={`/passports/${record.id}`}
+          submitLabel="Save account passport"
+          successMessage={success || undefined}
+          errorMessage={error || undefined}
+          isSubmitting={isSaving}
+          onSubmit={handleUpdate}
+        />
+        <EquipmentPassportPrivatePhotoPanel
+          passportId={record.id}
+          storageKey={record.privateCoverPhotoKey}
+          onPhotoUpdated={(storageKey) => setRecord({ ...record, privateCoverPhotoKey: storageKey })}
+        />
+      </div>
     );
   }
 

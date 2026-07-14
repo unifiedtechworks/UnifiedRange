@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Schema } from "../../amplify/data/resource";
 import { DetailRow } from "@/components/DetailRow";
+import { EquipmentPassportPrivatePhotoPanel } from "@/components/EquipmentPassportPrivatePhotoPanel";
 import { PageHeader } from "@/components/PageHeader";
 import { SessionCard } from "@/components/SessionCard";
 import { Tag } from "@/components/Tag";
@@ -105,10 +106,28 @@ export function EquipmentPassportDetail({ passportId }: { passportId?: string })
     return null;
   }
 
-  return <PassportDetailContent passport={passport} source={state === "saved" ? "saved" : "demo"} />;
+  return (
+    <PassportDetailContent
+      passport={passport}
+      source={state === "saved" ? "saved" : "demo"}
+      onPhotoUpdated={(storageKey) => {
+        if (record) {
+          setRecord({ ...record, privateCoverPhotoKey: storageKey });
+        }
+      }}
+    />
+  );
 }
 
-function PassportDetailContent({ passport, source }: { passport: EquipmentPassport; source: "saved" | "demo" }) {
+function PassportDetailContent({
+  passport,
+  source,
+  onPhotoUpdated
+}: {
+  passport: EquipmentPassport;
+  source: "saved" | "demo";
+  onPhotoUpdated?: (storageKey: string) => void;
+}) {
   const optic = getOpticById(passport.opticOrSightId);
   const projectile = getProjectileById(passport.preferredProjectileId);
   const sessions = source === "demo" ? getSessionsForPassport(passport.id) : [];
@@ -172,6 +191,10 @@ function PassportDetailContent({ passport, source }: { passport: EquipmentPasspo
               ))}
             </div>
           </article>
+
+          {source === "saved" ? (
+            <EquipmentPassportPrivatePhotoPanel passportId={passport.id} storageKey={passport.privateCoverPhotoKey} onPhotoUpdated={onPhotoUpdated} />
+          ) : null}
 
           <article className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
             <h3 className="text-xl font-bold text-ink">Related Sessions</h3>

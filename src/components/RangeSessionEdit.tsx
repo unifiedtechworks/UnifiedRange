@@ -4,6 +4,7 @@ import { generateClient } from "aws-amplify/data";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Schema } from "../../amplify/data/resource";
+import { RangeSessionPrivateTargetPhotoPanel } from "@/components/RangeSessionPrivateTargetPhotoPanel";
 import { RangeSessionForm, type RangeSessionFormValues } from "@/components/RangeSessionForm";
 import { equipmentPassports, optics, projectiles } from "@/data/mockData";
 import { getOpticById, getPassportById, getSessionById, getTargetPhotosForSession } from "@/data/selectors";
@@ -159,21 +160,24 @@ export function RangeSessionEdit({ sessionId }: { sessionId?: string }) {
     const noPassportMessage = relations.passports.length === 0 ? "Create a saved Equipment Passport before editing account-backed Range Sessions." : undefined;
 
     return (
-      <RangeSessionForm
-        key={record.id}
-        mode="edit"
-        initialValues={toRangeSessionFormValues(record)}
-        cancelHref={`/sessions/${record.id}`}
-        passportOptions={options.passportOptions}
-        projectileOptions={options.projectileOptions}
-        opticOptions={options.opticOptions}
-        submitLabel="Save account session"
-        successMessage={success || undefined}
-        errorMessage={error || undefined}
-        isSubmitting={isSaving}
-        onSubmit={handleUpdate}
-        noPassportMessage={noPassportMessage}
-      />
+      <div className="space-y-6">
+        <RangeSessionForm
+          key={record.id}
+          mode="edit"
+          initialValues={toRangeSessionFormValues(record)}
+          cancelHref={`/sessions/${record.id}`}
+          passportOptions={options.passportOptions}
+          projectileOptions={options.projectileOptions}
+          opticOptions={options.opticOptions}
+          submitLabel="Save account session"
+          successMessage={success || undefined}
+          errorMessage={error || undefined}
+          isSubmitting={isSaving}
+          onSubmit={handleUpdate}
+          noPassportMessage={noPassportMessage}
+        />
+        <RangeSessionPrivateTargetPhotoPanel sessionId={record.id} />
+      </div>
     );
   }
 

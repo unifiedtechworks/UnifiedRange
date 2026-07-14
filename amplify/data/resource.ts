@@ -41,6 +41,7 @@ const schema = a.schema({
       privateNotes: a.string(),
       publicNotes: a.string(),
       coverPhotoUrl: a.string(),
+      privateCoverPhotoKey: a.string(),
       isPublic: a.boolean(),
       createdAt: a.datetime(),
       updatedAt: a.datetime()
@@ -120,6 +121,7 @@ const schema = a.schema({
       ownerId: a.string().required(),
       rangeSessionId: a.id().required(),
       imageUrl: a.string().required(),
+      storageKey: a.string(),
       caption: a.string(),
       manuallyEnteredGroupSize: a.string(),
       manuallyEnteredScore: a.string(),

@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Schema } from "../../amplify/data/resource";
 import { DetailRow } from "@/components/DetailRow";
 import { PageHeader } from "@/components/PageHeader";
+import { RangeSessionPrivateTargetPhotoPanel } from "@/components/RangeSessionPrivateTargetPhotoPanel";
 import { getOpticById, getPassportById, getProjectileById, getSessionById, getTargetPhotosForSession } from "@/data/selectors";
 import { useAuthUser } from "@/hooks/useAuthUser";
 import { configureAmplifyClient } from "@/lib/amplifyClient";
@@ -209,22 +210,26 @@ function RangeSessionDetailContent({
             <p className="mt-3 rounded-md bg-field px-3 py-2 text-sm leading-6 text-ink/70">Wind notes are stored as free text only and are not transformed into field guidance.</p>
           </article>
 
-          <article className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
-            <h3 className="text-xl font-bold text-ink">Target Photos</h3>
-            <p className="mt-2 text-sm leading-6 text-ink/65">Target photos are private unless explicitly shared. Real upload is not implemented yet.</p>
-            <div className="mt-4 grid gap-4 md:grid-cols-2">
-              {photos.map((photo) => (
-                <div key={photo.id} className="overflow-hidden rounded-md border border-ink/10">
-                  <div className="h-44 bg-cover bg-center" style={{ backgroundImage: `url(${photo.imageUrl})` }} aria-hidden="true" />
-                  <div className="p-3">
-                    <p className="text-sm font-semibold text-ink">{photo.caption}</p>
-                    <p className="mt-1 text-xs text-ink/60">Manual entry: {photo.manuallyEnteredGroupSize ?? photo.manuallyEnteredScore ?? "No measurement recorded"}</p>
-                  </div>
+          {source === "saved" ? (
+            <RangeSessionPrivateTargetPhotoPanel sessionId={session.id} />
+          ) : (
+            <article className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
+              <h3 className="text-xl font-bold text-ink">Target Photos</h3>
+                <p className="mt-2 text-sm leading-6 text-ink/65">Demo target photos are placeholders. Saved sessions can use private uploads when signed in.</p>
+                <div className="mt-4 grid gap-4 md:grid-cols-2">
+                  {photos.map((photo) => (
+                    <div key={photo.id} className="overflow-hidden rounded-md border border-ink/10">
+                      <div className="h-44 bg-cover bg-center" style={{ backgroundImage: `url(${photo.imageUrl})` }} aria-hidden="true" />
+                      <div className="p-3">
+                        <p className="text-sm font-semibold text-ink">{photo.caption}</p>
+                        <p className="mt-1 text-xs text-ink/60">Manual entry: {photo.manuallyEnteredGroupSize ?? photo.manuallyEnteredScore ?? "No measurement recorded"}</p>
+                      </div>
+                    </div>
+                  ))}
+                  {photos.length === 0 ? <div className="rounded-md border border-dashed border-ink/20 bg-paper p-5 text-sm text-ink/65">No target photos attached yet.</div> : null}
                 </div>
-              ))}
-              {photos.length === 0 ? <div className="rounded-md border border-dashed border-ink/20 bg-paper p-5 text-sm text-ink/65">No target photos attached yet.</div> : null}
-            </div>
-          </article>
+            </article>
+          )}
         </div>
       </div>
     </section>
