@@ -223,6 +223,22 @@ With the Amplify sandbox and dev server running:
 
 Private images are private by default. Public sharing will require a separate sanitized publishing step later. Do not upload images containing serial numbers, exact locations, license plates, or sensitive personal info unless you intend to keep them private. Metadata stripping is not implemented in this slice and is required before public publishing.
 
+### Manual Public Passport Publishing Test
+
+With the Amplify sandbox and dev server running:
+
+1. Sign in at `http://localhost:3000/auth/sign-in`.
+2. Open a saved Equipment Passport.
+3. Use **Public preview**.
+4. Confirm the sanitized preview excludes private notes, private image keys, private setup photos, purchase details, exact locations, and sensitive personal info.
+5. Publish the public snapshot.
+6. Open `http://localhost:3000/discover` and confirm the public snapshot appears.
+7. Open the public detail page and confirm only sanitized setup fields display.
+8. Sign out and confirm Discover and the public detail page still work.
+9. If testing unpublish, return to the signed-in preview page, unpublish, and confirm the snapshot disappears from Discover.
+
+This public publishing slice publishes sanitized text/setup data only. Private S3 images are not exposed publicly.
+
 ## MVP App Structure
 
 The initial web app uses:

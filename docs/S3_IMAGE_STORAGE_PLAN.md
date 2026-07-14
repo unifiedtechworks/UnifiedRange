@@ -29,6 +29,8 @@ The current MVP stores:
 
 Public images should be copied into a public-safe location only after the user confirms sharing and a Lambda workflow strips metadata. Public image access is not enabled in the current private upload slice.
 
+The current Public Passport publishing flow writes sanitized text/setup data only and does not expose private S3 keys or public images.
+
 ## Metadata Stripping
 
 Public images should have metadata stripped before publication, including EXIF GPS data, device metadata, timestamps where appropriate, and other personal metadata.

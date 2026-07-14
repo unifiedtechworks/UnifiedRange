@@ -144,13 +144,9 @@ function PassportDetailContent({
         description={passport.publicNotes ?? "Private setup documentation and readiness notes."}
         action={
           <div className="flex flex-col gap-2 sm:flex-row">
-            {source === "demo" ? (
-              <Link href={`/passports/${passport.id}/public-preview`} className="inline-flex justify-center rounded-md border border-ink/15 bg-white px-4 py-2 text-sm font-semibold text-ink">
-                Public preview
-              </Link>
-            ) : (
-              <span className="inline-flex justify-center rounded-md border border-ink/15 bg-field px-4 py-2 text-sm font-semibold text-ink/65">Public preview later</span>
-            )}
+            <Link href={`/passports/${passport.id}/public-preview`} className="inline-flex justify-center rounded-md border border-ink/15 bg-white px-4 py-2 text-sm font-semibold text-ink">
+              Public preview
+            </Link>
             <Link href={`/passports/${passport.id}/edit`} className="inline-flex justify-center rounded-md bg-ink px-4 py-2 text-sm font-semibold text-white">
               Edit passport
             </Link>

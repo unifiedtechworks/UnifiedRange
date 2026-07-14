@@ -35,13 +35,13 @@ Public sharing should help users discover real-world setups while protecting pri
 1. Generate sanitized preview from private records.
 2. Show hidden-field and public-field lists.
 3. Require user confirmation.
-4. Run Lambda sanitization workflow for images before any public image is created.
-5. Strip image metadata, including EXIF GPS/device metadata, before public release.
-6. Copy only sanitized derivatives into public discovery storage.
-7. Save PublicPassportSnapshot in public discovery storage.
-8. Keep private source records owner-scoped.
+4. Save sanitized text/setup fields to `PublicPassportSnapshot`.
+5. Keep private source records owner-scoped.
+6. Later, run Lambda sanitization workflow for images before any public image is created.
+7. Later, strip image metadata, including EXIF GPS/device metadata, before public image release.
+8. Later, copy only sanitized derivatives into public discovery storage.
 
-The current private upload slice does not publish images, expose public image access, or strip metadata yet.
+The current public publishing slice publishes sanitized text/setup data only. It does not publish images, expose public image access, or strip metadata yet.
 
 ## Moderation Placeholders
 

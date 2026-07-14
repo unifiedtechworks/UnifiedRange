@@ -13,6 +13,6 @@ export const sanitizedPublicPassports = equipmentPassports
     })
   );
 
-export function getSanitizedPublicPassportById(id: string) {
+export function getSanitizedPublicPassportById(id?: string | null) {
   return sanitizedPublicPassports.find((passport) => passport.id === id);
 }
