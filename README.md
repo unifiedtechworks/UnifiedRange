@@ -176,6 +176,20 @@ With the Amplify sandbox and dev server running, restart or rerun the sandbox af
 8. Refresh the detail page and confirm the edits persist.
 9. Sign out and confirm the Range Sessions area still shows clearly labeled demo data.
 
+### Manual Maintenance CRUD Test
+
+With the Amplify sandbox and dev server running:
+
+1. Sign in at `http://localhost:3000/auth/sign-in`.
+2. Confirm you have at least one saved Equipment Passport.
+3. Open `http://localhost:3000/maintenance`.
+4. Use **Add maintenance** to create a saved Maintenance record linked to a saved Equipment Passport.
+5. Refresh the maintenance list and confirm the saved account record persists above the demo data.
+6. Open the saved Maintenance detail page.
+7. Use **Edit record**, update the record, and save.
+8. Refresh the detail page and confirm the edits persist.
+9. Sign out and confirm the Maintenance area still shows clearly labeled demo data.
+
 ## MVP App Structure
 
 The initial web app uses:

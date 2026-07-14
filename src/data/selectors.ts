@@ -40,8 +40,12 @@ export function isDemoSessionId(id?: string | null) {
   return Boolean(getSessionById(id));
 }
 
-export function getMaintenanceById(id: string) {
+export function getMaintenanceById(id?: string | null) {
   return maintenanceEntries.find((entry) => entry.id === id);
+}
+
+export function isDemoMaintenanceId(id?: string | null) {
+  return Boolean(getMaintenanceById(id));
 }
 
 export function getChecklistById(id: string) {

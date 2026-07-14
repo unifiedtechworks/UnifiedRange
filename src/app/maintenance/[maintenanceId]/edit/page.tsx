@@ -1,38 +1,16 @@
-import { notFound } from "next/navigation";
-import { MaintenanceLogForm, type MaintenanceLogFormValues } from "@/components/MaintenanceLogForm";
+import { MaintenanceLogEdit } from "@/components/MaintenanceLogEdit";
 import { PageHeader } from "@/components/PageHeader";
-import { equipmentPassports } from "@/data/mockData";
-import { getMaintenanceById } from "@/data/selectors";
 
-export default function EditMaintenancePage({ params }: { params: { maintenanceId: string } }) {
-  const entry = getMaintenanceById(params.maintenanceId);
-
-  if (!entry) notFound();
-
-  const initialValues: MaintenanceLogFormValues = {
-    equipmentPassportId: entry.equipmentPassportId,
-    date: entry.date,
-    roundOrShotCount: String(entry.roundOrShotCount),
-    maintenanceType: entry.maintenanceType,
-    partsChanged: entry.partsChanged.join(", "),
-    cleaningNotes: entry.cleaningNotes ?? entry.notes ?? "",
-    torqueCheckNotes: entry.torqueCheckNotes ?? "",
-    privateNotes: entry.privateNotes ?? ""
-  };
-
+export default async function EditMaintenancePage({ params }: { params: Promise<{ maintenanceId?: string }> }) {
+  const { maintenanceId } = await params;
   return (
     <section>
       <PageHeader
         eyebrow="Edit maintenance"
-        title={entry.maintenanceType}
-        description="Update mock maintenance values. Saving is local-only until the AWS backend is implemented."
+        title="Update private equipment care"
+        description="Maintenance records stay private account data and are not included in public discovery."
       />
-      <MaintenanceLogForm
-        mode="edit"
-        initialValues={initialValues}
-        cancelHref={`/maintenance/${entry.id}`}
-        passportOptions={equipmentPassports.map((passport) => ({ id: passport.id, label: passport.nickname }))}
-      />
+      <MaintenanceLogEdit maintenanceId={maintenanceId} />
     </section>
   );
 }
