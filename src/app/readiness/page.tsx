@@ -1,8 +1,6 @@
 import Link from "next/link";
+import { HuntingReadinessList } from "@/components/HuntingReadinessList";
 import { PageHeader } from "@/components/PageHeader";
-import { ReadinessProgress } from "@/components/ReadinessProgress";
-import { getPassportById } from "@/data/selectors";
-import { huntingChecklists } from "@/data/mockData";
 
 export default function ReadinessPage() {
   return (
@@ -17,40 +15,7 @@ export default function ReadinessPage() {
           </Link>
         }
       />
-      <div className="grid gap-5 xl:grid-cols-2">
-        {huntingChecklists.map((checklist) => {
-          const passport = getPassportById(checklist.equipmentPassportId);
-          const completed = checklist.checklistItems.filter((item) => item.isComplete).length;
-          return (
-            <article key={checklist.id} className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
-              <div className="flex flex-col justify-between gap-3 sm:flex-row">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-clay">{checklist.season}</p>
-                  <h3 className="mt-2 text-xl font-bold text-ink">{checklist.huntName}</h3>
-                  <p className="mt-1 text-sm text-ink/65">{checklist.species} · {passport?.nickname}</p>
-                </div>
-                <span className="rounded-md bg-field px-3 py-2 text-sm font-semibold text-moss">
-                  {completed}/{checklist.checklistItems.length} complete
-                </span>
-              </div>
-              <div className="mt-5">
-                <ReadinessProgress checklist={checklist} />
-              </div>
-              <div className="mt-5 grid gap-2">
-                {checklist.checklistItems.map((item) => (
-                  <div key={item.id} className="flex items-center gap-3 rounded-md border border-ink/10 px-3 py-2">
-                    <span className={`h-3 w-3 rounded-full ${item.isComplete ? "bg-moss" : "bg-clay"}`} />
-                    <span className="text-sm font-medium text-ink">{item.label}</span>
-                  </div>
-                ))}
-              </div>
-              <Link href={`/readiness/${checklist.id}`} className="mt-4 inline-flex rounded-md border border-ink/15 bg-white px-3 py-2 text-sm font-semibold text-ink">
-                View checklist
-              </Link>
-            </article>
-          );
-        })}
-      </div>
+      <HuntingReadinessList />
     </section>
   );
 }

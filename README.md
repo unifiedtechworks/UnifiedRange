@@ -190,6 +190,20 @@ With the Amplify sandbox and dev server running:
 8. Refresh the detail page and confirm the edits persist.
 9. Sign out and confirm the Maintenance area still shows clearly labeled demo data.
 
+### Manual Hunting Readiness CRUD Test
+
+With the Amplify sandbox and dev server running:
+
+1. Sign in at `http://localhost:3000/auth/sign-in`.
+2. Confirm you have at least one saved Equipment Passport.
+3. Open `http://localhost:3000/readiness`.
+4. Use **Create checklist** to create a saved Hunting Readiness checklist linked to a saved Equipment Passport.
+5. Refresh the readiness list and confirm the saved account record persists above the demo data.
+6. Open the saved Hunting Readiness detail page.
+7. Use **Edit checklist**, update checklist items, and save.
+8. Refresh the detail page and confirm the checked/unchecked state persists.
+9. Sign out and confirm the Hunting Readiness area still shows clearly labeled demo data.
+
 ## MVP App Structure
 
 The initial web app uses:

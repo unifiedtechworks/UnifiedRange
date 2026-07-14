@@ -55,22 +55,34 @@ export function HuntingReadinessForm({
   mode,
   initialValues,
   passportOptions,
-  cancelHref
+  cancelHref,
+  submitLabel,
+  successMessage,
+  errorMessage,
+  isSubmitting = false,
+  noPassportMessage,
+  onSubmit
 }: {
   mode: "create" | "edit";
   initialValues?: Partial<HuntingReadinessFormValues>;
   passportOptions: Option[];
   cancelHref: string;
+  submitLabel?: string;
+  successMessage?: string;
+  errorMessage?: string;
+  isSubmitting?: boolean;
+  noPassportMessage?: string;
+  onSubmit?: (values: HuntingReadinessFormValues) => Promise<void> | void;
 }) {
   const mergedValues = useMemo(() => ({ ...defaultValues, ...initialValues, checklistItems: initialValues?.checklistItems ?? createDefaultItems() }), [initialValues]);
   const [values, setValues] = useState<HuntingReadinessFormValues>(mergedValues);
   const [errors, setErrors] = useState<Partial<Record<keyof HuntingReadinessFormValues, string>>>({});
-  const [successMessage, setSuccessMessage] = useState("");
+  const [localSuccessMessage, setLocalSuccessMessage] = useState("");
 
   function updateField<K extends keyof HuntingReadinessFormValues>(field: K, value: HuntingReadinessFormValues[K]) {
     setValues((current) => ({ ...current, [field]: value }));
     setErrors((current) => ({ ...current, [field]: undefined }));
-    setSuccessMessage("");
+    setLocalSuccessMessage("");
   }
 
   function toggleItem(itemId: string, isComplete: boolean) {
@@ -88,12 +100,17 @@ export function HuntingReadinessForm({
     return Object.keys(nextErrors).length === 0;
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!validate()) return;
 
+    if (onSubmit) {
+      await onSubmit(values);
+      return;
+    }
+
     console.log(`Readiness ${mode} placeholder submit`, values);
-    setSuccessMessage(mode === "create" ? "Draft saved locally for this mock MVP. No backend write occurred." : "Updates saved locally for this mock MVP. No backend write occurred.");
+    setLocalSuccessMessage(mode === "create" ? "Draft saved locally for this mock MVP. No backend write occurred." : "Updates saved locally for this mock MVP. No backend write occurred.");
   }
 
   const completed = values.checklistItems.filter((item) => item.isComplete).length;
@@ -105,6 +122,7 @@ export function HuntingReadinessForm({
       <section className="rounded-md border border-moss/20 bg-field p-4">
         <h3 className="text-base font-bold text-ink">Private Readiness Record</h3>
         <p className="mt-2 text-sm leading-6 text-ink/70">Hunting Readiness records are private by default and help organize preparation, documentation, and field planning.</p>
+        {noPassportMessage ? <p className="mt-3 rounded-md border border-clay/30 bg-clay/10 px-3 py-2 text-sm font-semibold text-clay">{noPassportMessage}</p> : null}
       </section>
 
       <section className="rounded-md border border-ink/10 bg-white p-4 shadow-soft sm:p-5">
@@ -151,12 +169,17 @@ export function HuntingReadinessForm({
         <TextArea label="Notes" value={values.notes} onChange={(value) => updateField("notes", value)} />
       </section>
 
-      {successMessage ? <div className="rounded-md border border-moss/30 bg-field px-4 py-3 text-sm font-semibold text-moss">{successMessage}</div> : null}
+      {errorMessage ? <div className="rounded-md border border-clay/30 bg-clay/10 px-4 py-3 text-sm font-semibold text-clay">{errorMessage}</div> : null}
+      {successMessage || localSuccessMessage ? <div className="rounded-md border border-moss/30 bg-field px-4 py-3 text-sm font-semibold text-moss">{successMessage ?? localSuccessMessage}</div> : null}
 
       <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
         <Link href={cancelHref} className="inline-flex justify-center rounded-md border border-ink/15 bg-white px-4 py-2 text-sm font-semibold text-ink">Cancel</Link>
-        <button type="submit" className="inline-flex justify-center rounded-md bg-ink px-4 py-2 text-sm font-semibold text-white">
-          {mode === "create" ? "Create readiness draft" : "Save readiness draft"}
+        <button
+          type="submit"
+          disabled={isSubmitting || Boolean(noPassportMessage)}
+          className="inline-flex justify-center rounded-md bg-ink px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {isSubmitting ? "Saving..." : submitLabel ?? (mode === "create" ? "Create readiness draft" : "Save readiness draft")}
         </button>
       </div>
     </form>

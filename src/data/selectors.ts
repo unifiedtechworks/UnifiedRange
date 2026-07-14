@@ -48,8 +48,12 @@ export function isDemoMaintenanceId(id?: string | null) {
   return Boolean(getMaintenanceById(id));
 }
 
-export function getChecklistById(id: string) {
+export function getChecklistById(id?: string | null) {
   return huntingChecklists.find((checklist) => checklist.id === id);
+}
+
+export function isDemoChecklistId(id?: string | null) {
+  return Boolean(getChecklistById(id));
 }
 
 export function getSessionsForPassport(passportId: string) {

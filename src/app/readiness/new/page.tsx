@@ -1,6 +1,5 @@
-import { HuntingReadinessForm } from "@/components/HuntingReadinessForm";
+import { HuntingReadinessCreate } from "@/components/HuntingReadinessCreate";
 import { PageHeader } from "@/components/PageHeader";
-import { equipmentPassports } from "@/data/mockData";
 
 export default function NewReadinessPage() {
   return (
@@ -10,11 +9,7 @@ export default function NewReadinessPage() {
         title="Create a private readiness checklist"
         description="Track preparation tasks, equipment confirmation, field prep, and planning notes in a private checklist."
       />
-      <HuntingReadinessForm
-        mode="create"
-        cancelHref="/readiness"
-        passportOptions={equipmentPassports.map((passport) => ({ id: passport.id, label: passport.nickname }))}
-      />
+      <HuntingReadinessCreate />
     </section>
   );
 }
