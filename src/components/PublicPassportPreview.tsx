@@ -15,8 +15,8 @@ import { useAuthUser } from "@/hooks/useAuthUser";
 import { configureAmplifyClient, getAuthErrorMessage } from "@/lib/amplifyClient";
 import { recordToEquipmentPassport, type EquipmentPassportRecord } from "@/lib/equipmentPassportData";
 import {
+  buildPublicPassportSnapshotInput,
   recordToSanitizedPublicPassport,
-  toPublicSnapshotInput,
   type PublicPassportSnapshotRecord
 } from "@/lib/publicPassportSnapshotData";
 import { sanitizePublicPassport } from "@/lib/sanitizePublicPassport";
@@ -127,7 +127,7 @@ export function PublicPassportPreview({ passportId }: { passportId?: string }) {
     setIsPublishing(true);
 
     try {
-      const input = toPublicSnapshotInput(passport, authState.username);
+      const input = buildPublicPassportSnapshotInput(passport, authState.username);
       const result = snapshot
         ? await client.models.PublicPassportSnapshot.update({
             id: snapshot.id,
@@ -146,7 +146,8 @@ export function PublicPassportPreview({ passportId }: { passportId?: string }) {
       setSnapshot(result.data);
       setMessage(snapshot ? "Public snapshot updated." : "Public snapshot published.");
     } catch (publishError) {
-      setError(getAuthErrorMessage(publishError));
+      console.error("Unable to publish sanitized public passport snapshot", publishError);
+      setError("The public snapshot could not be published. Check the saved passport fields and try again.");
     } finally {
       setIsPublishing(false);
     }
@@ -176,6 +177,7 @@ export function PublicPassportPreview({ passportId }: { passportId?: string }) {
       setSnapshot(null);
       setMessage("Public snapshot unpublished.");
     } catch (unpublishError) {
+      console.error("Unable to unpublish public passport snapshot", unpublishError);
       setError(getAuthErrorMessage(unpublishError));
     } finally {
       setIsPublishing(false);

@@ -181,7 +181,7 @@ export interface PublicPassportSnapshot extends Timestamped {
   useCaseTags: string[];
   publicNotes?: string;
   coverPhotoUrl?: string;
-  publicStats: {
+  publicStats?: {
     loggedSessions: number;
     maintenanceEntries: number;
     lastUpdatedLabel: string;

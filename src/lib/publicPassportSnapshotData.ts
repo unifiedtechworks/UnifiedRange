@@ -4,8 +4,28 @@ import type { EquipmentPassport, EquipmentType, PublicRangeSessionSummary, Publi
 
 export type PublicPassportSnapshotRecord = Schema["PublicPassportSnapshot"]["type"];
 
+type PublicPassportSnapshotInput = {
+  ownerId: string;
+  equipmentPassportId: string;
+  title: string;
+  equipmentType: EquipmentType;
+  manufacturer?: string;
+  model?: string;
+  category?: string;
+  caliber?: string;
+  opticOrSightSummary?: string;
+  projectileSummary?: string;
+  useCaseTags?: string[];
+  publicNotes?: string;
+  coverPhotoUrl?: string;
+};
+
 function filterStrings(value: Array<string | null> | null | undefined) {
   return (value ?? []).filter((item): item is string => Boolean(item));
+}
+
+function omitUndefined<T extends Record<string, unknown>>(value: T) {
+  return Object.fromEntries(Object.entries(value).filter(([, entryValue]) => entryValue !== undefined)) as T;
 }
 
 function normalizePublicRangeSessions(value: unknown): PublicRangeSessionSummary[] {
@@ -70,8 +90,8 @@ function normalizePublicPhotoPlaceholders(value: unknown): PublicTargetPhotoPlac
   return placeholders;
 }
 
-export function toPublicSnapshotInput(passport: EquipmentPassport, ownerId: string) {
-  return {
+export function buildPublicPassportSnapshotInput(passport: EquipmentPassport, ownerId: string) {
+  const input: PublicPassportSnapshotInput = {
     ownerId,
     equipmentPassportId: passport.id,
     title: passport.nickname,
@@ -80,19 +100,13 @@ export function toPublicSnapshotInput(passport: EquipmentPassport, ownerId: stri
     model: passport.model,
     category: passport.category,
     caliber: passport.caliber ?? passport.category,
-    opticOrSightSummary: passport.opticSightSummary ?? "",
-    projectileSummary: passport.projectileAmmoSummary ?? "",
+    opticOrSightSummary: passport.opticSightSummary || undefined,
+    projectileSummary: passport.projectileAmmoSummary || undefined,
     useCaseTags: passport.useCaseTags,
-    publicNotes: passport.publicNotes ?? "",
-    coverPhotoUrl: "",
-    publicStats: {
-      loggedSessions: 0,
-      maintenanceEntries: 0,
-      lastUpdatedLabel: new Date().toISOString()
-    },
-    publicRangeSessions: [],
-    publicPhotoPlaceholders: []
+    publicNotes: passport.publicNotes || undefined
   };
+
+  return omitUndefined(input);
 }
 
 export function recordToSanitizedPublicPassport(record: PublicPassportSnapshotRecord): SanitizedPublicPassport {
