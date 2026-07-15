@@ -88,11 +88,22 @@ Current backend draft:
 - AWS AppSync GraphQL data layer
 - DynamoDB-backed app models
 - Publicly readable sanitized Public Passport snapshots
-- Signed-in-only comments, reactions, and reports
+- Publicly readable reaction counts, with signed-in-only reaction actions
+- Signed-in-only comments and reports
 - Owner-scoped private records for passports, projectiles/ammo, optics/sights, sessions, maintenance, and hunting checklists
 - Private S3 storage paths for signed-in user equipment/setup images and target photos
 
-The frontend keeps using mock data until the generated Amplify outputs are wired into live data flows. Do not gate the app behind Cognito or replace mock screens until the data boundary is implemented deliberately.
+The frontend now uses AppSync-backed saved account data for the main private record slices while keeping clearly labeled demo data available for signed-out browsing. Do not gate the full app behind Cognito unless that product decision is made deliberately.
+
+Useful local commands:
+
+```bash
+npm run amplify:typecheck
+npm run lint
+npm run build
+npm run amplify:sandbox
+npm run dev
+```
 
 ### Manual Auth Test
 
@@ -255,6 +266,36 @@ With the Amplify sandbox and dev server running:
 8. Sign out and confirm signed-out users can still view the public page but are prompted to sign in before reacting, commenting, or reporting.
 
 Comments, reactions, and reports are scoped to sanitized public passport snapshots. This slice does not add public images, feeds, follows, notifications, direct messages, marketplaces, or a moderation dashboard.
+
+### Production-Readiness Manual Checklist
+
+Run this checklist before promoting a sandbox or production environment:
+
+1. Auth: sign up, confirm if required, sign in, refresh, and sign out.
+2. Profile: create and edit UserProfile, then verify it persists after refresh.
+3. Equipment Passports: create, view, edit, refresh, and confirm signed-out demo behavior.
+4. Projectiles / Ammo: create, view, edit, refresh, and confirm signed-out demo behavior.
+5. Optics / Sights: create, view, edit, refresh, and confirm signed-out demo behavior.
+6. Range Sessions: create a session linked to saved passport/projectile/optic records, edit, refresh, and confirm demo fallback.
+7. Maintenance: create an entry linked to a saved Equipment Passport, edit, refresh, and confirm demo fallback.
+8. Hunting Readiness: create a checklist linked to a saved Equipment Passport, edit checked items, refresh, and confirm demo fallback.
+9. Private images: upload a private equipment photo and private target photo, refresh, and confirm signed-out users cannot access upload controls.
+10. Public publishing: preview, publish, view in Discover, update, and unpublish a sanitized Public Passport snapshot.
+11. Discover: confirm signed-out and signed-in users can view sanitized public snapshots only.
+12. Reactions/comments/reports: confirm reaction counts load or gracefully show unavailable, signed-in users can react/comment/report, and signed-out users see sign-in prompts for actions.
+13. Public/private boundary: confirm public pages do not show private notes, private S3 keys, target photos, maintenance records, readiness records, ammo lot numbers, purchase info, exact locations, owner private details, or image metadata.
+14. Demo behavior: sign out and confirm mock/demo data remains clearly labeled across Dashboard and all major sections.
+
+### Before Deploying
+
+1. Confirm the intended AWS profile and environment.
+2. Confirm whether you are using a local sandbox or a production Amplify environment.
+3. Restart `npm run amplify:sandbox` after schema or storage changes, including public Reaction read authorization changes.
+4. Confirm no secrets, tokens, passwords, private keys, account IDs, or local `.env` files are committed.
+5. Confirm `amplify_outputs.json` matches the target environment you intend the frontend to use.
+6. Confirm `.amplify` remains ignored by git.
+7. Run `npm run amplify:typecheck`, `npm run lint`, and `npm run build`.
+8. Manually test public/private data boundaries before sharing a deployed URL.
 
 ## MVP App Structure
 

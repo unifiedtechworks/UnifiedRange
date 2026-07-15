@@ -194,7 +194,11 @@ function PassportDetailContent({
 
           <article className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
             <h3 className="text-xl font-bold text-ink">Related Sessions</h3>
-            {source === "saved" ? <p className="mt-3 text-sm leading-6 text-ink/70">Range Sessions remain on mock data and are not linked to saved account passports yet.</p> : null}
+            {source === "saved" ? (
+              <p className="mt-3 text-sm leading-6 text-ink/70">
+                Saved Range Sessions are managed in the Range Sessions area and linked to saved account passports.
+              </p>
+            ) : null}
             {sessions.length > 0 ? (
               <div className="mt-4 space-y-4">
                 {sessions.map((session) => (
@@ -207,7 +211,9 @@ function PassportDetailContent({
           <article className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
             <h3 className="text-xl font-bold text-ink">Maintenance and Readiness</h3>
             {source === "saved" ? (
-              <p className="mt-2 text-sm text-ink/65">Maintenance and Hunting Readiness stay on mock data until those slices are wired.</p>
+              <p className="mt-2 text-sm text-ink/65">
+                Saved Maintenance and Hunting Readiness records are private account data managed in their own sections.
+              </p>
             ) : (
               <>
                 <p className="mt-2 text-sm text-ink/65">{maintenance.length} maintenance records linked to this demo passport.</p>

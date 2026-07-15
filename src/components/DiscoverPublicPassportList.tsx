@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Schema } from "../../amplify/data/resource";
 import { PublicPassportCard } from "@/components/PublicPassportCard";
 import { sanitizedPublicPassports } from "@/data/publicDiscovery";
-import { configureAmplifyClient, getAuthErrorMessage } from "@/lib/amplifyClient";
+import { configureAmplifyClient } from "@/lib/amplifyClient";
 import { recordToSanitizedPublicPassport, type PublicPassportSnapshotRecord } from "@/lib/publicPassportSnapshotData";
 
 type DiscoverState = "loading" | "ready";
@@ -32,8 +32,8 @@ export function DiscoverPublicPassportList() {
 
       setRecords(result.data);
     } catch (loadError) {
-      console.error("Unable to load public snapshots", loadError);
-      setError(getAuthErrorMessage(loadError));
+      console.warn("Unable to load public snapshots", loadError);
+      setError("Public setup snapshots are unavailable right now. Demo discovery data remains available.");
       setRecords([]);
     } finally {
       setState("ready");
