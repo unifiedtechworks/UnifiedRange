@@ -44,6 +44,13 @@ Report reasons:
 - Sales or marketplace activity
 - Other
 
+## Current MVP Implementation
+
+- Signed-in users can report sanitized public passport snapshots and comments.
+- Report records are stored for later review; no admin moderation dashboard exists yet.
+- Signed-out users can view public setup pages but must sign in before reporting.
+- Public social features must not expose private passport fields, private images, owner private details, marketplace activity, or direct messaging.
+
 ## Admin Review States
 
 - pending

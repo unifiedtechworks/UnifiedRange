@@ -47,6 +47,14 @@ The current public publishing slice publishes sanitized text/setup data only. It
 
 Reports should support reasons for unsafe weapon content, illegal hunting / poaching, personal information, harassment or threat, sales or marketplace activity, and other.
 
+## Public Social Slice
+
+- Public passport detail pages can show reaction counts for signed-out and signed-in visitors.
+- Signed-in users can add or remove reactions, add comments, and submit reports.
+- Comments and reactions are scoped to sanitized `PublicPassportSnapshot` records.
+- Comment reports target the comment record, while public passport reports target the public snapshot.
+- This slice does not publish private S3 images, add direct messages, add marketplace features, or expose owner private details.
+
 ## Safety Boundary
 
 Public pages are for setup discovery and range-log sharing. They must stay focused on sanitized documentation and community setup context.

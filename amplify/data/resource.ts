@@ -215,12 +215,12 @@ const schema = a.schema({
       ]),
       createdAt: a.datetime()
     })
-    .authorization((allow) => [allow.ownerDefinedIn("userId"), allow.authenticated().to(["read"])]),
+    .authorization((allow) => [allow.ownerDefinedIn("userId"), allow.authenticated().to(["read"]), allow.publicApiKey().to(["read"])]),
 
   Report: a
     .model({
       reporterId: a.string().required(),
-      targetType: a.enum(["passport", "session", "public_passport"]),
+      targetType: a.enum(["passport", "session", "public_passport", "comment"]),
       targetId: a.id().required(),
       reason: a.string().required(),
       details: a.string(),

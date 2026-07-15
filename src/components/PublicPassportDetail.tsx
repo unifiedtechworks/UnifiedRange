@@ -7,6 +7,7 @@ import type { Schema } from "../../amplify/data/resource";
 import { DetailRow } from "@/components/DetailRow";
 import { PageHeader } from "@/components/PageHeader";
 import { PublicPhotoPlaceholderList, PublicRangeSessionList, ReactionBar } from "@/components/PublicPassportSections";
+import { PublicSocialPanel } from "@/components/PublicSocialPanel";
 import { ReportContentButton } from "@/components/ReportContentButton";
 import { Tag } from "@/components/Tag";
 import { getSanitizedPublicPassportById } from "@/data/publicDiscovery";
@@ -100,6 +101,8 @@ export function PublicPassportDetail({ publicPassportId }: { publicPassportId?: 
 }
 
 function PublicPassportDetailContent({ passport, source }: { passport: SanitizedPublicPassport; source: string }) {
+  const isDemo = source === "Demo data";
+
   return (
     <section>
       <PageHeader
@@ -142,20 +145,24 @@ function PublicPassportDetailContent({ passport, source }: { passport: Sanitized
             <p className="mt-3 text-sm leading-6 text-ink/70">{passport.publicNotes ?? "No public notes shared."}</p>
           </article>
 
-          <article className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
-            <h3 className="text-xl font-bold text-ink">Reactions</h3>
-            <div className="mt-4">
-              <ReactionBar passport={passport} />
-            </div>
-          </article>
+          {isDemo ? (
+            <>
+              <article className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
+                <h3 className="text-xl font-bold text-ink">Reactions</h3>
+                <div className="mt-4">
+                  <ReactionBar passport={passport} />
+                </div>
+              </article>
 
-          <article className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
-            <h3 className="text-xl font-bold text-ink">Report Content</h3>
-            <p className="mt-2 text-sm leading-6 text-ink/65">Help keep discovery focused on safe, legal, privacy-preserving setup documentation.</p>
-            <div className="mt-4">
-              <ReportContentButton targetLabel={passport.title} />
-            </div>
-          </article>
+              <article className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
+                <h3 className="text-xl font-bold text-ink">Report Content</h3>
+                <p className="mt-2 text-sm leading-6 text-ink/65">Help keep discovery focused on safe, legal, privacy-preserving setup documentation.</p>
+                <div className="mt-4">
+                  <ReportContentButton targetLabel={passport.title} />
+                </div>
+              </article>
+            </>
+          ) : null}
         </div>
       </div>
 
@@ -173,10 +180,16 @@ function PublicPassportDetailContent({ passport, source }: { passport: Sanitized
         </div>
       </section>
 
-      <section className="mt-6 rounded-md border border-ink/10 bg-white p-5 shadow-soft">
-        <h3 className="text-xl font-bold text-ink">Comments</h3>
-        <p className="mt-2 text-sm leading-6 text-ink/65">Comments are a placeholder for future moderated discussion. Reporting and moderation workflows will be connected later.</p>
-      </section>
+      {isDemo ? (
+        <section className="mt-6 rounded-md border border-ink/10 bg-white p-5 shadow-soft">
+          <h3 className="text-xl font-bold text-ink">Comments</h3>
+          <p className="mt-2 text-sm leading-6 text-ink/65">Comments are a demo placeholder. Saved public snapshots use signed-in comments and reporting.</p>
+        </section>
+      ) : (
+        <section className="mt-6">
+          <PublicSocialPanel publicPassportId={passport.id} publicPassportTitle={passport.title} />
+        </section>
+      )}
     </section>
   );
 }

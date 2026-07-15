@@ -239,6 +239,23 @@ With the Amplify sandbox and dev server running:
 
 This public publishing slice publishes sanitized text/setup data only. Private S3 images are not exposed publicly.
 
+### Manual Public Social Interaction Test
+
+Restart or rerun the Amplify sandbox after pulling this change so AppSync includes public reaction reads and comment report targets.
+
+With the Amplify sandbox and dev server running:
+
+1. Sign in and publish or confirm a public passport snapshot exists.
+2. Open `http://localhost:3000/discover/passports/[publicPassportId]` while signed out and confirm the public page and reaction counts load.
+3. Sign in and add a reaction.
+4. Refresh and confirm the reaction count persists.
+5. Add a comment and refresh to confirm it persists.
+6. Report the public passport snapshot and confirm the success message.
+7. Report a comment and confirm the success message.
+8. Sign out and confirm signed-out users can still view the public page but are prompted to sign in before reacting, commenting, or reporting.
+
+Comments, reactions, and reports are scoped to sanitized public passport snapshots. This slice does not add public images, feeds, follows, notifications, direct messages, marketplaces, or a moderation dashboard.
+
 ## MVP App Structure
 
 The initial web app uses:
