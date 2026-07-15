@@ -288,14 +288,17 @@ Run this checklist before promoting a sandbox or production environment:
 
 ### Before Deploying
 
+See `docs/AMPLIFY_HOSTING_DEPLOYMENT.md` for the Amplify Hosting dev/staging runbook. Expected AWS region is `us-west-2`.
+
 1. Confirm the intended AWS profile and environment.
 2. Confirm whether you are using a local sandbox or a production Amplify environment.
-3. Restart `npm run amplify:sandbox` after schema or storage changes, including public Reaction read authorization changes.
-4. Confirm no secrets, tokens, passwords, private keys, account IDs, or local `.env` files are committed.
-5. Confirm `amplify_outputs.json` matches the target environment you intend the frontend to use.
-6. Confirm `.amplify` remains ignored by git.
-7. Run `npm run amplify:typecheck`, `npm run lint`, and `npm run build`.
-8. Manually test public/private data boundaries before sharing a deployed URL.
+3. Confirm the deployment branch and Amplify Hosting app are pointed at the intended backend environment.
+4. Restart `npm run amplify:sandbox` after schema or storage changes, including public Reaction read authorization changes.
+5. Confirm no secrets, tokens, passwords, private keys, account IDs, or local `.env` files are committed.
+6. Confirm `amplify_outputs.json` matches the target environment you intend the frontend to use.
+7. Confirm `.amplify` remains ignored by git.
+8. Run `npm run amplify:typecheck`, `npm run lint`, and `npm run build`.
+9. Manually test public/private data boundaries before sharing a deployed URL.
 
 ## MVP App Structure
 
@@ -321,4 +324,5 @@ Start here:
 5. `docs/USER_FLOWS.md`
 6. `docs/SOCIAL_FEATURES.md`
 7. `docs/MODERATION_POLICY.md`
-8. `tasks/001-project-bootstrap.md`
+8. `docs/AMPLIFY_HOSTING_DEPLOYMENT.md`
+9. `tasks/001-project-bootstrap.md`
