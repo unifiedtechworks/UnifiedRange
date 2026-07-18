@@ -8,7 +8,7 @@ const schema = a.schema({
       ownerId: a
         .string()
         .required()
-        .authorization((allow) => [allow.ownerDefinedIn("ownerId").to(["read", "delete"])]),
+        .authorization((allow) => [allow.ownerDefinedIn("ownerId").to(["create", "read", "delete"])]),
       displayName: a.string().required(),
       username: a.string(),
       avatarUrl: a.string(),
@@ -24,7 +24,7 @@ const schema = a.schema({
       ownerId: a
         .string()
         .required()
-        .authorization((allow) => [allow.ownerDefinedIn("ownerId").to(["read", "delete"])]),
+        .authorization((allow) => [allow.ownerDefinedIn("ownerId").to(["create", "read", "delete"])]),
       equipmentType: a.enum(["rifle", "pistol", "bow", "crossbow", "shotgun", "other"]),
       nickname: a.string().required(),
       manufacturer: a.string().required(),
@@ -59,7 +59,7 @@ const schema = a.schema({
       ownerId: a
         .string()
         .required()
-        .authorization((allow) => [allow.ownerDefinedIn("ownerId").to(["read", "delete"])]),
+        .authorization((allow) => [allow.ownerDefinedIn("ownerId").to(["create", "read", "delete"])]),
       projectileType: a.enum(["ammo", "arrow", "bolt", "pellet", "other"]),
       manufacturer: a.string().required(),
       productLine: a.string().required(),
@@ -86,7 +86,7 @@ const schema = a.schema({
       ownerId: a
         .string()
         .required()
-        .authorization((allow) => [allow.ownerDefinedIn("ownerId").to(["read", "delete"])]),
+        .authorization((allow) => [allow.ownerDefinedIn("ownerId").to(["create", "read", "delete"])]),
       sightType: a.enum(["scope", "red_dot", "iron_sight", "bow_sight", "other"]),
       manufacturer: a.string().required(),
       model: a.string().required(),
@@ -106,7 +106,7 @@ const schema = a.schema({
       ownerId: a
         .string()
         .required()
-        .authorization((allow) => [allow.ownerDefinedIn("ownerId").to(["read", "delete"])]),
+        .authorization((allow) => [allow.ownerDefinedIn("ownerId").to(["create", "read", "delete"])]),
       equipmentPassportId: a.id().required(),
       projectileProfileId: a.id(),
       opticSightProfileId: a.id(),
@@ -136,7 +136,7 @@ const schema = a.schema({
       ownerId: a
         .string()
         .required()
-        .authorization((allow) => [allow.ownerDefinedIn("ownerId").to(["read", "delete"])]),
+        .authorization((allow) => [allow.ownerDefinedIn("ownerId").to(["create", "read", "delete"])]),
       rangeSessionId: a.id().required(),
       imageUrl: a.string().required(),
       storageKey: a.string(),
@@ -154,7 +154,7 @@ const schema = a.schema({
       ownerId: a
         .string()
         .required()
-        .authorization((allow) => [allow.ownerDefinedIn("ownerId").to(["read", "delete"])]),
+        .authorization((allow) => [allow.ownerDefinedIn("ownerId").to(["create", "read", "delete"])]),
       equipmentPassportId: a.id().required(),
       date: a.date().required(),
       roundOrShotCount: a.integer(),
@@ -174,7 +174,7 @@ const schema = a.schema({
       ownerId: a
         .string()
         .required()
-        .authorization((allow) => [allow.ownerDefinedIn("ownerId").to(["read", "delete"])]),
+        .authorization((allow) => [allow.ownerDefinedIn("ownerId").to(["create", "read", "delete"])]),
       equipmentPassportId: a.id().required(),
       huntName: a.string().required(),
       season: a.string(),
@@ -193,7 +193,7 @@ const schema = a.schema({
       ownerId: a
         .string()
         .required()
-        .authorization((allow) => [allow.ownerDefinedIn("ownerId").to(["read", "delete"]), allow.publicApiKey().to(["read"])]),
+        .authorization((allow) => [allow.ownerDefinedIn("ownerId").to(["create", "read", "delete"]), allow.publicApiKey().to(["read"])]),
       equipmentPassportId: a.id().required(),
       title: a.string().required(),
       equipmentType: a.enum(["rifle", "pistol", "bow", "crossbow", "shotgun", "other"]),
@@ -219,7 +219,7 @@ const schema = a.schema({
       authorId: a
         .string()
         .required()
-        .authorization((allow) => [allow.ownerDefinedIn("authorId").to(["read", "delete"]), allow.authenticated().to(["read"])]),
+        .authorization((allow) => [allow.ownerDefinedIn("authorId").to(["create", "read", "delete"]), allow.authenticated().to(["read"])]),
       targetType: a.enum(["passport", "session", "public_passport"]),
       targetId: a.id().required(),
       body: a.string().required(),
@@ -235,7 +235,7 @@ const schema = a.schema({
         .string()
         .required()
         .authorization((allow) => [
-          allow.ownerDefinedIn("userId").to(["read", "delete"]),
+          allow.ownerDefinedIn("userId").to(["create", "read", "delete"]),
           allow.authenticated().to(["read"]),
           allow.publicApiKey().to(["read"])
         ]),
@@ -259,7 +259,7 @@ const schema = a.schema({
       reporterId: a
         .string()
         .required()
-        .authorization((allow) => [allow.ownerDefinedIn("reporterId").to(["read", "delete"])]),
+        .authorization((allow) => [allow.ownerDefinedIn("reporterId").to(["create", "read", "delete"])]),
       targetType: a.enum(["passport", "session", "public_passport", "comment"]),
       targetId: a.id().required(),
       reason: a.string().required(),

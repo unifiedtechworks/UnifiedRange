@@ -129,6 +129,9 @@ export function AuthForm() {
           <Link href="/dashboard" className="inline-flex justify-center rounded-md border border-ink/15 bg-white px-4 py-2 text-sm font-semibold text-ink">
             Go to Dashboard
           </Link>
+          <Link href="/profile" className="inline-flex justify-center rounded-md border border-ink/15 bg-white px-4 py-2 text-sm font-semibold text-ink">
+            View Profile
+          </Link>
           <Link href="/settings" className="inline-flex justify-center rounded-md border border-ink/15 bg-white px-4 py-2 text-sm font-semibold text-ink">
             View Settings
           </Link>

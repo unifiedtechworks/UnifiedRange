@@ -33,6 +33,9 @@ export function AuthNav({ compact = false }: { compact?: boolean }) {
         {authState.status === "signed-in" ? (
           <>
             <span className="max-w-36 truncate text-xs font-semibold text-ink/70">{authState.label}</span>
+            <Link href="/profile" className="rounded-md border border-ink/15 bg-white px-3 py-1.5 text-xs font-semibold text-ink">
+              Profile
+            </Link>
             <button
               type="button"
               onClick={handleSignOut}
@@ -59,6 +62,14 @@ export function AuthNav({ compact = false }: { compact?: boolean }) {
         <>
           <p className="mt-2 truncate text-sm font-semibold text-ink">{authState.label}</p>
           <p className="mt-1 truncate text-xs text-ink/55">{authState.username}</p>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <Link href="/profile" className="inline-flex justify-center rounded-md border border-ink/15 bg-white px-3 py-2 text-sm font-semibold text-ink">
+              Profile
+            </Link>
+            <Link href="/settings" className="inline-flex justify-center rounded-md border border-ink/15 bg-white px-3 py-2 text-sm font-semibold text-ink">
+              Settings
+            </Link>
+          </div>
           <button
             type="button"
             onClick={handleSignOut}

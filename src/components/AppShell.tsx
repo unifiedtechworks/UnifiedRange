@@ -14,6 +14,7 @@ const navigation = [
   { href: "/maintenance", label: "Maintenance" },
   { href: "/readiness", label: "Hunting Readiness" },
   { href: "/discover", label: "Discover" },
+  { href: "/profile", label: "Profile" },
   { href: "/settings", label: "Settings" }
 ];
 

@@ -129,10 +129,10 @@ Dashboard and product screens continue to use mock data for signed-out and signe
 With the Amplify sandbox and dev server running:
 
 1. Sign in at `http://localhost:3000/auth/sign-in`.
-2. Open `http://localhost:3000/settings`.
-3. In the **UserProfile** card, create a profile with display name, username, bio, and privacy default.
+2. Open `http://localhost:3000/profile`.
+3. If no profile exists, create one with display name, username, bio, and privacy default.
 4. Refresh the page and confirm the profile loads from AppSync.
-5. Edit the profile and save.
+5. Open `http://localhost:3000/profile/edit`, edit the profile, and save.
 6. Sign out and confirm the profile controls are hidden or disabled while mock product screens remain available.
 
 ### Manual Equipment Passport CRUD Test
@@ -277,7 +277,7 @@ Comments, reactions, and reports are scoped to sanitized public passport snapsho
 Run this checklist before promoting a sandbox or production environment:
 
 1. Auth: sign up, confirm if required, sign in, refresh, and sign out.
-2. Profile: create and edit UserProfile, then verify it persists after refresh.
+2. Profile: open `/profile`, create and edit UserProfile, then verify it persists after refresh.
 3. Equipment Passports: create, view, edit, refresh, and confirm signed-out demo behavior.
 4. Projectiles / Ammo: create, view, edit, refresh, and confirm signed-out demo behavior.
 5. Optics / Sights: create, view, edit, refresh, and confirm signed-out demo behavior.
@@ -297,7 +297,7 @@ Use this checklist against the Amplify Hosting dev URL after each hosted deploym
 
 1. Auth: open `/auth/sign-in`, sign up or sign in, refresh, and sign out.
 2. Dashboard: confirm signed-in users see saved account counts and signed-out users see clearly labeled demo data.
-3. Profile: open `/settings`, create or edit UserProfile, refresh, and confirm it persists.
+3. Profile: open `/profile`, create or edit UserProfile, refresh, and confirm it persists.
 4. Equipment Passports: create, view, edit, refresh, and confirm private setup photo upload works for a saved passport.
 5. Projectiles / Ammo, Optics / Sights, Range Sessions, Maintenance, and Hunting Readiness: create, view, edit, refresh, and confirm each saved record persists.
 6. Private images: upload a saved Equipment Passport setup photo and a saved Range Session target photo, then sign out and confirm upload controls are not available.

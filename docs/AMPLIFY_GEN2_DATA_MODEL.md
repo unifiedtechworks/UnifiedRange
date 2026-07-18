@@ -15,7 +15,7 @@ Each private model should include an `ownerId` identity field tied to Cognito. A
 
 ## Owner Field Reassignment Guard
 
-Amplify owner-based authorization allows an owner to reassign an owner field unless that field is protected with field-level authorization. UnifiedRange protects owner-like fields with read/delete-only field-level owner rules so clients can keep reading owner identity fields without updating them after create.
+Amplify owner-based authorization allows an owner to reassign an owner field unless that field is protected with field-level authorization. UnifiedRange protects owner-like fields with create/read/delete field-level owner rules so clients can set owner identity fields during create and keep reading them later without updating them after create.
 
 Protected owner-like fields:
 
