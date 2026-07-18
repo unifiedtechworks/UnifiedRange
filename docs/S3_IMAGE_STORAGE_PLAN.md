@@ -5,9 +5,11 @@
 Current private MVP paths:
 
 ```txt
-private/{identityId}/equipment/{equipmentPassportId}/
-private/{identityId}/targets/{rangeSessionId}/
+private/equipment/{identityId}/{equipmentPassportId}/
+private/targets/{identityId}/{rangeSessionId}/
 ```
+
+Amplify Gen 2 Storage requires the owner token to be the path part immediately before the ending wildcard in the access rule. The backend rules therefore use `private/equipment/{entity_id}/*` and `private/targets/{entity_id}/*`.
 
 Future public/sanitized paths may be added later:
 

@@ -314,6 +314,13 @@
               "isRequired": false,
               "attributes": []
             },
+            "privateCoverPhotoKey": {
+              "name": "privateCoverPhotoKey",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
             "isPublic": {
               "name": "isPublic",
               "isArray": false,
@@ -907,6 +914,13 @@
               "isArray": false,
               "type": "String",
               "isRequired": true,
+              "attributes": []
+            },
+            "storageKey": {
+              "name": "storageKey",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
               "attributes": []
             },
             "caption": {
@@ -1590,6 +1604,13 @@
                     "operations": [
                       "read"
                     ]
+                  },
+                  {
+                    "allow": "public",
+                    "provider": "apiKey",
+                    "operations": [
+                      "read"
+                    ]
                   }
                 ]
               }
@@ -1804,7 +1825,8 @@
           "values": [
             "passport",
             "session",
-            "public_passport"
+            "public_passport",
+            "comment"
           ]
         },
         "ReportStatus": {
@@ -1818,6 +1840,35 @@
       },
       "nonModels": {}
     }
+  },
+  "storage": {
+    "aws_region": "us-west-2",
+    "bucket_name": "amplify-unifiedrange-seth-unifiedrangeprivateimage-l5h0o3irp5pn",
+    "buckets": [
+      {
+        "name": "unifiedRangePrivateImages",
+        "bucket_name": "amplify-unifiedrange-seth-unifiedrangeprivateimage-l5h0o3irp5pn",
+        "aws_region": "us-west-2",
+        "paths": {
+          "private/equipment/${cognito-identity.amazonaws.com:sub}/*": {
+            "entityidentity": [
+              "get",
+              "list",
+              "write",
+              "delete"
+            ]
+          },
+          "private/targets/${cognito-identity.amazonaws.com:sub}/*": {
+            "entityidentity": [
+              "get",
+              "list",
+              "write",
+              "delete"
+            ]
+          }
+        }
+      }
+    ]
   },
   "version": "1.4"
 }

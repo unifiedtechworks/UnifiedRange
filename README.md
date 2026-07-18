@@ -220,6 +220,11 @@ With the Amplify sandbox and dev server running:
 
 Restart or rerun the Amplify sandbox after pulling this change so the sandbox includes the new Storage resource and image-key schema fields.
 
+Private image storage uses Amplify-valid owner-scoped prefixes:
+
+- `private/equipment/{identityId}/{equipmentPassportId}/`
+- `private/targets/{identityId}/{rangeSessionId}/`
+
 With the Amplify sandbox and dev server running:
 
 1. Sign in at `http://localhost:3000/auth/sign-in`.

@@ -59,7 +59,7 @@ export async function uploadPrivateImage({
         throw new Error("Sign in before uploading private images.");
       }
 
-      return `private/${identityId}/${folder}/${safeRecordId}/${safeName}`;
+      return `private/${folder}/${identityId}/${safeRecordId}/${safeName}`;
     },
     data: file,
     options: {
