@@ -5,7 +5,10 @@ import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
 const schema = a.schema({
   UserProfile: a
     .model({
-      ownerId: a.string().required(),
+      ownerId: a
+        .string()
+        .required()
+        .authorization((allow) => [allow.ownerDefinedIn("ownerId").to(["read", "delete"])]),
       displayName: a.string().required(),
       username: a.string(),
       avatarUrl: a.string(),
@@ -18,7 +21,10 @@ const schema = a.schema({
 
   EquipmentPassport: a
     .model({
-      ownerId: a.string().required(),
+      ownerId: a
+        .string()
+        .required()
+        .authorization((allow) => [allow.ownerDefinedIn("ownerId").to(["read", "delete"])]),
       equipmentType: a.enum(["rifle", "pistol", "bow", "crossbow", "shotgun", "other"]),
       nickname: a.string().required(),
       manufacturer: a.string().required(),
@@ -50,7 +56,10 @@ const schema = a.schema({
 
   ProjectileProfile: a
     .model({
-      ownerId: a.string().required(),
+      ownerId: a
+        .string()
+        .required()
+        .authorization((allow) => [allow.ownerDefinedIn("ownerId").to(["read", "delete"])]),
       projectileType: a.enum(["ammo", "arrow", "bolt", "pellet", "other"]),
       manufacturer: a.string().required(),
       productLine: a.string().required(),
@@ -74,7 +83,10 @@ const schema = a.schema({
 
   OpticSightProfile: a
     .model({
-      ownerId: a.string().required(),
+      ownerId: a
+        .string()
+        .required()
+        .authorization((allow) => [allow.ownerDefinedIn("ownerId").to(["read", "delete"])]),
       sightType: a.enum(["scope", "red_dot", "iron_sight", "bow_sight", "other"]),
       manufacturer: a.string().required(),
       model: a.string().required(),
@@ -91,7 +103,10 @@ const schema = a.schema({
 
   RangeSession: a
     .model({
-      ownerId: a.string().required(),
+      ownerId: a
+        .string()
+        .required()
+        .authorization((allow) => [allow.ownerDefinedIn("ownerId").to(["read", "delete"])]),
       equipmentPassportId: a.id().required(),
       projectileProfileId: a.id(),
       opticSightProfileId: a.id(),
@@ -118,7 +133,10 @@ const schema = a.schema({
 
   TargetPhoto: a
     .model({
-      ownerId: a.string().required(),
+      ownerId: a
+        .string()
+        .required()
+        .authorization((allow) => [allow.ownerDefinedIn("ownerId").to(["read", "delete"])]),
       rangeSessionId: a.id().required(),
       imageUrl: a.string().required(),
       storageKey: a.string(),
@@ -133,7 +151,10 @@ const schema = a.schema({
 
   MaintenanceLogEntry: a
     .model({
-      ownerId: a.string().required(),
+      ownerId: a
+        .string()
+        .required()
+        .authorization((allow) => [allow.ownerDefinedIn("ownerId").to(["read", "delete"])]),
       equipmentPassportId: a.id().required(),
       date: a.date().required(),
       roundOrShotCount: a.integer(),
@@ -150,7 +171,10 @@ const schema = a.schema({
 
   HuntingChecklist: a
     .model({
-      ownerId: a.string().required(),
+      ownerId: a
+        .string()
+        .required()
+        .authorization((allow) => [allow.ownerDefinedIn("ownerId").to(["read", "delete"])]),
       equipmentPassportId: a.id().required(),
       huntName: a.string().required(),
       season: a.string(),
@@ -166,7 +190,10 @@ const schema = a.schema({
   // written directly from unreviewed private fields.
   PublicPassportSnapshot: a
     .model({
-      ownerId: a.string().required(),
+      ownerId: a
+        .string()
+        .required()
+        .authorization((allow) => [allow.ownerDefinedIn("ownerId").to(["read", "delete"]), allow.publicApiKey().to(["read"])]),
       equipmentPassportId: a.id().required(),
       title: a.string().required(),
       equipmentType: a.enum(["rifle", "pistol", "bow", "crossbow", "shotgun", "other"]),
@@ -189,7 +216,10 @@ const schema = a.schema({
 
   Comment: a
     .model({
-      authorId: a.string().required(),
+      authorId: a
+        .string()
+        .required()
+        .authorization((allow) => [allow.ownerDefinedIn("authorId").to(["read", "delete"]), allow.authenticated().to(["read"])]),
       targetType: a.enum(["passport", "session", "public_passport"]),
       targetId: a.id().required(),
       body: a.string().required(),
@@ -201,7 +231,14 @@ const schema = a.schema({
 
   Reaction: a
     .model({
-      userId: a.string().required(),
+      userId: a
+        .string()
+        .required()
+        .authorization((allow) => [
+          allow.ownerDefinedIn("userId").to(["read", "delete"]),
+          allow.authenticated().to(["read"]),
+          allow.publicApiKey().to(["read"])
+        ]),
       targetType: a.enum(["passport", "session", "public_passport"]),
       targetId: a.id().required(),
       reactionType: a.enum([
@@ -219,7 +256,10 @@ const schema = a.schema({
 
   Report: a
     .model({
-      reporterId: a.string().required(),
+      reporterId: a
+        .string()
+        .required()
+        .authorization((allow) => [allow.ownerDefinedIn("reporterId").to(["read", "delete"])]),
       targetType: a.enum(["passport", "session", "public_passport", "comment"]),
       targetId: a.id().required(),
       reason: a.string().required(),
