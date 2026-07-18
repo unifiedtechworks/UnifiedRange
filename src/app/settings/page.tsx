@@ -14,7 +14,7 @@ export default function SettingsPage() {
         <article className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
           <h3 className="text-xl font-bold text-ink">Profile</h3>
           <p className="mt-3 text-sm leading-6 text-ink/70">
-            Profile setup and editing now live in the dedicated Profile section. Settings stays focused on auth status, privacy defaults, and hosted-dev boundaries.
+            Profile setup and identity editing live in the dedicated Profile section. Settings stays focused on auth status, privacy defaults, profile visibility, and hosted-dev boundaries.
           </p>
           <div className="mt-4 flex flex-col gap-2 sm:flex-row">
             <Link href="/profile" className="inline-flex justify-center rounded-md bg-ink px-4 py-2 text-sm font-semibold text-white">

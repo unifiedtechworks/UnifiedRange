@@ -5,11 +5,17 @@ This file describes the initial conceptual data model. Codex should turn this in
 ## UserProfile
 
 - id
-- displayName
+- ownerId
 - username
-- avatarUrl
+- displayName
+- firstName
+- lastName
+- city
+- state
 - bio
 - privacyDefault
+- nameLastChangedAt
+- avatarUrl
 - createdAt
 - updatedAt
 

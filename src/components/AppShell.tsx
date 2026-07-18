@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { AuthNav } from "@/components/AuthNav";
+import { ProfileCompletionGate } from "@/components/ProfileCompletionGate";
 
 const navigation = [
   { href: "/dashboard", label: "Dashboard" },
@@ -73,7 +74,9 @@ export function AppShell({ children }: { children: ReactNode }) {
           </nav>
         </header>
 
-        <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">{children}</main>
+        <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+          <ProfileCompletionGate>{children}</ProfileCompletionGate>
+        </main>
       </div>
     </div>
   );

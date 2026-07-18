@@ -1,19 +1,28 @@
 "use client";
 
 import { confirmSignUp, signIn, signOut, signUp } from "aws-amplify/auth";
+import { generateClient } from "aws-amplify/data";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { FormEvent } from "react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import type { Schema } from "../../amplify/data/resource";
 import { TextField } from "@/components/FormFields";
 import { configureAmplifyClient, getAuthErrorMessage, notifyAuthChanged } from "@/lib/amplifyClient";
 import { refreshSharedAuthState, useAuthUser } from "@/hooks/useAuthUser";
+import { isProfileComplete } from "@/lib/userProfileData";
 
 type AuthMode = "sign-in" | "sign-up" | "confirm";
 
 const passwordHelp = "At least 8 characters with uppercase, lowercase, number, and symbol.";
 
 export function AuthForm() {
+  const router = useRouter();
   const { authState, refreshAuthState } = useAuthUser();
+  const client = useMemo(() => {
+    configureAmplifyClient();
+    return generateClient<Schema>();
+  }, []);
   const [mode, setMode] = useState<AuthMode>("sign-in");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -88,7 +97,15 @@ export function AuthForm() {
       notifyAuthChanged();
       setPassword("");
       setSuccess("Signed in successfully. Your saved account data is available across the wired MVP sections.");
-      await refreshSharedAuthState({ showLoading: false });
+      const nextAuthState = await refreshSharedAuthState({ showLoading: false });
+
+      if (nextAuthState.status === "signed-in") {
+        const profileResult = await client.models.UserProfile.list({ filter: { ownerId: { eq: nextAuthState.username } } });
+
+        if (!profileResult.errors?.length && !isProfileComplete(profileResult.data[0] ?? null)) {
+          router.push("/profile/setup");
+        }
+      }
     } catch (authError) {
       setError(getAuthErrorMessage(authError));
     } finally {

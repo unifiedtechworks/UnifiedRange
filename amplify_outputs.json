@@ -75,6 +75,34 @@
               "isRequired": false,
               "attributes": []
             },
+            "firstName": {
+              "name": "firstName",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "lastName": {
+              "name": "lastName",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "city": {
+              "name": "city",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "state": {
+              "name": "state",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
             "bio": {
               "name": "bio",
               "isArray": false,
@@ -88,6 +116,13 @@
               "type": {
                 "enum": "UserProfilePrivacyDefault"
               },
+              "isRequired": false,
+              "attributes": []
+            },
+            "nameLastChangedAt": {
+              "name": "nameLastChangedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
               "isRequired": false,
               "attributes": []
             },

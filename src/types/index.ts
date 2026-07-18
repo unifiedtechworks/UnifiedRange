@@ -31,8 +31,13 @@ export interface UserProfile extends Timestamped {
   displayName: string;
   username: string;
   avatarUrl?: string;
+  firstName?: string;
+  lastName?: string;
+  city?: string;
+  state?: string;
   bio?: string;
   privacyDefault: PrivacyDefault;
+  nameLastChangedAt?: string;
 }
 
 export interface EquipmentPassport extends Timestamped {

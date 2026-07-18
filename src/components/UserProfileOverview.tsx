@@ -6,7 +6,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Schema } from "../../amplify/data/resource";
 import { DetailRow } from "@/components/DetailRow";
 import { PageHeader } from "@/components/PageHeader";
-import { UserProfileForm } from "@/components/UserProfileForm";
 import { useAuthUser } from "@/hooks/useAuthUser";
 import { configureAmplifyClient, getAuthErrorMessage } from "@/lib/amplifyClient";
 import { recordToEquipmentPassport, type EquipmentPassportRecord } from "@/lib/equipmentPassportData";
@@ -14,11 +13,8 @@ import { recordToHuntingChecklist, type HuntingChecklistRecord } from "@/lib/hun
 import { recordToMaintenanceLogEntry, type MaintenanceLogEntryRecord } from "@/lib/maintenanceLogData";
 import { recordToRangeSession, type RangeSessionRecord } from "@/lib/rangeSessionData";
 import {
-  defaultUserProfileFormValues,
   privacyDefaultLabel,
-  toCreateUserProfileInput,
-  type UserProfileRecord,
-  type UserProfileFormValues
+  type UserProfileRecord
 } from "@/lib/userProfileData";
 import type { EquipmentPassport, HuntingChecklist, MaintenanceLogEntry, RangeSession } from "@/types";
 
@@ -136,20 +132,6 @@ export function UserProfileOverview() {
     };
   }, [loadProfile]);
 
-  async function createProfile(values: UserProfileFormValues) {
-    if (authState.status !== "signed-in") {
-      throw new Error("Sign in before creating a profile.");
-    }
-
-    const result = await client.models.UserProfile.create(toCreateUserProfileInput(values, authState.username));
-
-    if (result.errors?.length) {
-      throw new Error(result.errors.map((item) => item.message).join(" "));
-    }
-
-    await loadProfile();
-  }
-
   if (state === "loading") {
     return <p className="rounded-md border border-ink/10 bg-white p-4 text-sm text-ink/65 shadow-soft">Loading profile...</p>;
   }
@@ -181,15 +163,18 @@ export function UserProfileOverview() {
         <PageHeader
           eyebrow="Profile setup"
           title="Complete your profile"
-          description="Choose a username and basic profile details. This does not make private records public."
+          description="Choose your permanent username and basic profile details before using saved account workflows. This does not make private records public."
           action={
-            <Link href="/dashboard" className="inline-flex rounded-md border border-ink/15 bg-white px-4 py-2 text-sm font-semibold text-ink">
-              Skip for now
+            <Link href="/profile/setup" className="inline-flex rounded-md bg-ink px-4 py-2 text-sm font-semibold text-white">
+              Start setup
             </Link>
           }
         />
         <article className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
-          <UserProfileForm mode="create" initialValues={defaultUserProfileFormValues} cancelHref="/dashboard" onSubmit={createProfile} />
+          <h3 className="text-xl font-bold text-ink">Profile required</h3>
+          <p className="mt-3 text-sm leading-6 text-ink/70">
+            Signed-in users need a profile before creating or editing saved account records. Signed-out visitors can still browse public pages and clearly labeled demo content.
+          </p>
         </article>
       </section>
     );
@@ -227,6 +212,10 @@ export function UserProfileOverview() {
           <h3 className="text-xl font-bold text-ink">Account Summary</h3>
           <dl className="mt-4">
             <DetailRow label="Username" value={profile.username ? `@${profile.username}` : "Not set"} />
+            <DetailRow label="First name" value={profile.firstName || "Not set"} />
+            <DetailRow label="Last name" value={profile.lastName || "Not set"} />
+            <DetailRow label="City" value={profile.city || "Not set"} />
+            <DetailRow label="State" value={profile.state || "Not set"} />
             <DetailRow label="Bio" value={profile.bio || "No bio yet."} />
             <DetailRow label="Privacy default" value={privacyDefaultLabel(profile.privacyDefault)} />
           </dl>

@@ -32,6 +32,10 @@ Protected owner-like fields:
 - `Reaction.userId`
 - `Report.reporterId`
 
+`UserProfile.username` is collected during setup and treated as immutable in the frontend after creation. The current owner-scoped model does not support a reliable global username uniqueness lookup without broadening private profile reads. Add a dedicated username reservation model or server-side workflow before making public usernames a production guarantee.
+
+`UserProfile.nameLastChangedAt` supports a lightweight client-side monthly limit for first and last name edits. This is a UX guard only; use a server-side workflow if stronger enforcement becomes necessary.
+
 Public read exceptions remain intentionally narrow:
 
 - `PublicPassportSnapshot` can be read with API key for sanitized discovery.

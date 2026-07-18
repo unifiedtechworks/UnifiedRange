@@ -8,11 +8,12 @@ import {
   privacyDefaultLabel,
   usernameHelper,
   validateUserProfile,
+  type UserProfileFormMode,
   type UserProfileFormValues
 } from "@/lib/userProfileData";
 
 interface UserProfileFormProps {
-  mode: "create" | "edit";
+  mode: UserProfileFormMode;
   initialValues?: UserProfileFormValues;
   cancelHref: string;
   onSubmit: (values: UserProfileFormValues) => Promise<void>;
@@ -33,7 +34,7 @@ export function UserProfileForm({ mode, initialValues = defaultUserProfileFormVa
   }
 
   async function handleSubmit() {
-    const nextErrors = validateUserProfile(values);
+    const nextErrors = validateUserProfile(values, mode);
     setErrors(nextErrors);
     setFormError("");
     setSuccess("");
@@ -65,20 +66,40 @@ export function UserProfileForm({ mode, initialValues = defaultUserProfileFormVa
       <div className="rounded-md border border-moss/20 bg-field p-4">
         <h3 className="text-base font-bold text-ink">Profile Basics</h3>
         <p className="mt-2 text-sm leading-6 text-ink/70">
-          Choose a display name and username for your account. Your private records stay private, and public sharing still requires a separate sanitized publish step.
+          {mode === "create"
+            ? "Choose your permanent username and basic profile details. Your private records stay private, and public sharing still requires a separate sanitized publish step."
+            : "Update your profile details. Your username is permanent and private records remain owner-scoped."}
         </p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <TextField label="Display name" value={values.displayName} error={errors.displayName} required onChange={(value) => updateField("displayName", value)} />
-        <TextField
-          label="Username / handle"
-          value={values.username}
-          error={errors.username}
-          helper={usernameHelper}
-          required
-          onChange={(value) => updateField("username", value.trim().toLowerCase())}
-        />
+        {mode !== "edit" ? (
+          <TextField
+            label="Username / handle"
+            value={values.username}
+            error={errors.username}
+            helper={`${usernameHelper} Usernames are permanent after setup.`}
+            required
+            onChange={(value) => updateField("username", value.trim().toLowerCase())}
+          />
+        ) : (
+          <div className="rounded-md border border-ink/10 bg-paper px-3 py-2">
+            <p className="text-sm font-semibold text-ink">Username / handle</p>
+            <p className="mt-2 text-sm font-bold text-ink">{values.username ? `@${values.username}` : "No username on this profile"}</p>
+            <p className="mt-1 text-xs leading-5 text-ink/55">Usernames are permanent.</p>
+          </div>
+        )}
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <TextField label="First name" value={values.firstName} onChange={(value) => updateField("firstName", value)} />
+        <TextField label="Last name" value={values.lastName} onChange={(value) => updateField("lastName", value)} />
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <TextField label="City" value={values.city} onChange={(value) => updateField("city", value)} />
+        <TextField label="State" value={values.state} onChange={(value) => updateField("state", value)} />
       </div>
 
       <TextArea label="Bio" value={values.bio} helper="Optional. Keep personal details minimal." onChange={(value) => updateField("bio", value)} />
@@ -95,9 +116,15 @@ export function UserProfileForm({ mode, initialValues = defaultUserProfileFormVa
         </select>
       </label>
 
-      <p className="rounded-md border border-ink/10 bg-white px-4 py-3 text-sm leading-6 text-ink/70">
-        Username uniqueness is checked only when the current backend allows the app to see matching profiles. A dedicated reservation workflow can be added later if public usernames become a stronger product guarantee.
-      </p>
+      {mode !== "edit" ? (
+        <p className="rounded-md border border-ink/10 bg-white px-4 py-3 text-sm leading-6 text-ink/70">
+          Username lookup is intentionally not broadened across private profiles in this MVP. A dedicated username reservation workflow should enforce uniqueness before public profiles ship.
+        </p>
+      ) : (
+        <p className="rounded-md border border-ink/10 bg-white px-4 py-3 text-sm leading-6 text-ink/70">
+          First and last name changes are limited in the UI to about once per month. Stronger server-side enforcement can be added with a later workflow.
+        </p>
+      )}
 
       {formError ? <p className="rounded-md border border-clay/30 bg-clay/10 px-4 py-3 text-sm font-semibold text-clay">{formError}</p> : null}
       {success ? <p className="rounded-md border border-moss/25 bg-field px-4 py-3 text-sm font-semibold text-moss">{success}</p> : null}
@@ -107,7 +134,7 @@ export function UserProfileForm({ mode, initialValues = defaultUserProfileFormVa
           Cancel
         </Link>
         <button type="submit" disabled={isSaving} className="inline-flex justify-center rounded-md bg-ink px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60">
-          {isSaving ? "Saving..." : mode === "create" ? "Create profile" : "Save profile"}
+          {isSaving ? "Saving..." : mode === "create" ? "Create profile" : mode === "complete" ? "Complete profile" : "Save profile"}
         </button>
       </div>
     </form>

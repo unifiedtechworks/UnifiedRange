@@ -87,6 +87,7 @@ Current backend draft:
 - Amazon Cognito email/password auth
 - AWS AppSync GraphQL data layer
 - DynamoDB-backed app models
+- UserProfile onboarding with permanent usernames and optional profile location fields
 - Publicly readable sanitized Public Passport snapshots
 - Publicly readable reaction counts, with signed-in-only reaction actions
 - Signed-in-only comments and reports
@@ -126,14 +127,20 @@ Dashboard and product screens continue to use mock data for signed-out and signe
 
 ### Manual UserProfile Test
 
+Restart or redeploy the Amplify backend after pulling this change so AppSync includes the latest `UserProfile` fields.
+
 With the Amplify sandbox and dev server running:
 
 1. Sign in at `http://localhost:3000/auth/sign-in`.
-2. Open `http://localhost:3000/profile`.
-3. If no profile exists, create one with display name, username, bio, and privacy default.
+2. If no profile exists, confirm the app guides you to `http://localhost:3000/profile/setup`.
+3. Create a profile with permanent username, display name, optional first/last name, city, state, bio, and privacy default.
 4. Refresh the page and confirm the profile loads from AppSync.
-5. Open `http://localhost:3000/profile/edit`, edit the profile, and save.
-6. Sign out and confirm the profile controls are hidden or disabled while mock product screens remain available.
+5. Open `http://localhost:3000/profile/edit` and confirm username is read-only.
+6. Edit display name, city, state, bio, and privacy default, then save.
+7. If testing first/last name changes, confirm the UI prevents another legal-name change for about 30 days.
+8. Sign out and confirm public/demo screens remain available.
+
+Username uniqueness is not globally enforced in the current owner-scoped profile model. Add a dedicated reservation or public-safe lookup workflow before public usernames become a production guarantee.
 
 ### Manual Equipment Passport CRUD Test
 
@@ -277,7 +284,7 @@ Comments, reactions, and reports are scoped to sanitized public passport snapsho
 Run this checklist before promoting a sandbox or production environment:
 
 1. Auth: sign up, confirm if required, sign in, refresh, and sign out.
-2. Profile: open `/profile`, create and edit UserProfile, then verify it persists after refresh.
+2. Profile: open `/profile/setup` for a new user, create UserProfile, verify username is permanent on `/profile/edit`, then verify edits persist after refresh.
 3. Equipment Passports: create, view, edit, refresh, and confirm signed-out demo behavior.
 4. Projectiles / Ammo: create, view, edit, refresh, and confirm signed-out demo behavior.
 5. Optics / Sights: create, view, edit, refresh, and confirm signed-out demo behavior.
@@ -297,7 +304,7 @@ Use this checklist against the Amplify Hosting dev URL after each hosted deploym
 
 1. Auth: open `/auth/sign-in`, sign up or sign in, refresh, and sign out.
 2. Dashboard: confirm signed-in users see saved account counts and signed-out users see clearly labeled demo data.
-3. Profile: open `/profile`, create or edit UserProfile, refresh, and confirm it persists.
+3. Profile: open `/profile/setup` for new users or `/profile/edit` for existing users, refresh, and confirm UserProfile persists with username read-only after setup.
 4. Equipment Passports: create, view, edit, refresh, and confirm private setup photo upload works for a saved passport.
 5. Projectiles / Ammo, Optics / Sights, Range Sessions, Maintenance, and Hunting Readiness: create, view, edit, refresh, and confirm each saved record persists.
 6. Private images: upload a saved Equipment Passport setup photo and a saved Range Session target photo, then sign out and confirm upload controls are not available.

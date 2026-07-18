@@ -12,8 +12,13 @@ const schema = a.schema({
       displayName: a.string().required(),
       username: a.string(),
       avatarUrl: a.string(),
+      firstName: a.string(),
+      lastName: a.string(),
+      city: a.string(),
+      state: a.string(),
       bio: a.string(),
       privacyDefault: a.enum(["private", "public_sanitized"]),
+      nameLastChangedAt: a.datetime(),
       createdAt: a.datetime(),
       updatedAt: a.datetime()
     })

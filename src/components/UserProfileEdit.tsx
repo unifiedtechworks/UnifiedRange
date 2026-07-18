@@ -11,6 +11,9 @@ import { useAuthUser } from "@/hooks/useAuthUser";
 import { configureAmplifyClient, getAuthErrorMessage } from "@/lib/amplifyClient";
 import {
   defaultUserProfileFormValues,
+  getNameChangeLimitMessage,
+  isProfileComplete,
+  toCompleteUserProfileInput,
   toCreateUserProfileInput,
   toUpdateUserProfileInput,
   toUserProfileFormValues,
@@ -18,9 +21,9 @@ import {
   type UserProfileRecord
 } from "@/lib/userProfileData";
 
-type ProfileEditState = "loading" | "signed-out" | "create" | "edit" | "error";
+type ProfileEditState = "loading" | "signed-out" | "create" | "complete" | "edit" | "error";
 
-export function UserProfileEdit() {
+export function UserProfileEdit({ setupOnly = false }: { setupOnly?: boolean }) {
   const router = useRouter();
   const client = useMemo(() => {
     configureAmplifyClient();
@@ -54,13 +57,22 @@ export function UserProfileEdit() {
 
       const currentProfile = result.data[0] ?? null;
       setProfile(currentProfile);
-      setState(currentProfile ? "edit" : "create");
+
+      if (setupOnly) {
+        setState(currentProfile ? (isProfileComplete(currentProfile) ? "edit" : "complete") : "create");
+        return;
+      }
+
+      setState(currentProfile ? "edit" : "error");
+      if (!currentProfile) {
+        setError("Complete profile setup before editing profile details.");
+      }
     } catch (profileError) {
       setProfile(null);
       setError(getAuthErrorMessage(profileError));
       setState("error");
     }
-  }, [authState, client]);
+  }, [authState, client, setupOnly]);
 
   useEffect(() => {
     const loadInitialState = window.setTimeout(() => {
@@ -86,12 +98,36 @@ export function UserProfileEdit() {
     router.push("/profile");
   }
 
+  async function handleComplete(values: UserProfileFormValues) {
+    if (!profile?.id) {
+      throw new Error("Profile record could not be found.");
+    }
+
+    const nameLimitMessage = getNameChangeLimitMessage(values, profile);
+    if (nameLimitMessage) {
+      throw new Error(nameLimitMessage);
+    }
+
+    const result = await client.models.UserProfile.update(toCompleteUserProfileInput(profile.id, values, profile));
+
+    if (result.errors?.length) {
+      throw new Error(result.errors.map((item) => item.message).join(" "));
+    }
+
+    router.push("/profile");
+  }
+
   async function handleUpdate(values: UserProfileFormValues) {
     if (!profile?.id) {
       throw new Error("Profile record could not be found.");
     }
 
-    const result = await client.models.UserProfile.update(toUpdateUserProfileInput(profile.id, values));
+    const nameLimitMessage = getNameChangeLimitMessage(values, profile);
+    if (nameLimitMessage) {
+      throw new Error(nameLimitMessage);
+    }
+
+    const result = await client.models.UserProfile.update(toUpdateUserProfileInput(profile.id, values, profile));
 
     if (result.errors?.length) {
       throw new Error(result.errors.map((item) => item.message).join(" "));
@@ -129,15 +165,19 @@ export function UserProfileEdit() {
     <section>
       <PageHeader
         eyebrow={state === "create" ? "Profile setup" : "Profile"}
-        title={state === "create" ? "Create your profile" : "Edit profile"}
-        description="Set your display name, username, bio, and privacy default. Private range and readiness records remain owner-scoped."
+        title={state === "edit" ? "Edit profile" : "Complete your profile"}
+        description={
+          state !== "edit"
+            ? "Choose your permanent username and basic profile details before using saved account workflows."
+            : "Edit display name, name, location, bio, and privacy default. Username changes are not supported."
+        }
       />
       <article className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
         <UserProfileForm
-          mode={state === "create" ? "create" : "edit"}
+          mode={state === "create" ? "create" : state === "complete" ? "complete" : "edit"}
           initialValues={state === "create" ? defaultUserProfileFormValues : toUserProfileFormValues(profile)}
           cancelHref="/profile"
-          onSubmit={state === "create" ? handleCreate : handleUpdate}
+          onSubmit={state === "create" ? handleCreate : state === "complete" ? handleComplete : handleUpdate}
         />
       </article>
     </section>
