@@ -291,6 +291,21 @@ Run this checklist before promoting a sandbox or production environment:
 13. Public/private boundary: confirm public pages do not show private notes, private S3 keys, target photos, maintenance records, readiness records, ammo lot numbers, purchase info, exact locations, owner private details, or image metadata.
 14. Demo behavior: sign out and confirm mock/demo data remains clearly labeled across Dashboard and all major sections.
 
+### Hosted Dev Smoke Test Checklist
+
+Use this checklist against the Amplify Hosting dev URL after each hosted deployment:
+
+1. Auth: open `/auth/sign-in`, sign up or sign in, refresh, and sign out.
+2. Dashboard: confirm signed-in users see saved account counts and signed-out users see clearly labeled demo data.
+3. Profile: open `/settings`, create or edit UserProfile, refresh, and confirm it persists.
+4. Equipment Passports: create, view, edit, refresh, and confirm private setup photo upload works for a saved passport.
+5. Projectiles / Ammo, Optics / Sights, Range Sessions, Maintenance, and Hunting Readiness: create, view, edit, refresh, and confirm each saved record persists.
+6. Private images: upload a saved Equipment Passport setup photo and a saved Range Session target photo, then sign out and confirm upload controls are not available.
+7. Public publishing: open a saved passport Public Preview, publish or update a sanitized Public Passport snapshot, view it in Discover, and unpublish if needed.
+8. Discover: confirm public detail pages show sanitized fields only and do not expose private notes, private S3 keys, private images, target photos, maintenance records, readiness records, ammo lot numbers, purchase details, exact locations, owner private details, or image metadata.
+9. Social actions: signed-in users can react, comment, and report; signed-out users can view public pages and see sign-in prompts for actions.
+10. Failure states: if public snapshots or reaction counts are unavailable, the page should remain usable with a quiet fallback message.
+
 ### Before Deploying
 
 See `docs/AMPLIFY_HOSTING_DEPLOYMENT.md` for the Amplify Hosting dev/staging runbook. Expected AWS region is `us-west-2`.

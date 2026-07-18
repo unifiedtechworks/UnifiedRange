@@ -160,7 +160,7 @@ export function UserProfilePanel() {
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-moss">AWS profile</p>
           <h3 className="mt-2 text-xl font-bold text-ink">UserProfile</h3>
           <p className="mt-3 text-sm leading-6 text-ink/70">
-            This is the first AppSync-backed profile record. Equipment, sessions, discovery, and other product areas still use mock data.
+            This profile is stored as owner-scoped AppSync data. Product areas use saved account records when signed in and clearly labeled demo data when signed out.
           </p>
         </div>
         <span className="w-fit rounded-md bg-field px-3 py-1 text-xs font-semibold text-ink">
@@ -172,7 +172,7 @@ export function UserProfilePanel() {
 
       {profileState === "signed-out" ? (
         <p className="mt-5 rounded-md bg-field px-3 py-2 text-sm leading-6 text-ink/70">
-          Sign in to create or edit your profile. Mock product screens remain available without a profile.
+          Sign in to create or edit your profile. Demo product screens remain available without a profile.
         </p>
       ) : null}
 

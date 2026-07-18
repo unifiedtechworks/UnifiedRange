@@ -17,7 +17,7 @@ export function notifyAuthChanged() {
 }
 
 export function getAmplifyClientMessage() {
-  return "Amplify Auth is configured from amplify_outputs.json. Product screens still use mock data until data wiring is added.";
+  return "Amplify is configured from amplify_outputs.json. Signed-in users can use saved account data, and signed-out users can browse clearly labeled demo data.";
 }
 
 export function getAuthErrorMessage(error: unknown) {

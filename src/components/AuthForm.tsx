@@ -87,7 +87,7 @@ export function AuthForm() {
 
       notifyAuthChanged();
       setPassword("");
-      setSuccess("Signed in successfully. Your saved account data is now available where it has been wired.");
+      setSuccess("Signed in successfully. Your saved account data is available across the wired MVP sections.");
       await refreshSharedAuthState({ showLoading: false });
     } catch (authError) {
       setError(getAuthErrorMessage(authError));
@@ -120,7 +120,7 @@ export function AuthForm() {
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-moss">Amazon Cognito</p>
           <h3 className="mt-2 text-xl font-bold text-ink">Signed in</h3>
-          <p className="mt-3 text-sm leading-6 text-ink/70">You are signed in and can use saved account data where it has been wired.</p>
+          <p className="mt-3 text-sm leading-6 text-ink/70">You are signed in and can use saved account data across the wired MVP sections.</p>
           <p className="mt-3 text-sm font-semibold text-ink">{authState.label}</p>
           <p className="mt-1 text-xs text-ink/55">Cognito username: {authState.username}</p>
         </div>
@@ -219,7 +219,7 @@ export function AuthForm() {
 
       {mode !== "confirm" ? (
         <p className="mt-4 text-sm leading-6 text-ink/65">
-          Product screens remain available with mock data while account-backed records are added later.
+          Product screens remain available to signed-out visitors with clearly labeled demo data. Sign in to create and manage saved account records.
         </p>
       ) : (
         <button type="button" onClick={() => switchMode("sign-in")} className="mt-4 text-sm font-semibold text-moss">

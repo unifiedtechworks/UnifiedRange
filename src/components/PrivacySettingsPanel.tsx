@@ -58,12 +58,11 @@ export function PrivacySettingsPanel() {
         <button
           type="button"
           onClick={() => {
-            console.log("Mock privacy settings saved", settings);
-            setMessage("Privacy settings saved locally. Backend preferences will be wired later.");
+            setMessage("Privacy settings saved locally for this browser. Account-backed preferences are not part of the hosted dev slice yet.");
           }}
           className="mt-5 rounded-md bg-ink px-4 py-2 text-sm font-semibold text-white"
         >
-          Save mock settings
+          Save local settings
         </button>
         {message ? <p className="mt-3 rounded-md border border-moss/25 bg-field px-4 py-3 text-sm font-semibold text-moss">{message}</p> : null}
       </section>

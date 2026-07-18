@@ -9,7 +9,7 @@ export default function SignInPlaceholderPage() {
       <PageHeader
         eyebrow="Auth"
         title="Sign in to UnifiedRange"
-        description="Use Amazon Cognito email and password auth. Mock product screens remain available while backend data wiring is added later."
+        description="Use Amazon Cognito email and password auth. Saved account areas use AppSync-backed records, and signed-out browsing remains available with clearly labeled demo data."
       />
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(280px,360px)]">
@@ -22,9 +22,10 @@ export default function SignInPlaceholderPage() {
           <h3 className="mt-6 text-xl font-bold text-ink">Current boundaries</h3>
           <ul className="mt-4 space-y-3 text-sm leading-6 text-ink/70">
             <li>Email and password authentication is active through Amazon Cognito.</li>
-            <li>Product routes still use mock data and are not protected yet.</li>
-            <li>Private app records are not wired to AppSync in this slice.</li>
-            <li>Public Passport sharing and comments remain mock-only for now.</li>
+            <li>Saved account records use owner-scoped AppSync and DynamoDB data.</li>
+            <li>Signed-out users can still browse clearly labeled demo data.</li>
+            <li>Public Passport pages show sanitized public snapshots only.</li>
+            <li>Private image uploads remain private S3 objects and are not published to Discover.</li>
           </ul>
           <Link href="/settings" className="mt-5 inline-flex rounded-md border border-ink/15 px-4 py-2 text-sm font-semibold text-ink">
             Back to settings
