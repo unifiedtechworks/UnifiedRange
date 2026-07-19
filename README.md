@@ -295,6 +295,20 @@ With the Amplify sandbox and dev server running:
 
 This public publishing slice publishes sanitized text/setup data only. Private S3 images are not exposed publicly.
 
+### Manual Discover Filter Test
+
+With the Amplify sandbox and dev server running:
+
+1. Publish or confirm multiple Public Passport snapshots exist.
+2. Open `http://localhost:3000/discover`.
+3. Search by manufacturer, model, caliber, category, public notes, or use case tag.
+4. Filter by equipment type and use case tag.
+5. Confirm **No public setups match your filters** appears when filters are too narrow.
+6. Use **Reset filters** and confirm all public snapshots return.
+7. Sign out and confirm Discover filtering still works with public snapshots or demo fallback.
+
+Discover filters run client-side over sanitized public snapshot fields only. They do not include private notes, private S3 keys, private images, target photos, maintenance records, readiness records, purchase details, lot numbers, exact locations, or owner private details.
+
 ### Manual Public Social Interaction Test
 
 Restart or rerun the Amplify sandbox after pulling this change so AppSync includes public reaction reads and comment report targets.
@@ -327,7 +341,7 @@ Run this checklist before promoting a sandbox or production environment:
 9. Hunting Readiness: create a checklist linked to a saved Equipment Passport, edit checked items, refresh, and confirm demo fallback.
 10. Private images: upload a private equipment photo and private target photo, refresh, and confirm signed-out users cannot access upload controls.
 11. Public publishing: preview, publish, view in Discover, update, and unpublish a sanitized Public Passport snapshot.
-12. Discover: confirm signed-out and signed-in users can view sanitized public snapshots only.
+12. Discover: confirm signed-out and signed-in users can view and filter sanitized public snapshots only.
 13. Reactions/comments/reports: confirm reaction counts load or gracefully show unavailable, signed-in users can react/comment/report, and signed-out users see sign-in prompts for actions.
 14. Public/private boundary: confirm public pages do not show private notes, private S3 keys, target photos, maintenance records, readiness records, ammo lot numbers, purchase info, exact locations, owner private details, or image metadata.
 15. Demo behavior: sign out and confirm mock/demo data remains clearly labeled across Dashboard and all major sections.
@@ -344,7 +358,7 @@ Use this checklist against the Amplify Hosting dev URL after each hosted deploym
 6. Projectiles / Ammo, Optics / Sights, Range Sessions, Maintenance, and Hunting Readiness: create, view, edit, refresh, and confirm each saved record persists.
 7. Private images: upload a saved Equipment Passport setup photo and a saved Range Session target photo, then sign out and confirm upload controls are not available.
 8. Public publishing: open a saved passport Public Preview, publish or update a sanitized Public Passport snapshot, view it in Discover, and unpublish if needed.
-9. Discover: confirm public detail pages show sanitized fields only and do not expose private notes, private S3 keys, private images, target photos, maintenance records, readiness records, ammo lot numbers, purchase details, exact locations, owner private details, or image metadata.
+9. Discover: confirm filters work and public detail pages show sanitized fields only without exposing private notes, private S3 keys, private images, target photos, maintenance records, readiness records, ammo lot numbers, purchase details, exact locations, owner private details, or image metadata.
 10. Social actions: signed-in users can react, comment, and report; signed-out users can view public pages and see sign-in prompts for actions.
 11. Failure states: if public snapshots or reaction counts are unavailable, the page should remain usable with a quiet fallback message.
 
