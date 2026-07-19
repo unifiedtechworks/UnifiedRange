@@ -1,4 +1,5 @@
 export type PrivacyDefault = "private" | "public_sanitized";
+export type VisibilityPreference = "private" | "public";
 
 export type EquipmentType = "rifle" | "pistol" | "bow" | "crossbow" | "shotgun" | "other";
 
@@ -37,6 +38,14 @@ export interface UserProfile extends Timestamped {
   state?: string;
   bio?: string;
   privacyDefault: PrivacyDefault;
+  accountVisibility?: VisibilityPreference;
+  defaultPassportVisibility?: VisibilityPreference;
+  requirePublicPreviewBeforePublishing?: boolean;
+  hideExactLocationsFromPublicSharing?: boolean;
+  hideAmmoLotNumbersFromPublicSharing?: boolean;
+  hidePurchaseDetailsFromPublicSharing?: boolean;
+  hidePrivateNotesFromPublicSharing?: boolean;
+  stripImageMetadataBeforePublicSharing?: boolean;
   nameLastChangedAt?: string;
 }
 

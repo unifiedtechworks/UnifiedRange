@@ -36,6 +36,8 @@ Protected owner-like fields:
 
 `UserProfile.nameLastChangedAt` supports a lightweight client-side monthly limit for first and last name edits. This is a UX guard only; use a server-side workflow if stronger enforcement becomes necessary.
 
+User privacy and account defaults are stored on `UserProfile` so they remain owner-scoped account data. Defaults should stay private-first: account visibility and default passport visibility default to private, public preview is required before publishing, and public-sharing sanitization should hide exact locations, ammo lot numbers, purchase details, private notes, and image metadata.
+
 Public read exceptions remain intentionally narrow:
 
 - `PublicPassportSnapshot` can be read with API key for sanitized discovery.

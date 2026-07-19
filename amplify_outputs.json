@@ -119,6 +119,66 @@
               "isRequired": false,
               "attributes": []
             },
+            "accountVisibility": {
+              "name": "accountVisibility",
+              "isArray": false,
+              "type": {
+                "enum": "UserProfileAccountVisibility"
+              },
+              "isRequired": false,
+              "attributes": []
+            },
+            "defaultPassportVisibility": {
+              "name": "defaultPassportVisibility",
+              "isArray": false,
+              "type": {
+                "enum": "UserProfileDefaultPassportVisibility"
+              },
+              "isRequired": false,
+              "attributes": []
+            },
+            "requirePublicPreviewBeforePublishing": {
+              "name": "requirePublicPreviewBeforePublishing",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            },
+            "hideExactLocationsFromPublicSharing": {
+              "name": "hideExactLocationsFromPublicSharing",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            },
+            "hideAmmoLotNumbersFromPublicSharing": {
+              "name": "hideAmmoLotNumbersFromPublicSharing",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            },
+            "hidePurchaseDetailsFromPublicSharing": {
+              "name": "hidePurchaseDetailsFromPublicSharing",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            },
+            "hidePrivateNotesFromPublicSharing": {
+              "name": "hidePrivateNotesFromPublicSharing",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            },
+            "stripImageMetadataBeforePublicSharing": {
+              "name": "stripImageMetadataBeforePublicSharing",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            },
             "nameLastChangedAt": {
               "name": "nameLastChangedAt",
               "isArray": false,
@@ -1768,6 +1828,20 @@
           "values": [
             "private",
             "public_sanitized"
+          ]
+        },
+        "UserProfileAccountVisibility": {
+          "name": "UserProfileAccountVisibility",
+          "values": [
+            "private",
+            "public"
+          ]
+        },
+        "UserProfileDefaultPassportVisibility": {
+          "name": "UserProfileDefaultPassportVisibility",
+          "values": [
+            "private",
+            "public"
           ]
         },
         "EquipmentPassportEquipmentType": {

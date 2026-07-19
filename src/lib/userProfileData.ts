@@ -1,4 +1,5 @@
 import type { Schema } from "../../amplify/data/resource";
+import { defaultPrivacySettings } from "@/lib/privacySettingsData";
 
 export type UserProfileRecord = Schema["UserProfile"]["type"];
 export type PrivacyDefault = "private" | "public_sanitized";
@@ -95,6 +96,14 @@ export function toCreateUserProfileInput(values: UserProfileFormValues, ownerId:
     state: values.state.trim(),
     bio: values.bio.trim(),
     privacyDefault: values.privacyDefault,
+    accountVisibility: defaultPrivacySettings.accountVisibility,
+    defaultPassportVisibility: defaultPrivacySettings.defaultPassportVisibility,
+    requirePublicPreviewBeforePublishing: defaultPrivacySettings.requirePublicPreviewBeforePublishing,
+    hideExactLocationsFromPublicSharing: defaultPrivacySettings.hideExactLocationsFromPublicSharing,
+    hideAmmoLotNumbersFromPublicSharing: defaultPrivacySettings.hideAmmoLotNumbersFromPublicSharing,
+    hidePurchaseDetailsFromPublicSharing: defaultPrivacySettings.hidePurchaseDetailsFromPublicSharing,
+    hidePrivateNotesFromPublicSharing: defaultPrivacySettings.hidePrivateNotesFromPublicSharing,
+    stripImageMetadataBeforePublicSharing: defaultPrivacySettings.stripImageMetadataBeforePublicSharing,
     nameLastChangedAt: values.firstName.trim() || values.lastName.trim() ? now : undefined
   };
 }

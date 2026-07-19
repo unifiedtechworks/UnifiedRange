@@ -14,6 +14,14 @@ This file describes the initial conceptual data model. Codex should turn this in
 - state
 - bio
 - privacyDefault
+- accountVisibility
+- defaultPassportVisibility
+- requirePublicPreviewBeforePublishing
+- hideExactLocationsFromPublicSharing
+- hideAmmoLotNumbersFromPublicSharing
+- hidePurchaseDetailsFromPublicSharing
+- hidePrivateNotesFromPublicSharing
+- stripImageMetadataBeforePublicSharing
 - nameLastChangedAt
 - avatarUrl
 - createdAt

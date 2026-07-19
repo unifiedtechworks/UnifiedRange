@@ -88,6 +88,7 @@ Current backend draft:
 - AWS AppSync GraphQL data layer
 - DynamoDB-backed app models
 - UserProfile onboarding with permanent usernames and optional profile location fields
+- UserProfile-backed account/privacy settings for public-sharing defaults
 - Publicly readable sanitized Public Passport snapshots
 - Publicly readable reaction counts, with signed-in-only reaction actions
 - Signed-in-only comments and reports
@@ -141,6 +142,22 @@ With the Amplify sandbox and dev server running:
 8. Sign out and confirm public/demo screens remain available.
 
 Username uniqueness is not globally enforced in the current owner-scoped profile model. Add a dedicated reservation or public-safe lookup workflow before public usernames become a production guarantee.
+
+### Manual Privacy Settings Test
+
+Restart or redeploy the Amplify backend after pulling this change so AppSync includes the latest `UserProfile` privacy preference fields.
+
+With the Amplify sandbox and dev server running:
+
+1. Sign in at `http://localhost:3000/auth/sign-in`.
+2. Complete profile setup if prompted.
+3. Open `http://localhost:3000/settings/privacy`.
+4. Change account visibility, default passport visibility, and public-sharing privacy toggles.
+5. Save and confirm the success message.
+6. Refresh the page and confirm the settings persist from AppSync.
+7. Sign out and confirm private settings are not visible; the page should show an explanation and sign-in prompt.
+
+Privacy settings remain owner-scoped account data. Public publishing still creates sanitized snapshots and must not expose private notes, exact locations, ammo lot numbers, purchase details, private images, or image metadata.
 
 ### Manual Equipment Passport CRUD Test
 
@@ -285,18 +302,19 @@ Run this checklist before promoting a sandbox or production environment:
 
 1. Auth: sign up, confirm if required, sign in, refresh, and sign out.
 2. Profile: open `/profile/setup` for a new user, create UserProfile, verify username is permanent on `/profile/edit`, then verify edits persist after refresh.
-3. Equipment Passports: create, view, edit, refresh, and confirm signed-out demo behavior.
-4. Projectiles / Ammo: create, view, edit, refresh, and confirm signed-out demo behavior.
-5. Optics / Sights: create, view, edit, refresh, and confirm signed-out demo behavior.
-6. Range Sessions: create a session linked to saved passport/projectile/optic records, edit, refresh, and confirm demo fallback.
-7. Maintenance: create an entry linked to a saved Equipment Passport, edit, refresh, and confirm demo fallback.
-8. Hunting Readiness: create a checklist linked to a saved Equipment Passport, edit checked items, refresh, and confirm demo fallback.
-9. Private images: upload a private equipment photo and private target photo, refresh, and confirm signed-out users cannot access upload controls.
-10. Public publishing: preview, publish, view in Discover, update, and unpublish a sanitized Public Passport snapshot.
-11. Discover: confirm signed-out and signed-in users can view sanitized public snapshots only.
-12. Reactions/comments/reports: confirm reaction counts load or gracefully show unavailable, signed-in users can react/comment/report, and signed-out users see sign-in prompts for actions.
-13. Public/private boundary: confirm public pages do not show private notes, private S3 keys, target photos, maintenance records, readiness records, ammo lot numbers, purchase info, exact locations, owner private details, or image metadata.
-14. Demo behavior: sign out and confirm mock/demo data remains clearly labeled across Dashboard and all major sections.
+3. Privacy settings: open `/settings/privacy`, change settings, save, refresh, and confirm they persist.
+4. Equipment Passports: create, view, edit, refresh, and confirm signed-out demo behavior.
+5. Projectiles / Ammo: create, view, edit, refresh, and confirm signed-out demo behavior.
+6. Optics / Sights: create, view, edit, refresh, and confirm signed-out demo behavior.
+7. Range Sessions: create a session linked to saved passport/projectile/optic records, edit, refresh, and confirm demo fallback.
+8. Maintenance: create an entry linked to a saved Equipment Passport, edit, refresh, and confirm demo fallback.
+9. Hunting Readiness: create a checklist linked to a saved Equipment Passport, edit checked items, refresh, and confirm demo fallback.
+10. Private images: upload a private equipment photo and private target photo, refresh, and confirm signed-out users cannot access upload controls.
+11. Public publishing: preview, publish, view in Discover, update, and unpublish a sanitized Public Passport snapshot.
+12. Discover: confirm signed-out and signed-in users can view sanitized public snapshots only.
+13. Reactions/comments/reports: confirm reaction counts load or gracefully show unavailable, signed-in users can react/comment/report, and signed-out users see sign-in prompts for actions.
+14. Public/private boundary: confirm public pages do not show private notes, private S3 keys, target photos, maintenance records, readiness records, ammo lot numbers, purchase info, exact locations, owner private details, or image metadata.
+15. Demo behavior: sign out and confirm mock/demo data remains clearly labeled across Dashboard and all major sections.
 
 ### Hosted Dev Smoke Test Checklist
 
@@ -305,13 +323,14 @@ Use this checklist against the Amplify Hosting dev URL after each hosted deploym
 1. Auth: open `/auth/sign-in`, sign up or sign in, refresh, and sign out.
 2. Dashboard: confirm signed-in users see saved account counts and signed-out users see clearly labeled demo data.
 3. Profile: open `/profile/setup` for new users or `/profile/edit` for existing users, refresh, and confirm UserProfile persists with username read-only after setup.
-4. Equipment Passports: create, view, edit, refresh, and confirm private setup photo upload works for a saved passport.
-5. Projectiles / Ammo, Optics / Sights, Range Sessions, Maintenance, and Hunting Readiness: create, view, edit, refresh, and confirm each saved record persists.
-6. Private images: upload a saved Equipment Passport setup photo and a saved Range Session target photo, then sign out and confirm upload controls are not available.
-7. Public publishing: open a saved passport Public Preview, publish or update a sanitized Public Passport snapshot, view it in Discover, and unpublish if needed.
-8. Discover: confirm public detail pages show sanitized fields only and do not expose private notes, private S3 keys, private images, target photos, maintenance records, readiness records, ammo lot numbers, purchase details, exact locations, owner private details, or image metadata.
-9. Social actions: signed-in users can react, comment, and report; signed-out users can view public pages and see sign-in prompts for actions.
-10. Failure states: if public snapshots or reaction counts are unavailable, the page should remain usable with a quiet fallback message.
+4. Privacy settings: open `/settings/privacy`, change settings, save, refresh, and confirm private settings are hidden after sign-out.
+5. Equipment Passports: create, view, edit, refresh, and confirm private setup photo upload works for a saved passport.
+6. Projectiles / Ammo, Optics / Sights, Range Sessions, Maintenance, and Hunting Readiness: create, view, edit, refresh, and confirm each saved record persists.
+7. Private images: upload a saved Equipment Passport setup photo and a saved Range Session target photo, then sign out and confirm upload controls are not available.
+8. Public publishing: open a saved passport Public Preview, publish or update a sanitized Public Passport snapshot, view it in Discover, and unpublish if needed.
+9. Discover: confirm public detail pages show sanitized fields only and do not expose private notes, private S3 keys, private images, target photos, maintenance records, readiness records, ammo lot numbers, purchase details, exact locations, owner private details, or image metadata.
+10. Social actions: signed-in users can react, comment, and report; signed-out users can view public pages and see sign-in prompts for actions.
+11. Failure states: if public snapshots or reaction counts are unavailable, the page should remain usable with a quiet fallback message.
 
 ### Before Deploying
 
