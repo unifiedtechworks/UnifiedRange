@@ -1,30 +1,79 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { TextArea, TextField } from "@/components/FormFields";
 import {
   defaultUserProfileFormValues,
+  normalizeUsername,
   privacyDefaultLabel,
+  validateUsername,
   usernameHelper,
   validateUserProfile,
   type UserProfileFormMode,
   type UserProfileFormValues
 } from "@/lib/userProfileData";
+import type { UsernameAvailability } from "@/lib/usernameReservationData";
 
 interface UserProfileFormProps {
   mode: UserProfileFormMode;
   initialValues?: UserProfileFormValues;
   cancelHref: string;
   onSubmit: (values: UserProfileFormValues) => Promise<void>;
+  onUsernameCheck?: (username: string) => Promise<UsernameAvailability>;
 }
 
-export function UserProfileForm({ mode, initialValues = defaultUserProfileFormValues, cancelHref, onSubmit }: UserProfileFormProps) {
+type UsernameCheckState = "idle" | "checking" | "available" | "taken" | "own-reservation" | "error";
+
+export function UserProfileForm({ mode, initialValues = defaultUserProfileFormValues, cancelHref, onSubmit, onUsernameCheck }: UserProfileFormProps) {
   const [values, setValues] = useState<UserProfileFormValues>(initialValues);
   const [errors, setErrors] = useState<Partial<Record<keyof UserProfileFormValues, string>>>({});
   const [formError, setFormError] = useState("");
   const [success, setSuccess] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [usernameCheckState, setUsernameCheckState] = useState<UsernameCheckState>("idle");
+  const [usernameCheckMessage, setUsernameCheckMessage] = useState("");
+
+  const shouldCheckUsername = mode !== "edit" && Boolean(onUsernameCheck);
+
+  useEffect(() => {
+    if (!shouldCheckUsername) {
+      return;
+    }
+
+    const checkUsername = onUsernameCheck;
+    if (!checkUsername) {
+      return;
+    }
+
+    const checkTimer = window.setTimeout(() => {
+      const username = normalizeUsername(values.username);
+      const usernameError = validateUsername(username);
+
+      if (usernameError) {
+        setUsernameCheckState("idle");
+        setUsernameCheckMessage("");
+        return;
+      }
+
+      setUsernameCheckState("checking");
+      setUsernameCheckMessage("Checking username...");
+
+      void checkUsername(username)
+        .then((availability) => {
+          setUsernameCheckState(availability.status);
+          setUsernameCheckMessage(availability.message);
+        })
+        .catch(() => {
+          setUsernameCheckState("error");
+          setUsernameCheckMessage("Username availability could not be checked.");
+        });
+    }, 350);
+
+    return () => {
+      window.clearTimeout(checkTimer);
+    };
+  }, [onUsernameCheck, shouldCheckUsername, values.username]);
 
   function updateField<Key extends keyof UserProfileFormValues>(key: Key, value: UserProfileFormValues[Key]) {
     setValues((current) => ({ ...current, [key]: value }));
@@ -41,6 +90,34 @@ export function UserProfileForm({ mode, initialValues = defaultUserProfileFormVa
 
     if (Object.values(nextErrors).some(Boolean)) {
       return;
+    }
+
+    if (shouldCheckUsername) {
+      const checkUsername = onUsernameCheck;
+      if (!checkUsername) {
+        setErrors((current) => ({ ...current, username: "Username availability could not be checked." }));
+        return;
+      }
+
+      const username = normalizeUsername(values.username);
+      setUsernameCheckState("checking");
+      setUsernameCheckMessage("Checking username...");
+
+      try {
+        const availability = await checkUsername(username);
+        setUsernameCheckState(availability.status);
+        setUsernameCheckMessage(availability.message);
+
+        if (availability.status === "taken") {
+          setErrors((current) => ({ ...current, username: availability.message }));
+          return;
+        }
+      } catch {
+        setUsernameCheckState("error");
+        setUsernameCheckMessage("Username availability could not be checked.");
+        setErrors((current) => ({ ...current, username: "Username availability could not be checked." }));
+        return;
+      }
     }
 
     setIsSaving(true);
@@ -117,8 +194,16 @@ export function UserProfileForm({ mode, initialValues = defaultUserProfileFormVa
       </label>
 
       {mode !== "edit" ? (
-        <p className="rounded-md border border-ink/10 bg-white px-4 py-3 text-sm leading-6 text-ink/70">
-          Username lookup is intentionally not broadened across private profiles in this MVP. A dedicated username reservation workflow should enforce uniqueness before public profiles ship.
+        <p
+          className={`rounded-md border px-4 py-3 text-sm font-semibold ${
+            usernameCheckState === "available" || usernameCheckState === "own-reservation"
+              ? "border-moss/25 bg-field text-moss"
+              : usernameCheckState === "taken" || usernameCheckState === "error"
+                ? "border-clay/30 bg-clay/10 text-clay"
+                : "border-ink/10 bg-white text-ink/70"
+          }`}
+        >
+          {usernameCheckMessage || "Usernames are reserved globally without exposing private profile details."}
         </p>
       ) : (
         <p className="rounded-md border border-ink/10 bg-white px-4 py-3 text-sm leading-6 text-ink/70">
@@ -133,7 +218,11 @@ export function UserProfileForm({ mode, initialValues = defaultUserProfileFormVa
         <Link href={cancelHref} className="inline-flex justify-center rounded-md border border-ink/15 bg-white px-4 py-2 text-sm font-semibold text-ink">
           Cancel
         </Link>
-        <button type="submit" disabled={isSaving} className="inline-flex justify-center rounded-md bg-ink px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60">
+        <button
+          type="submit"
+          disabled={isSaving || usernameCheckState === "checking" || usernameCheckState === "taken" || usernameCheckState === "error"}
+          className="inline-flex justify-center rounded-md bg-ink px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+        >
           {isSaving ? "Saving..." : mode === "create" ? "Create profile" : mode === "complete" ? "Complete profile" : "Save profile"}
         </button>
       </div>

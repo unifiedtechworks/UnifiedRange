@@ -16,6 +16,7 @@ import {
   privacyDefaultLabel,
   type UserProfileRecord
 } from "@/lib/userProfileData";
+import { ensureUsernameReservation } from "@/lib/usernameReservationData";
 import type { EquipmentPassport, HuntingChecklist, MaintenanceLogEntry, RangeSession } from "@/types";
 
 type ProfileState = "loading" | "signed-out" | "setup" | "ready" | "error";
@@ -91,6 +92,14 @@ export function UserProfileOverview() {
         setActivity(emptyActivity);
         setState("setup");
         return;
+      }
+
+      if (currentProfile.username) {
+        try {
+          await ensureUsernameReservation(client, currentProfile.username, authState.username);
+        } catch {
+          throw new Error("This profile username conflicts with an existing reservation. Please contact support for manual resolution.");
+        }
       }
 
       const [passportResult, sessionResult, maintenanceResult, checklistResult, publicSnapshotResult] = await Promise.all([

@@ -3,6 +3,17 @@ import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
 // TODO: Wire mock-data screens to generated AppSync clients after the sandbox
 // produces amplify_outputs.json. Until then, this schema is the backend contract.
 const schema = a.schema({
+  UsernameReservation: a
+    .model({
+      username: a.string().required(),
+      ownerId: a
+        .string()
+        .required()
+        .authorization((allow) => [allow.ownerDefinedIn("ownerId").to(["create", "read", "delete"]), allow.authenticated().to(["read"])]),
+      createdAt: a.datetime()
+    })
+    .authorization((allow) => [allow.ownerDefinedIn("ownerId").to(["create", "read", "delete"]), allow.authenticated().to(["read"])]),
+
   UserProfile: a
     .model({
       ownerId: a

@@ -32,7 +32,9 @@ Protected owner-like fields:
 - `Reaction.userId`
 - `Report.reporterId`
 
-`UserProfile.username` is collected during setup and treated as immutable in the frontend after creation. The current owner-scoped model does not support a reliable global username uniqueness lookup without broadening private profile reads. Add a dedicated username reservation model or server-side workflow before making public usernames a production guarantee.
+`UserProfile.username` is collected during setup and treated as immutable in the frontend after creation. Username uniqueness is checked through a separate reservation model so private profiles do not need to be globally queryable.
+
+`UsernameReservation` stores normalized username claims separately from private `UserProfile` records. The reservation record uses the normalized username as its record id for an MVP uniqueness guard, stores no profile details, and is created before profile setup writes the username. Existing profiles can create a matching reservation when loaded; conflicts require manual/admin resolution.
 
 `UserProfile.nameLastChangedAt` supports a lightweight client-side monthly limit for first and last name edits. This is a UX guard only; use a server-side workflow if stronger enforcement becomes necessary.
 

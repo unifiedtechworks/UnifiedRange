@@ -27,6 +27,15 @@ This file describes the initial conceptual data model. Codex should turn this in
 - createdAt
 - updatedAt
 
+## UsernameReservation
+
+Stores a public-safe username claim without exposing private profile fields.
+
+- id: normalized username
+- username
+- ownerId
+- createdAt
+
 ## EquipmentPassport
 
 Use a broad model so UnifiedRange can support rifles first, then pistols and archery later.

@@ -20,6 +20,7 @@ import {
   type UserProfileFormValues,
   type UserProfileRecord
 } from "@/lib/userProfileData";
+import { checkUsernameAvailability, ensureUsernameReservation } from "@/lib/usernameReservationData";
 
 type ProfileEditState = "loading" | "signed-out" | "create" | "complete" | "edit" | "error";
 
@@ -65,6 +66,14 @@ export function UserProfileEdit({ setupOnly = false }: { setupOnly?: boolean }) 
       const currentProfile = result.data[0] ?? null;
       setProfile(currentProfile);
 
+      if (currentProfile?.username && isProfileComplete(currentProfile)) {
+        try {
+          await ensureUsernameReservation(client, currentProfile.username, authState.username);
+        } catch {
+          throw new Error("This profile username conflicts with an existing reservation. Please contact support for manual resolution.");
+        }
+      }
+
       if (setupOnly) {
         setState(currentProfile ? (isProfileComplete(currentProfile) ? "edit" : "complete") : "create");
         return;
@@ -107,16 +116,24 @@ export function UserProfileEdit({ setupOnly = false }: { setupOnly?: boolean }) 
       throw new Error("Sign in before creating a profile.");
     }
 
+    await ensureUsernameReservation(client, values.username, authState.username);
+
     const result = await client.models.UserProfile.create(toCreateUserProfileInput(values, authState.username));
 
     if (result.errors?.length) {
-      throw new Error(result.errors.map((item) => item.message).join(" "));
+      throw new Error(
+        `Username was reserved, but profile setup could not finish. Return to setup and use the same username to recover. ${result.errors.map((item) => item.message).join(" ")}`
+      );
     }
 
     router.push("/profile");
   }
 
   async function handleComplete(values: UserProfileFormValues) {
+    if (authState.status !== "signed-in") {
+      throw new Error("Sign in before completing a profile.");
+    }
+
     if (!profile?.id) {
       throw new Error("Profile record could not be found.");
     }
@@ -125,6 +142,8 @@ export function UserProfileEdit({ setupOnly = false }: { setupOnly?: boolean }) 
     if (nameLimitMessage) {
       throw new Error(nameLimitMessage);
     }
+
+    await ensureUsernameReservation(client, values.username, authState.username);
 
     const result = await client.models.UserProfile.update(toCompleteUserProfileInput(profile.id, values, profile));
 
@@ -152,6 +171,14 @@ export function UserProfileEdit({ setupOnly = false }: { setupOnly?: boolean }) 
     }
 
     router.push("/profile");
+  }
+
+  async function handleUsernameCheck(username: string) {
+    if (authState.status !== "signed-in") {
+      throw new Error("Sign in before checking username availability.");
+    }
+
+    return checkUsernameAvailability(client, username, authState.username);
   }
 
   if (state === "loading") {
@@ -196,6 +223,7 @@ export function UserProfileEdit({ setupOnly = false }: { setupOnly?: boolean }) 
           initialValues={state === "create" ? defaultUserProfileFormValues : toUserProfileFormValues(profile)}
           cancelHref="/profile"
           onSubmit={state === "create" ? handleCreate : state === "complete" ? handleComplete : handleUpdate}
+          onUsernameCheck={state === "edit" ? undefined : handleUsernameCheck}
         />
       </article>
     </section>
