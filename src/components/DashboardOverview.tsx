@@ -3,7 +3,7 @@
 import { generateClient } from "aws-amplify/data";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Schema } from "../../amplify/data/resource";
 import { HuntingChecklistCard } from "@/components/HuntingChecklistCard";
 import { MaintenanceCard } from "@/components/MaintenanceCard";
@@ -13,7 +13,7 @@ import { SessionCard } from "@/components/SessionCard";
 import { StatCard } from "@/components/StatCard";
 import { equipmentPassports, huntingChecklists, maintenanceEntries, optics, projectiles, rangeSessions } from "@/data/mockData";
 import { useAuthUser } from "@/hooks/useAuthUser";
-import { configureAmplifyClient, getAuthErrorMessage } from "@/lib/amplifyClient";
+import { configureAmplifyClient, getAuthErrorMessage, isAuthTokenClearedError } from "@/lib/amplifyClient";
 import { recordToEquipmentPassport, type EquipmentPassportRecord } from "@/lib/equipmentPassportData";
 import { huntingPassportLabel, recordToHuntingChecklist, type HuntingChecklistRecord } from "@/lib/huntingChecklistData";
 import { maintenancePassportLabel, recordToMaintenanceLogEntry, type MaintenanceLogEntryRecord } from "@/lib/maintenanceLogData";
@@ -100,8 +100,11 @@ export function DashboardOverview() {
   const [state, setState] = useState<DashboardState>("loading");
   const [savedData, setSavedData] = useState<SavedDashboardData>(emptySavedData);
   const [error, setError] = useState("");
+  const requestIdRef = useRef(0);
 
   const loadDashboard = useCallback(async () => {
+    const requestId = requestIdRef.current + 1;
+    requestIdRef.current = requestId;
     setError("");
 
     if (authState.status === "loading") {
@@ -138,6 +141,10 @@ export function DashboardOverview() {
         throw new Error(errors.map((item) => item.message).join(" "));
       }
 
+      if (requestId !== requestIdRef.current) {
+        return;
+      }
+
       setSavedData({
         passports: passportResult.data.map((record: EquipmentPassportRecord) => recordToEquipmentPassport(record)),
         projectiles: projectileResult.data.map((record: ProjectileProfileRecord) => recordToProjectileProfile(record)),
@@ -148,8 +155,18 @@ export function DashboardOverview() {
       });
       setState("ready");
     } catch (dashboardError) {
-      console.error("Unable to load saved dashboard data", dashboardError);
+      if (requestId !== requestIdRef.current) {
+        return;
+      }
+
       setSavedData(emptySavedData);
+
+      if (isAuthTokenClearedError(dashboardError)) {
+        setState("signed-out");
+        setError("");
+        return;
+      }
+
       setState("ready");
       setError(getAuthErrorMessage(dashboardError));
     }

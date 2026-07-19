@@ -3,10 +3,10 @@
 import { generateClient } from "aws-amplify/data";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { Schema } from "../../amplify/data/resource";
 import { useAuthUser } from "@/hooks/useAuthUser";
-import { configureAmplifyClient, getAuthErrorMessage } from "@/lib/amplifyClient";
+import { configureAmplifyClient, getAuthErrorMessage, isAuthTokenClearedError } from "@/lib/amplifyClient";
 import { isProfileComplete } from "@/lib/userProfileData";
 
 const gatedPrefixes = ["/dashboard", "/passports", "/projectiles", "/optics", "/sessions", "/maintenance", "/readiness"];
@@ -26,8 +26,11 @@ export function ProfileCompletionGate({ children }: { children: ReactNode }) {
   }, []);
   const [state, setState] = useState<GateState>("checking");
   const [error, setError] = useState("");
+  const requestIdRef = useRef(0);
 
   const checkProfile = useCallback(async () => {
+    const requestId = requestIdRef.current + 1;
+    requestIdRef.current = requestId;
     setError("");
 
     if (!shouldGatePath(pathname)) {
@@ -52,8 +55,22 @@ export function ProfileCompletionGate({ children }: { children: ReactNode }) {
         throw new Error(result.errors.map((item) => item.message).join(" "));
       }
 
+      if (requestId !== requestIdRef.current) {
+        return;
+      }
+
       setState(isProfileComplete(result.data[0] ?? null) ? "open" : "setup-required");
     } catch (profileError) {
+      if (requestId !== requestIdRef.current) {
+        return;
+      }
+
+      if (isAuthTokenClearedError(profileError)) {
+        setError("");
+        setState("open");
+        return;
+      }
+
       setError(getAuthErrorMessage(profileError));
       setState("error");
     }

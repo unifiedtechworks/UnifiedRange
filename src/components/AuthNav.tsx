@@ -18,8 +18,8 @@ export function AuthNav({ compact = false }: { compact?: boolean }) {
     try {
       configureAmplifyClient();
       await signOut();
-      notifyAuthChanged();
       await refreshAuthState();
+      notifyAuthChanged();
     } catch (signOutError) {
       setError(getAuthErrorMessage(signOutError));
     } finally {

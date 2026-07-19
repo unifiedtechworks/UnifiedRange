@@ -18,8 +18,8 @@ export function AuthStatusCard() {
     try {
       configureAmplifyClient();
       await signOut();
-      notifyAuthChanged();
       await refreshAuthState();
+      notifyAuthChanged();
     } catch (signOutError) {
       setError(getAuthErrorMessage(signOutError));
     } finally {

@@ -2,12 +2,12 @@
 
 import { generateClient } from "aws-amplify/data";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Schema } from "../../amplify/data/resource";
 import { DetailRow } from "@/components/DetailRow";
 import { PageHeader } from "@/components/PageHeader";
 import { useAuthUser } from "@/hooks/useAuthUser";
-import { configureAmplifyClient, getAuthErrorMessage } from "@/lib/amplifyClient";
+import { configureAmplifyClient, getAuthErrorMessage, isAuthTokenClearedError } from "@/lib/amplifyClient";
 import { recordToEquipmentPassport, type EquipmentPassportRecord } from "@/lib/equipmentPassportData";
 import { recordToHuntingChecklist, type HuntingChecklistRecord } from "@/lib/huntingChecklistData";
 import { recordToMaintenanceLogEntry, type MaintenanceLogEntryRecord } from "@/lib/maintenanceLogData";
@@ -54,8 +54,11 @@ export function UserProfileOverview() {
   const [profile, setProfile] = useState<UserProfileRecord | null>(null);
   const [activity, setActivity] = useState<ProfileActivity>(emptyActivity);
   const [error, setError] = useState("");
+  const requestIdRef = useRef(0);
 
   const loadProfile = useCallback(async () => {
+    const requestId = requestIdRef.current + 1;
+    requestIdRef.current = requestId;
     setError("");
 
     if (authState.status === "loading") {
@@ -75,6 +78,10 @@ export function UserProfileOverview() {
 
       if (profileResult.errors?.length) {
         throw new Error(profileResult.errors.map((item) => item.message).join(" "));
+      }
+
+      if (requestId !== requestIdRef.current) {
+        return;
       }
 
       const currentProfile = profileResult.data[0] ?? null;
@@ -106,6 +113,10 @@ export function UserProfileOverview() {
         throw new Error(errors.map((item) => item.message).join(" "));
       }
 
+      if (requestId !== requestIdRef.current) {
+        return;
+      }
+
       setActivity({
         passports: passportResult.data.map((record: EquipmentPassportRecord) => recordToEquipmentPassport(record)),
         sessions: sessionResult.data.map((record: RangeSessionRecord) => recordToRangeSession(record)),
@@ -115,6 +126,18 @@ export function UserProfileOverview() {
       });
       setState("ready");
     } catch (profileError) {
+      if (requestId !== requestIdRef.current) {
+        return;
+      }
+
+      if (isAuthTokenClearedError(profileError)) {
+        setProfile(null);
+        setActivity(emptyActivity);
+        setError("");
+        setState("signed-out");
+        return;
+      }
+
       setProfile(null);
       setActivity(emptyActivity);
       setError(getAuthErrorMessage(profileError));

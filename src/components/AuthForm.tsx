@@ -94,10 +94,10 @@ export function AuthForm() {
         return;
       }
 
-      notifyAuthChanged();
       setPassword("");
       setSuccess("Signed in successfully. Your saved account data is available across the wired MVP sections.");
       const nextAuthState = await refreshSharedAuthState({ showLoading: false });
+      notifyAuthChanged();
 
       if (nextAuthState.status === "signed-in") {
         const profileResult = await client.models.UserProfile.list({ filter: { ownerId: { eq: nextAuthState.username } } });
@@ -122,8 +122,8 @@ export function AuthForm() {
     try {
       configureAmplifyClient();
       await signOut();
-      notifyAuthChanged();
       await refreshAuthState();
+      notifyAuthChanged();
     } catch (signOutError) {
       setError(getAuthErrorMessage(signOutError));
     } finally {

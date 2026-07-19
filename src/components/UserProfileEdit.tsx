@@ -3,12 +3,12 @@
 import { generateClient } from "aws-amplify/data";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Schema } from "../../amplify/data/resource";
 import { PageHeader } from "@/components/PageHeader";
 import { UserProfileForm } from "@/components/UserProfileForm";
 import { useAuthUser } from "@/hooks/useAuthUser";
-import { configureAmplifyClient, getAuthErrorMessage } from "@/lib/amplifyClient";
+import { configureAmplifyClient, getAuthErrorMessage, isAuthTokenClearedError } from "@/lib/amplifyClient";
 import {
   defaultUserProfileFormValues,
   getNameChangeLimitMessage,
@@ -33,8 +33,11 @@ export function UserProfileEdit({ setupOnly = false }: { setupOnly?: boolean }) 
   const [state, setState] = useState<ProfileEditState>("loading");
   const [profile, setProfile] = useState<UserProfileRecord | null>(null);
   const [error, setError] = useState("");
+  const requestIdRef = useRef(0);
 
   const loadProfile = useCallback(async () => {
+    const requestId = requestIdRef.current + 1;
+    requestIdRef.current = requestId;
     setError("");
 
     if (authState.status === "loading") {
@@ -55,6 +58,10 @@ export function UserProfileEdit({ setupOnly = false }: { setupOnly?: boolean }) 
         throw new Error(result.errors.map((item) => item.message).join(" "));
       }
 
+      if (requestId !== requestIdRef.current) {
+        return;
+      }
+
       const currentProfile = result.data[0] ?? null;
       setProfile(currentProfile);
 
@@ -68,6 +75,17 @@ export function UserProfileEdit({ setupOnly = false }: { setupOnly?: boolean }) 
         setError("Complete profile setup before editing profile details.");
       }
     } catch (profileError) {
+      if (requestId !== requestIdRef.current) {
+        return;
+      }
+
+      if (isAuthTokenClearedError(profileError)) {
+        setProfile(null);
+        setError("");
+        setState("signed-out");
+        return;
+      }
+
       setProfile(null);
       setError(getAuthErrorMessage(profileError));
       setState("error");
