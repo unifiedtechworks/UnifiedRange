@@ -36,6 +36,8 @@ Protected owner-like fields:
 
 `UsernameReservation` stores normalized username claims separately from private `UserProfile` records. The reservation record uses the normalized username as its record id for an MVP uniqueness guard, stores no profile details, and is created before profile setup writes the username. Existing profiles can create a matching reservation when loaded; conflicts require manual/admin resolution.
 
+The moderation queue may use `UsernameReservation` to translate a report's Cognito-backed `reporterId` into a public-safe `@username`. It must not broaden `UserProfile` read authorization to do so. See `USERNAME_SIGN_IN_PLAN.md` for the separate future username authentication design.
+
 `UserProfile.nameLastChangedAt` supports a lightweight client-side monthly limit for first and last name edits. This is a UX guard only; use a server-side workflow if stronger enforcement becomes necessary.
 
 User privacy and account defaults are stored on `UserProfile` so they remain owner-scoped account data. Defaults should stay private-first: account visibility and default passport visibility default to private, public preview is required before publishing, and public-sharing sanitization should hide exact locations, ammo lot numbers, purchase details, private notes, and image metadata.

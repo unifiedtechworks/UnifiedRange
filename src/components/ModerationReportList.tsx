@@ -3,10 +3,7 @@
 import Link from "next/link";
 import { useModerationReports } from "@/hooks/useModerationReports";
 import { isPendingReportStatus } from "@/lib/moderationAccess";
-
-function shortId(id: string) {
-  return id.length > 10 ? `${id.slice(0, 8)}...` : id;
-}
+import { getReporterPrimaryLabel, shortInternalId, type ReporterIdentity } from "@/lib/moderationReporterIdentity";
 
 function formatDate(value?: string | null) {
   if (!value) {
@@ -30,7 +27,7 @@ function getStatusClass(status?: string | null) {
 }
 
 export function ModerationReportList() {
-  const { state, reports, pendingCount, error } = useModerationReports();
+  const { state, reports, reporterIdentities, pendingCount, error, identityWarning } = useModerationReports();
 
   if (state === "loading") {
     return <p className="rounded-md border border-ink/10 bg-white p-4 text-sm text-ink/65 shadow-soft">Loading reports...</p>;
@@ -86,6 +83,7 @@ export function ModerationReportList() {
       </section>
 
       {error ? <p className="rounded-md border border-clay/30 bg-clay/10 px-4 py-3 text-sm font-semibold text-clay">{error}</p> : null}
+      {identityWarning ? <p className="rounded-md border border-ink/10 bg-paper px-4 py-3 text-sm text-ink/65">{identityWarning}</p> : null}
 
       {reports.length === 0 ? (
         <section className="rounded-md border border-ink/10 bg-white p-5 text-center shadow-soft">
@@ -100,13 +98,13 @@ export function ModerationReportList() {
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className={`rounded-md px-3 py-1 text-xs font-semibold ${getStatusClass(report.status)}`}>{getStatusLabel(report.status)}</span>
-                    <span className="text-xs font-semibold text-moss">Report {shortId(report.id)}</span>
+                    <span className="text-xs font-semibold text-moss">Report {shortInternalId(report.id)}</span>
                   </div>
                   <h3 className="mt-3 break-words text-lg font-bold text-ink sm:text-xl">{report.reason}</h3>
                   <dl className="mt-4 grid min-w-0 gap-3 text-sm sm:grid-cols-2 xl:grid-cols-3">
                     <ReportDetail label="Target type" value={report.targetType ?? "Unknown"} />
                     <ReportDetail label="Target ID" value={report.targetId} />
-                    <ReportDetail label="Reporter" value={report.reporterId} />
+                    <ReporterDetail reporterId={report.reporterId} identity={reporterIdentities[report.reporterId]} />
                     <ReportDetail label="Created" value={formatDate(report.createdAt)} />
                     <ReportDetail label="Updated" value={formatDate(report.updatedAt)} />
                     <ReportDetail label="Report ID" value={report.id} />
@@ -129,6 +127,17 @@ export function ModerationReportList() {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function ReporterDetail({ reporterId, identity }: { reporterId: string; identity?: ReporterIdentity }) {
+  return (
+    <div>
+      <dt className="font-semibold text-ink">Reporter</dt>
+      <dd className="break-words font-semibold text-ink/75">{getReporterPrimaryLabel(reporterId, identity)}</dd>
+      {identity?.username && identity.displayName ? <dd className="break-words text-xs text-ink/55">{identity.displayName}</dd> : null}
+      <dd className="mt-1 break-all font-mono text-xs text-ink/45">Internal ID: {reporterId}</dd>
     </div>
   );
 }
