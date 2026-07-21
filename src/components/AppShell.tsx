@@ -26,7 +26,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen bg-paper">
-      <aside className="fixed inset-y-0 left-0 hidden w-72 flex-col border-r border-ink/10 bg-white/85 px-5 py-6 backdrop-blur lg:flex">
+      <aside className="fixed inset-y-0 left-0 hidden w-72 flex-col overflow-y-auto border-r border-ink/10 bg-white/85 px-5 py-6 backdrop-blur lg:flex">
         <Link href="/dashboard" className="block">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-moss">UnifiedRange</p>
           <h1 className="mt-2 text-2xl font-bold text-ink">Setup logbook</h1>
@@ -53,20 +53,20 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       <div className="lg:pl-72">
         <header className="sticky top-0 z-20 border-b border-ink/10 bg-paper/95 px-4 py-3 backdrop-blur lg:hidden">
-          <div className="flex items-center justify-between gap-3">
-            <Link href="/dashboard">
+          <div className="flex min-w-0 items-center justify-between gap-3">
+            <Link href="/dashboard" className="min-w-0 shrink-0">
               <span className="text-sm font-semibold uppercase tracking-[0.18em] text-moss">UnifiedRange</span>
             </Link>
             <AuthNav compact />
           </div>
-          <nav className="mt-3 flex gap-2 overflow-x-auto pb-1">
+          <nav className="-mx-4 mt-3 flex max-w-[100vw] gap-2 overflow-x-auto px-4 pb-1">
             {navigation.map((item) => {
               const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`shrink-0 rounded-md px-3 py-2 text-xs font-semibold ${
+                  className={`shrink-0 whitespace-nowrap rounded-md px-3 py-2 text-xs font-semibold ${
                     isActive ? "bg-ink text-white" : "bg-white text-ink/75"
                   }`}
                 >

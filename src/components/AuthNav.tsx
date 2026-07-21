@@ -29,10 +29,10 @@ export function AuthNav({ compact = false }: { compact?: boolean }) {
 
   if (compact) {
     return (
-      <div className="flex shrink-0 items-center gap-2">
+      <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
         {authState.status === "signed-in" ? (
           <>
-            <span className="max-w-36 truncate text-xs font-semibold text-ink/70">{authState.label}</span>
+            <span className="max-w-[42vw] truncate text-xs font-semibold text-ink/70">{authState.label}</span>
             <Link href="/profile" className="rounded-md border border-ink/15 bg-white px-3 py-1.5 text-xs font-semibold text-ink">
               Profile
             </Link>

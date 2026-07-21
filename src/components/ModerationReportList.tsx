@@ -95,15 +95,15 @@ export function ModerationReportList() {
       ) : (
         <div className="space-y-4">
           {reports.map((report) => (
-            <article key={report.id} className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
-              <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-                <div>
+            <article key={report.id} className="rounded-md border border-ink/10 bg-white p-4 shadow-soft sm:p-5">
+              <div className="flex min-w-0 flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className={`rounded-md px-3 py-1 text-xs font-semibold ${getStatusClass(report.status)}`}>{getStatusLabel(report.status)}</span>
                     <span className="text-xs font-semibold text-moss">Report {shortId(report.id)}</span>
                   </div>
-                  <h3 className="mt-3 text-xl font-bold text-ink">{report.reason}</h3>
-                  <dl className="mt-4 grid gap-3 text-sm md:grid-cols-2 xl:grid-cols-3">
+                  <h3 className="mt-3 break-words text-lg font-bold text-ink sm:text-xl">{report.reason}</h3>
+                  <dl className="mt-4 grid min-w-0 gap-3 text-sm sm:grid-cols-2 xl:grid-cols-3">
                     <ReportDetail label="Target type" value={report.targetType ?? "Unknown"} />
                     <ReportDetail label="Target ID" value={report.targetId} />
                     <ReportDetail label="Reporter" value={report.reporterId} />
@@ -114,12 +114,12 @@ export function ModerationReportList() {
                   {report.details ? (
                     <div className="mt-4 rounded-md border border-ink/10 bg-paper p-4">
                       <p className="text-sm font-semibold text-ink">Details</p>
-                      <p className="mt-2 text-sm leading-6 text-ink/70">{report.details}</p>
+                      <p className="mt-2 break-words text-sm leading-6 text-ink/70">{report.details}</p>
                     </div>
                   ) : null}
                 </div>
 
-                <div className="min-w-56 rounded-md border border-ink/10 bg-paper p-4">
+                <div className="w-full rounded-md border border-ink/10 bg-paper p-4 sm:min-w-56 xl:w-64">
                   <p className="text-sm font-semibold text-ink">Review status</p>
                   <p className="mt-2 rounded-md bg-white px-3 py-2 text-sm font-semibold text-ink">{getStatusLabel(report.status)}</p>
                   <p className="mt-3 text-xs leading-5 text-ink/60">Status changes need a future admin-only action path.</p>
