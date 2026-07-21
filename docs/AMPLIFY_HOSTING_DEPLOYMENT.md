@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This guide prepares UnifiedRange for a dev or staging deployment through AWS Amplify Hosting. It does not cover production promotion, public image publishing, moderation dashboards, or new product features.
+This guide prepares UnifiedRange for a dev or staging deployment through AWS Amplify Hosting. It does not cover production promotion, public image publishing, destructive moderation workflows, or new product features.
 
 ## Assumptions
 
@@ -112,7 +112,8 @@ Before a dev or staging deployment:
 12. Test private image upload for equipment and target photos.
 13. Test public/private boundaries on Discover and Public Passport pages.
 14. Confirm public pages do not expose private notes, private S3 keys, private images, lot numbers, purchase info, exact locations, owner private details, maintenance records, or readiness records.
-15. Confirm signed-out demo behavior remains clearly labeled.
+15. Confirm Cognito `admin` or `moderator` users can see the moderation nav and pending report count, while normal signed-in users cannot access moderation tools.
+16. Confirm signed-out demo behavior remains clearly labeled.
 
 ## Cost And Billing Notes
 

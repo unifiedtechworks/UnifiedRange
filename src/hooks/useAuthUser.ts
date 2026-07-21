@@ -1,6 +1,6 @@
 "use client";
 
-import { fetchUserAttributes, getCurrentUser } from "aws-amplify/auth";
+import { fetchAuthSession, fetchUserAttributes, getCurrentUser } from "aws-amplify/auth";
 import { Hub } from "aws-amplify/utils";
 import { useCallback, useEffect, useSyncExternalStore } from "react";
 import { configureAmplifyClient, getAuthErrorMessage } from "@/lib/amplifyClient";
@@ -8,7 +8,7 @@ import { configureAmplifyClient, getAuthErrorMessage } from "@/lib/amplifyClient
 export type AuthUserState =
   | { status: "loading"; label: "Checking session..."; username?: string; error?: string }
   | { status: "signed-out"; label: string; username?: string; error?: string }
-  | { status: "signed-in"; label: string; username: string; error?: string };
+  | { status: "signed-in"; label: string; username: string; groups: string[]; error?: string };
 
 const authCheckTimeoutMs = 8000;
 const authListeners = new Set<() => void>();
@@ -47,11 +47,24 @@ function getAuthSnapshot() {
   return currentAuthState;
 }
 
+function normalizeGroups(groups: unknown) {
+  if (Array.isArray(groups)) {
+    return groups.filter((group): group is string => typeof group === "string");
+  }
+
+  if (typeof groups === "string") {
+    return [groups];
+  }
+
+  return [];
+}
+
 export async function getCurrentAuthUserSafe(): Promise<AuthUserState> {
   try {
     configureAmplifyClient();
     const currentUser = await withTimeout(getCurrentUser(), "Auth check timed out. Please try refreshing the page.");
     let label = currentUser.signInDetails?.loginId ?? currentUser.username;
+    let groups: string[] = [];
 
     try {
       const attributes = await withTimeout(fetchUserAttributes(), "User attributes timed out. Please try refreshing the page.");
@@ -61,10 +74,18 @@ export async function getCurrentAuthUserSafe(): Promise<AuthUserState> {
       // Attribute lookup can briefly fail right after sign-in; keep signed-in.
     }
 
+    try {
+      const session = await withTimeout(fetchAuthSession(), "Auth session timed out. Please try refreshing the page.");
+      groups = normalizeGroups(session.tokens?.idToken?.payload["cognito:groups"] ?? session.tokens?.accessToken?.payload["cognito:groups"]);
+    } catch {
+      // Group claims can be absent for normal users. Keep the signed-in state.
+    }
+
     return {
       status: "signed-in",
       username: currentUser.username,
-      label
+      label,
+      groups
     };
   } catch (authError) {
     const message = getAuthErrorMessage(authError);

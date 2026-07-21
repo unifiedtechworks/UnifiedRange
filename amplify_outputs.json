@@ -14,7 +14,18 @@
     "user_verification_types": [
       "email"
     ],
-    "groups": [],
+    "groups": [
+      {
+        "admin": {
+          "precedence": 0
+        }
+      },
+      {
+        "moderator": {
+          "precedence": 1
+        }
+      }
+    ],
     "mfa_configuration": "NONE",
     "password_policy": {
       "min_length": 8,
@@ -1881,12 +1892,23 @@
                     "provider": "userPools",
                     "ownerField": "reporterId",
                     "allow": "owner",
-                    "identityClaim": "cognito:username",
                     "operations": [
                       "create",
-                      "update",
-                      "delete",
+                      "read",
+                      "delete"
+                    ],
+                    "identityClaim": "cognito:username"
+                  },
+                  {
+                    "groupClaim": "cognito:groups",
+                    "provider": "userPools",
+                    "allow": "groups",
+                    "operations": [
                       "read"
+                    ],
+                    "groups": [
+                      "admin",
+                      "moderator"
                     ]
                   }
                 ]

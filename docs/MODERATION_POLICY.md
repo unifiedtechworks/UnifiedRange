@@ -47,17 +47,17 @@ Report reasons:
 ## Current MVP Implementation
 
 - Signed-in users can report sanitized public passport snapshots and comments.
-- Report records are stored for later review; no admin moderation dashboard exists yet.
+- Cognito `admin` and `moderator` group members can review report metadata at `/moderation/reports`.
+- Normal signed-in users cannot access moderation tools.
 - Signed-out users can view public setup pages but must sign in before reporting.
+- Report status is read-only in the MVP review queue until an admin-only action workflow is added.
 - Public social features must not expose private passport fields, private images, owner private details, marketplace activity, or direct messaging.
 
 ## Admin Review States
 
-- pending
-- reviewed_safe
-- removed
-- user_warned
-- user_suspended
+- Current stored statuses: `open`, `reviewed`, `resolved`.
+- Missing or `open` status counts as pending in the moderation UI.
+- Future admin-only workflows may add review states such as dismissed, action needed, content removed, user warned, or user suspended.
 
 ## Default Public Safety Behavior
 

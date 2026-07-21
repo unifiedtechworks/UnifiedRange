@@ -324,7 +324,37 @@ With the Amplify sandbox and dev server running:
 7. Report a comment and confirm the success message.
 8. Sign out and confirm signed-out users can still view the public page but are prompted to sign in before reacting, commenting, or reporting.
 
-Comments, reactions, and reports are scoped to sanitized public passport snapshots. This slice does not add public images, feeds, follows, notifications, direct messages, marketplaces, or a moderation dashboard.
+Comments, reactions, and reports are scoped to sanitized public passport snapshots. This slice does not add public images, feeds, follows, notifications, direct messages, marketplaces, or destructive moderation actions.
+
+### Manual Moderation Report Review Test
+
+After the Amplify backend is redeployed with the Cognito `admin` and `moderator` groups:
+
+1. Add the test moderator account to the Cognito `admin` or `moderator` group in the target environment.
+2. Sign in as that moderation-enabled user.
+3. Submit a report from a public passport detail page or a public comment.
+4. Confirm the Moderation nav link appears with a pending count.
+5. Open `http://localhost:3000/moderation`.
+6. Confirm the pending count is visible.
+7. Open `http://localhost:3000/moderation/reports`.
+8. Confirm the report appears with report metadata only and pending reports sort first.
+9. Confirm the status is visible as read-only.
+10. Confirm the page does not show private passport data, private notes, private S3 keys, private images, purchase records, lot numbers, exact locations, or private profile fields.
+11. Sign out and confirm the Moderation nav link disappears.
+12. Sign in as a normal non-moderator user and confirm `/moderation` says the account does not have access.
+
+Moderation access is enforced with Cognito user pool groups named `admin` and `moderator`. The MVP report queue does not change report status, delete content, hide public snapshots, suspend users, or expose private account records. Missing or `open` report statuses are counted as pending until an admin-only status workflow is added.
+
+To grant hosted-dev access, add the user to a Cognito group in the correct Amplify environment. Do not store moderator emails, usernames, or temporary allowlists in committed source.
+
+Previous quick smoke flow:
+
+1. Sign in as a moderation-enabled user.
+2. Submit a report from a public passport detail page or a public comment.
+3. Open `http://localhost:3000/moderation/reports`.
+4. Confirm the report appears with report metadata only.
+5. Confirm the status is visible as read-only.
+6. Confirm the page does not show private passport data, private notes, private S3 keys, private images, purchase records, lot numbers, exact locations, or private profile fields.
 
 ### Production-Readiness Manual Checklist
 
@@ -343,8 +373,9 @@ Run this checklist before promoting a sandbox or production environment:
 11. Public publishing: preview, publish, view in Discover, update, and unpublish a sanitized Public Passport snapshot.
 12. Discover: confirm signed-out and signed-in users can view and filter sanitized public snapshots only.
 13. Reactions/comments/reports: confirm reaction counts load or gracefully show unavailable, signed-in users can react/comment/report, and signed-out users see sign-in prompts for actions.
-14. Public/private boundary: confirm public pages do not show private notes, private S3 keys, target photos, maintenance records, readiness records, ammo lot numbers, purchase info, exact locations, owner private details, or image metadata.
-15. Demo behavior: sign out and confirm mock/demo data remains clearly labeled across Dashboard and all major sections.
+14. Moderation report review: sign in as an `admin` or `moderator`, confirm the Moderation nav shows only for that account, open `/moderation/reports`, and confirm submitted reports appear as metadata only with read-only status.
+15. Public/private boundary: confirm public pages and moderation review do not show private notes, private S3 keys, target photos, maintenance records, readiness records, ammo lot numbers, purchase info, exact locations, owner private details, or image metadata.
+16. Demo behavior: sign out and confirm mock/demo data remains clearly labeled across Dashboard and all major sections.
 
 ### Hosted Dev Smoke Test Checklist
 
@@ -360,7 +391,8 @@ Use this checklist against the Amplify Hosting dev URL after each hosted deploym
 8. Public publishing: open a saved passport Public Preview, publish or update a sanitized Public Passport snapshot, view it in Discover, and unpublish if needed.
 9. Discover: confirm filters work and public detail pages show sanitized fields only without exposing private notes, private S3 keys, private images, target photos, maintenance records, readiness records, ammo lot numbers, purchase details, exact locations, owner private details, or image metadata.
 10. Social actions: signed-in users can react, comment, and report; signed-out users can view public pages and see sign-in prompts for actions.
-11. Failure states: if public snapshots or reaction counts are unavailable, the page should remain usable with a quiet fallback message.
+11. Moderation report review: Cognito `admin` or `moderator` users can open `/moderation/reports`, see pending counts, and review submitted report metadata with read-only status; normal signed-in users see an access-denied message and signed-out users see a sign-in prompt.
+12. Failure states: if public snapshots or reaction counts are unavailable, the page should remain usable with a quiet fallback message.
 
 ### Before Deploying
 

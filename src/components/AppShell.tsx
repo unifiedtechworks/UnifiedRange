@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { AuthNav } from "@/components/AuthNav";
+import { ModerationNavLink } from "@/components/ModerationNavLink";
 import { ProfileCompletionGate } from "@/components/ProfileCompletionGate";
 
 const navigation = [
@@ -21,6 +22,7 @@ const navigation = [
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const moderationActive = pathname === "/moderation" || pathname.startsWith("/moderation/");
 
   return (
     <div className="min-h-screen bg-paper">
@@ -44,6 +46,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               </Link>
             );
           })}
+          <ModerationNavLink isActive={moderationActive} variant="desktop" />
         </nav>
         <AuthNav />
       </aside>
@@ -71,6 +74,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 </Link>
               );
             })}
+            <ModerationNavLink isActive={moderationActive} variant="mobile" />
           </nav>
         </header>
 

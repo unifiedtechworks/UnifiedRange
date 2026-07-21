@@ -31,7 +31,7 @@ export default function SettingsPage() {
             <li>Cognito auth, AppSync records, DynamoDB tables, and private S3 uploads are active for hosted dev testing.</li>
             <li>Signed-out users can browse clearly labeled demo data without seeing private account records.</li>
             <li>Public Passport publishing creates sanitized text/setup snapshots only.</li>
-            <li>Public image publishing, metadata-stripping workflows, and moderation dashboards are not part of this MVP slice.</li>
+            <li>Public image publishing and metadata-stripping workflows are not part of this MVP slice; moderation review is limited to report metadata for admin or moderator group users.</li>
           </ul>
         </article>
         <AuthStatusCard />

@@ -60,6 +60,8 @@ PublicPassportSnapshot should be generated from private records through a saniti
 
 Comments and reactions can be readable to signed-in users for community workflows, but create/update/delete access should remain scoped to the author. Reports should stay scoped to the reporter until an admin/moderation workflow exists.
 
+The hosted-dev moderation queue uses Cognito groups named `admin` and `moderator` for report metadata reads. Report status remains read-only in the frontend until a dedicated admin-only mutation path is added. Missing or `open` report status values are treated as pending for badge/count purposes.
+
 ## DynamoDB Access Patterns
 
 - List user Equipment Passports by owner.

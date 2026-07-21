@@ -283,7 +283,7 @@ const schema = a.schema({
       reporterId: a
         .string()
         .required()
-        .authorization((allow) => [allow.ownerDefinedIn("reporterId").to(["create", "read", "delete"])]),
+        .authorization((allow) => [allow.ownerDefinedIn("reporterId").to(["create", "read", "delete"]), allow.groups(["admin", "moderator"]).to(["read"])]),
       targetType: a.enum(["passport", "session", "public_passport", "comment"]),
       targetId: a.id().required(),
       reason: a.string().required(),
@@ -292,7 +292,7 @@ const schema = a.schema({
       createdAt: a.datetime(),
       updatedAt: a.datetime()
     })
-    .authorization((allow) => [allow.ownerDefinedIn("reporterId")])
+    .authorization((allow) => [allow.ownerDefinedIn("reporterId").to(["create", "read", "delete"]), allow.groups(["admin", "moderator"]).to(["read"])])
 });
 
 export type Schema = ClientSchema<typeof schema>;
