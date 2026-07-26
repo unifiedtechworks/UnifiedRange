@@ -157,6 +157,8 @@ Username uniqueness is enforced through `UsernameReservation` records keyed by n
 
 If an existing profile reports a username ownership mismatch, the private profile remains available while public-profile synchronization pauses. Follow `docs/USERNAME_RESERVATION_REPAIR.md`; never overwrite or delete another account's reservation automatically.
 
+For a confirmed legacy/test conflict, `/profile` offers **Choose a different username** and routes the affected owner to `/profile/username-repair`. The existing reservation owner keeps the original username; normal accounts cannot use this route to change an otherwise valid immutable username.
+
 ### Manual Username Reservation Test
 
 Restart or redeploy the Amplify backend after pulling this change so AppSync includes the new `UsernameReservation` model.

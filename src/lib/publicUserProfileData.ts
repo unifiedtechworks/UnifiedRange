@@ -55,3 +55,26 @@ export async function syncPublicUserProfileSnapshot(
     throw new Error(result.errors.map((item) => item.message).join(" "));
   }
 }
+
+export async function removeOwnedStalePublicUserProfileSnapshot(
+  client: AmplifyDataClient,
+  usernameValue: string,
+  allowedOwnerIds: string[]
+) {
+  const username = normalizeUsername(usernameValue);
+  if (!username) return;
+
+  const existing = await client.models.PublicUserProfileSnapshot.get({ id: username });
+  if (existing.errors?.length) {
+    throw new Error(existing.errors.map((item) => item.message).join(" "));
+  }
+
+  if (!existing.data || !allowedOwnerIds.includes(existing.data.ownerId)) {
+    return;
+  }
+
+  const result = await client.models.PublicUserProfileSnapshot.delete({ id: existing.data.id });
+  if (result.errors?.length) {
+    throw new Error(result.errors.map((item) => item.message).join(" "));
+  }
+}

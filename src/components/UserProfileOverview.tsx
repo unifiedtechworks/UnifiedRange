@@ -271,6 +271,9 @@ export function UserProfileOverview() {
             <div><dt className="font-semibold">Record check</dt><dd>Reservation: {reservationDiagnostics.reservationExists ? "found" : "missing"}; profile: {reservationDiagnostics.profileExists ? "found" : "missing"}</dd></div>
           </dl>
           <p className="mt-3 text-xs leading-5 text-ink/55">Give these shortened identifiers to an administrator and follow the username reservation repair runbook.</p>
+          <Link href="/profile/username-repair" className="mt-4 inline-flex rounded-md bg-ink px-4 py-2 text-sm font-semibold text-white">
+            Choose a different username
+          </Link>
         </section>
       ) : null}
 
