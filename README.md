@@ -96,6 +96,16 @@ Current backend draft:
 - Owner-scoped private records for passports, projectiles/ammo, optics/sights, sessions, maintenance, and hunting checklists
 - Private S3 storage paths for signed-in user equipment/setup images and target photos
 
+### Account Data Lifecycle Status
+
+Account data export and destructive account deletion are not implemented. A non-destructive placeholder is available at `/settings/account` with disabled **Coming soon** controls. The proposed server-side lifecycle, private S3 cleanup, public/social data treatment, moderation retention, and username handling are documented in:
+
+- `docs/ACCOUNT_DATA_LIFECYCLE_PLAN.md`
+- `docs/ACCOUNT_DELETION_PLAN.md`
+- `docs/DATA_EXPORT_PLAN.md`
+
+Do not treat the placeholder as an active privacy control. No record, image, Cognito account, public snapshot, social action, report, or username reservation is exported or deleted from that page.
+
 The frontend now uses AppSync-backed saved account data for the main private record slices while keeping clearly labeled demo data available for signed-out browsing. Do not gate the full app behind Cognito unless that product decision is made deliberately.
 
 Useful local commands:
