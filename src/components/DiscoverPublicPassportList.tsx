@@ -7,6 +7,7 @@ import { PublicPassportCard } from "@/components/PublicPassportCard";
 import { sanitizedPublicPassports } from "@/data/publicDiscovery";
 import { configureAmplifyClient } from "@/lib/amplifyClient";
 import { recordToSanitizedPublicPassport, type PublicPassportSnapshotRecord } from "@/lib/publicPassportSnapshotData";
+import { publicIdentityByOwner, type PublicUserProfileRecord } from "@/lib/publicUserProfileData";
 import type { EquipmentType, SanitizedPublicPassport } from "@/types";
 
 type DiscoverState = "loading" | "ready";
@@ -99,6 +100,7 @@ export function DiscoverPublicPassportList() {
   }, []);
   const [state, setState] = useState<DiscoverState>("loading");
   const [records, setRecords] = useState<PublicPassportSnapshotRecord[]>([]);
+  const [publicProfiles, setPublicProfiles] = useState<PublicUserProfileRecord[]>([]);
   const [error, setError] = useState("");
   const [filters, setFilters] = useState<DiscoverFilters>(emptyFilters);
 
@@ -107,17 +109,22 @@ export function DiscoverPublicPassportList() {
     setState("loading");
 
     try {
-      const result = await client.models.PublicPassportSnapshot.list({ authMode: "apiKey" });
+      const [result, profileResult] = await Promise.all([
+        client.models.PublicPassportSnapshot.list({ authMode: "apiKey" }),
+        client.models.PublicUserProfileSnapshot.list({ authMode: "apiKey" })
+      ]);
 
-      if (result.errors?.length) {
-        throw new Error(result.errors.map((item) => item.message).join(" "));
+      if (result.errors?.length || profileResult.errors?.length) {
+        throw new Error([...(result.errors ?? []), ...(profileResult.errors ?? [])].map((item) => item.message).join(" "));
       }
 
       setRecords(result.data);
+      setPublicProfiles(profileResult.data);
     } catch (loadError) {
       console.warn("Unable to load public snapshots", loadError);
       setError("Public setup snapshots are unavailable right now. Demo discovery data remains available.");
       setRecords([]);
+      setPublicProfiles([]);
     } finally {
       setState("ready");
     }
@@ -133,7 +140,8 @@ export function DiscoverPublicPassportList() {
     };
   }, [loadPublicSnapshots]);
 
-  const publicSnapshots = records.map(recordToSanitizedPublicPassport);
+  const identities = publicIdentityByOwner(publicProfiles);
+  const publicSnapshots = records.map((record) => recordToSanitizedPublicPassport(record, identities[record.ownerId]));
   const showDemo = state === "ready" && publicSnapshots.length === 0;
   const visibleSnapshots = showDemo ? sanitizedPublicPassports : publicSnapshots;
   const filteredSnapshots = filterSnapshots(visibleSnapshots, filters);

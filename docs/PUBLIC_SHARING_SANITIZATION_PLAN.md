@@ -36,6 +36,10 @@ Public sharing should help users discover real-world setups while protecting pri
 2. Show hidden-field and public-field lists.
 3. Require user confirmation.
 4. Save sanitized text/setup fields to `PublicPassportSnapshot`.
+
+Public user pages use a separate `PublicUserProfileSnapshot`, keyed by normalized immutable username. It contains only username, public display name, public bio, and account visibility. It must not broaden `UserProfile` reads or copy email, first/last name, city/state, private settings, private activity, or image data. When an account is private, display name and bio are cleared from the public snapshot rather than merely hidden in the UI.
+
+Public setup cards, details, and comments may resolve their owner/author through this sanitized snapshot. If resolution fails or the account is private, show `UnifiedRange user`; never render raw Cognito IDs as public identity.
 5. Keep private source records owner-scoped.
 6. Later, run Lambda sanitization workflow for images before any public image is created.
 7. Later, strip image metadata, including EXIF GPS/device metadata, before public image release.

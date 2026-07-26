@@ -109,7 +109,7 @@ export function buildPublicPassportSnapshotInput(passport: EquipmentPassport, ow
   return omitUndefined(input);
 }
 
-export function recordToSanitizedPublicPassport(record: PublicPassportSnapshotRecord): SanitizedPublicPassport {
+export function recordToSanitizedPublicPassport(record: PublicPassportSnapshotRecord, owner?: { username: string; displayName?: string }): SanitizedPublicPassport {
   return {
     id: record.id,
     equipmentPassportId: record.equipmentPassportId,
@@ -124,6 +124,8 @@ export function recordToSanitizedPublicPassport(record: PublicPassportSnapshotRe
     useCaseTags: filterStrings(record.useCaseTags),
     publicNotes: record.publicNotes ?? undefined,
     coverPhotoUrl: record.coverPhotoUrl ?? undefined,
+    publicOwnerUsername: owner?.username,
+    publicOwnerDisplayName: owner?.displayName,
     publicRangeSessions: normalizePublicRangeSessions(record.publicRangeSessions),
     publicPhotoPlaceholders: normalizePublicPhotoPlaceholders(record.publicPhotoPlaceholders),
     hiddenFields: hiddenPublicPassportFields,

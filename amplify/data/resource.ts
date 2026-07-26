@@ -43,6 +43,24 @@ const schema = a.schema({
     })
     .authorization((allow) => [allow.ownerDefinedIn("ownerId")]),
 
+  // Public identity is copied into this deliberately narrow snapshot. Never
+  // broaden UserProfile reads or add legal names, location, email, or private
+  // account preferences here.
+  PublicUserProfileSnapshot: a
+    .model({
+      ownerId: a
+        .string()
+        .required()
+        .authorization((allow) => [allow.ownerDefinedIn("ownerId").to(["create", "read", "delete"]), allow.publicApiKey().to(["read"])]),
+      username: a.string().required(),
+      displayName: a.string(),
+      bio: a.string(),
+      accountVisibility: a.enum(["private", "public"]),
+      createdAt: a.datetime(),
+      updatedAt: a.datetime()
+    })
+    .authorization((allow) => [allow.ownerDefinedIn("ownerId"), allow.publicApiKey().to(["read"])]),
+
   EquipmentPassport: a
     .model({
       ownerId: a

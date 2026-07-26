@@ -16,7 +16,14 @@ import {
   privacyDefaultLabel,
   type UserProfileRecord
 } from "@/lib/userProfileData";
-import { ensureUsernameReservation } from "@/lib/usernameReservationData";
+import {
+  ensureUsernameReservation,
+  ownerIdentityFromAuth,
+  shortOwnerIdentifier,
+  UsernameReservationConflictError,
+  type UsernameReservationDiagnostics
+} from "@/lib/usernameReservationData";
+import { syncPublicUserProfileSnapshot } from "@/lib/publicUserProfileData";
 import type { EquipmentPassport, HuntingChecklist, MaintenanceLogEntry, RangeSession } from "@/types";
 
 type ProfileState = "loading" | "signed-out" | "setup" | "ready" | "error";
@@ -55,12 +62,14 @@ export function UserProfileOverview() {
   const [profile, setProfile] = useState<UserProfileRecord | null>(null);
   const [activity, setActivity] = useState<ProfileActivity>(emptyActivity);
   const [error, setError] = useState("");
+  const [reservationDiagnostics, setReservationDiagnostics] = useState<UsernameReservationDiagnostics | null>(null);
   const requestIdRef = useRef(0);
 
   const loadProfile = useCallback(async () => {
     const requestId = requestIdRef.current + 1;
     requestIdRef.current = requestId;
     setError("");
+    setReservationDiagnostics(null);
 
     if (authState.status === "loading") {
       setState("loading");
@@ -96,9 +105,14 @@ export function UserProfileOverview() {
 
       if (currentProfile.username) {
         try {
-          await ensureUsernameReservation(client, currentProfile.username, authState.username);
-        } catch {
-          throw new Error("This profile username conflicts with an existing reservation. Please contact support for manual resolution.");
+          await ensureUsernameReservation(client, currentProfile.username, ownerIdentityFromAuth(authState), true);
+          await syncPublicUserProfileSnapshot(client, currentProfile, currentProfile.ownerId, true);
+        } catch (reservationError) {
+          if (reservationError instanceof UsernameReservationConflictError) {
+            setReservationDiagnostics(reservationError.diagnostics);
+          } else {
+            console.warn("Username reservation validation unavailable; public profile sync skipped", reservationError);
+          }
         }
       }
 
@@ -235,9 +249,30 @@ export function UserProfileOverview() {
             <Link href="/settings/privacy" className="inline-flex justify-center rounded-md border border-ink/15 bg-white px-4 py-2 text-sm font-semibold text-ink">
               Privacy settings
             </Link>
+            {profile.username ? (
+              <Link href={`/u/${encodeURIComponent(profile.username)}`} className="inline-flex justify-center rounded-md border border-ink/15 bg-white px-4 py-2 text-sm font-semibold text-ink">
+                View public profile
+              </Link>
+            ) : null}
           </div>
         }
       />
+
+      {reservationDiagnostics ? (
+        <section className="mb-6 rounded-md border border-clay/30 bg-clay/10 p-4">
+          <h2 className="text-base font-bold text-ink">Username ownership needs manual review</h2>
+          <p className="mt-2 text-sm leading-6 text-ink/70">
+            Your private profile is still available, but public profile synchronization is paused because this username is reserved by another owner identifier. No reservation was changed.
+          </p>
+          <dl className="mt-3 grid gap-2 text-xs text-ink/60 sm:grid-cols-2">
+            <div><dt className="font-semibold">Normalized username</dt><dd>@{reservationDiagnostics.normalizedUsername}</dd></div>
+            <div><dt className="font-semibold">Current auth ID</dt><dd className="font-mono">{shortOwnerIdentifier(reservationDiagnostics.currentOwnerKey)}</dd></div>
+            <div><dt className="font-semibold">Reservation owner</dt><dd className="font-mono">{shortOwnerIdentifier(reservationDiagnostics.reservationOwnerId)}</dd></div>
+            <div><dt className="font-semibold">Record check</dt><dd>Reservation: {reservationDiagnostics.reservationExists ? "found" : "missing"}; profile: {reservationDiagnostics.profileExists ? "found" : "missing"}</dd></div>
+          </dl>
+          <p className="mt-3 text-xs leading-5 text-ink/55">Give these shortened identifiers to an administrator and follow the username reservation repair runbook.</p>
+        </section>
+      ) : null}
 
       <div className="grid gap-6 lg:grid-cols-[0.85fr_1.15fr]">
         <article className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
@@ -252,7 +287,7 @@ export function UserProfileOverview() {
             <DetailRow label="Privacy default" value={privacyDefaultLabel(profile.privacyDefault)} />
           </dl>
           <p className="mt-4 rounded-md border border-moss/20 bg-field px-4 py-3 text-sm leading-6 text-ink/70">
-            Private records stay owner-scoped. Public sharing creates a separate sanitized snapshot.
+            <code>/profile</code> is your signed-in profile and private activity hub. <code>/u/{profile.username || "username"}</code> is the sanitized public view. Private records stay owner-scoped.
           </p>
         </article>
 

@@ -234,6 +234,8 @@ export interface SanitizedPublicPassport {
   useCaseTags: string[];
   publicNotes?: string;
   coverPhotoUrl?: string;
+  publicOwnerUsername?: string;
+  publicOwnerDisplayName?: string;
   publicRangeSessions: PublicRangeSessionSummary[];
   publicPhotoPlaceholders: PublicTargetPhotoPlaceholder[];
   hiddenFields: string[];

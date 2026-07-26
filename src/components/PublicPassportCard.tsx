@@ -13,6 +13,15 @@ export function PublicPassportCard({ snapshot, sourceLabel }: { snapshot: Saniti
       <p className="mt-2 text-sm text-ink/65">
         {snapshot.manufacturer} {snapshot.model} - {snapshot.caliber ?? snapshot.category}
       </p>
+      <p className="mt-2 text-sm text-ink/60">
+        {snapshot.publicOwnerUsername ? (
+          <Link href={`/u/${encodeURIComponent(snapshot.publicOwnerUsername)}`} className="font-semibold text-moss">
+            {snapshot.publicOwnerDisplayName ? `${snapshot.publicOwnerDisplayName} (@${snapshot.publicOwnerUsername})` : `@${snapshot.publicOwnerUsername}`}
+          </Link>
+        ) : (
+          "UnifiedRange user"
+        )}
+      </p>
       <p className="mt-3 text-sm leading-6 text-ink/70">{snapshot.publicNotes ?? "No public notes shared."}</p>
       <div className="mt-4 flex flex-wrap gap-2">
         {snapshot.useCaseTags.map((tag) => (

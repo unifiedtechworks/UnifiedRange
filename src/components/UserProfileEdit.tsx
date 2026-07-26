@@ -20,7 +20,13 @@ import {
   type UserProfileFormValues,
   type UserProfileRecord
 } from "@/lib/userProfileData";
-import { checkUsernameAvailability, ensureUsernameReservation } from "@/lib/usernameReservationData";
+import {
+  checkUsernameAvailability,
+  ensureUsernameReservation,
+  ownerIdentityFromAuth,
+  UsernameReservationConflictError
+} from "@/lib/usernameReservationData";
+import { syncPublicUserProfileSnapshot } from "@/lib/publicUserProfileData";
 
 type ProfileEditState = "loading" | "signed-out" | "create" | "complete" | "edit" | "error";
 
@@ -68,9 +74,17 @@ export function UserProfileEdit({ setupOnly = false }: { setupOnly?: boolean }) 
 
       if (currentProfile?.username && isProfileComplete(currentProfile)) {
         try {
-          await ensureUsernameReservation(client, currentProfile.username, authState.username);
-        } catch {
-          throw new Error("This profile username conflicts with an existing reservation. Please contact support for manual resolution.");
+          await ensureUsernameReservation(client, currentProfile.username, ownerIdentityFromAuth(authState), true);
+        } catch (reservationError) {
+          if (reservationError instanceof UsernameReservationConflictError) {
+            console.warn("Username ownership needs manual review; profile editor remains available", {
+              normalizedUsername: reservationError.diagnostics.normalizedUsername,
+              reservationExists: reservationError.diagnostics.reservationExists,
+              profileExists: reservationError.diagnostics.profileExists
+            });
+          } else {
+            console.warn("Username reservation validation unavailable", reservationError);
+          }
         }
       }
 
@@ -116,7 +130,7 @@ export function UserProfileEdit({ setupOnly = false }: { setupOnly?: boolean }) 
       throw new Error("Sign in before creating a profile.");
     }
 
-    await ensureUsernameReservation(client, values.username, authState.username);
+    await ensureUsernameReservation(client, values.username, ownerIdentityFromAuth(authState), false);
 
     const result = await client.models.UserProfile.create(toCreateUserProfileInput(values, authState.username));
 
@@ -124,6 +138,10 @@ export function UserProfileEdit({ setupOnly = false }: { setupOnly?: boolean }) 
       throw new Error(
         `Username was reserved, but profile setup could not finish. Return to setup and use the same username to recover. ${result.errors.map((item) => item.message).join(" ")}`
       );
+    }
+
+    if (result.data) {
+      await syncPublicUserProfileSnapshot(client, result.data, result.data.ownerId, true);
     }
 
     router.push("/profile");
@@ -143,7 +161,7 @@ export function UserProfileEdit({ setupOnly = false }: { setupOnly?: boolean }) 
       throw new Error(nameLimitMessage);
     }
 
-    await ensureUsernameReservation(client, values.username, authState.username);
+    await ensureUsernameReservation(client, values.username, ownerIdentityFromAuth(authState), true);
 
     const result = await client.models.UserProfile.update(toCompleteUserProfileInput(profile.id, values, profile));
 
@@ -151,10 +169,18 @@ export function UserProfileEdit({ setupOnly = false }: { setupOnly?: boolean }) 
       throw new Error(result.errors.map((item) => item.message).join(" "));
     }
 
+    if (result.data) {
+      await syncPublicUserProfileSnapshot(client, result.data, result.data.ownerId, true);
+    }
+
     router.push("/profile");
   }
 
   async function handleUpdate(values: UserProfileFormValues) {
+    if (authState.status !== "signed-in") {
+      throw new Error("Sign in before updating a profile.");
+    }
+
     if (!profile?.id) {
       throw new Error("Profile record could not be found.");
     }
@@ -170,6 +196,17 @@ export function UserProfileEdit({ setupOnly = false }: { setupOnly?: boolean }) 
       throw new Error(result.errors.map((item) => item.message).join(" "));
     }
 
+    if (result.data?.username) {
+      try {
+        await ensureUsernameReservation(client, result.data.username, ownerIdentityFromAuth(authState), true);
+        await syncPublicUserProfileSnapshot(client, result.data, result.data.ownerId, true);
+      } catch (reservationError) {
+        if (!(reservationError instanceof UsernameReservationConflictError)) throw reservationError;
+        // Private profile edits may continue, but a conflicted username must
+        // never create or update a public identity snapshot.
+      }
+    }
+
     router.push("/profile");
   }
 
@@ -178,7 +215,7 @@ export function UserProfileEdit({ setupOnly = false }: { setupOnly?: boolean }) 
       throw new Error("Sign in before checking username availability.");
     }
 
-    return checkUsernameAvailability(client, username, authState.username);
+    return checkUsernameAvailability(client, username, ownerIdentityFromAuth(authState), Boolean(profile));
   }
 
   if (state === "loading") {

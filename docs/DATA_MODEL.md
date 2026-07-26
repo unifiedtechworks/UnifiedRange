@@ -36,6 +36,19 @@ Stores a public-safe username claim without exposing private profile fields.
 - ownerId
 - createdAt
 
+## PublicUserProfileSnapshot
+
+A deliberately limited public identity record. It is synchronized from the owner-scoped profile and must never include email, legal names, location, private preferences, private activity, or private image data. Private accounts store blank display name and bio values.
+
+- id: normalized immutable username
+- ownerId: authorization and published-snapshot join key; never render as public identity
+- username
+- displayName: only populated when account visibility is public
+- bio: only populated when account visibility is public
+- accountVisibility: private | public
+- createdAt
+- updatedAt
+
 ## EquipmentPassport
 
 Use a broad model so UnifiedRange can support rifles first, then pistols and archery later.

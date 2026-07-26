@@ -20,6 +20,7 @@ The lifecycle must preserve the product's private-by-default boundary. A browser
 | `HuntingChecklist` | Export; delete as private owner data. |
 | Private S3 images | Include inventory references in JSON; future ZIP may include image bytes. Delete objects through the backend cleanup job. |
 | `PublicPassportSnapshot` | Export when owned by the user; unpublish and delete by default during deletion. |
+| `PublicUserProfileSnapshot` | Export as public identity metadata; delete or tombstone with the approved username policy. |
 | `Comment` | Export comments authored by the user; anonymize or delete under the selected deletion policy. |
 | `Reaction` | Export reactions created by the user when useful; delete during account deletion. |
 | `Report` | Export the user's submitted reports subject to safety review; preserve moderation facts while anonymizing reporter identity after deletion. |

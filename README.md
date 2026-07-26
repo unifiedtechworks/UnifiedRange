@@ -91,6 +91,7 @@ Current backend draft:
 - UsernameReservation records for global username uniqueness without exposing private profiles
 - UserProfile-backed account/privacy settings for public-sharing defaults
 - Publicly readable sanitized Public Passport snapshots
+- Public user profiles at `/u/[username]` backed by a deliberately limited public identity snapshot
 - Publicly readable reaction counts, with signed-in-only reaction actions
 - Signed-in-only comments and reports
 - Owner-scoped private records for passports, projectiles/ammo, optics/sights, sessions, maintenance, and hunting checklists
@@ -153,6 +154,8 @@ With the Amplify sandbox and dev server running:
 8. Sign out and confirm public/demo screens remain available.
 
 Username uniqueness is enforced through `UsernameReservation` records keyed by normalized username. The reservation stores no private profile details. If a reservation succeeds but profile creation fails, return to setup with the same username to recover.
+
+If an existing profile reports a username ownership mismatch, the private profile remains available while public-profile synchronization pauses. Follow `docs/USERNAME_RESERVATION_REPAIR.md`; never overwrite or delete another account's reservation automatically.
 
 ### Manual Username Reservation Test
 
@@ -304,6 +307,18 @@ With the Amplify sandbox and dev server running:
 9. If testing unpublish, return to the signed-in preview page, unpublish, and confirm the snapshot disappears from Discover.
 
 This public publishing slice publishes sanitized text/setup data only. Private S3 images are not exposed publicly.
+
+### Manual Public User Profile Test
+
+Redeploy the Amplify backend after pulling this change so AppSync includes `PublicUserProfileSnapshot`.
+
+1. Sign in, complete profile setup, and set **Account visibility** to **Public** in `/settings/privacy`.
+2. Publish a Public Passport snapshot.
+3. Open `/u/[username]` and confirm the immutable `@username`, public display name/bio, public setup count, and published setup appear.
+4. Follow the owner link from Discover and the public passport detail page.
+5. Sign out and confirm `/u/[username]` still loads.
+6. Confirm the page does not show email, first/last name, city/state, private notes, private records, private images or S3 keys, maintenance/readiness data, target photos, lot numbers, purchase details, exact locations, or raw Cognito identity.
+7. Set account visibility to **Private**, reload the public route, and confirm it shows only the username and private-account state with no bio, display name, or setup activity.
 
 ### Manual Discover Filter Test
 

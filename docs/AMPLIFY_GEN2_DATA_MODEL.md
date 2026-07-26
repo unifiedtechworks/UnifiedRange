@@ -20,6 +20,7 @@ Amplify owner-based authorization allows an owner to reassign an owner field unl
 Protected owner-like fields:
 
 - `UserProfile.ownerId`
+- `PublicUserProfileSnapshot.ownerId`
 - `EquipmentPassport.ownerId`
 - `ProjectileProfile.ownerId`
 - `OpticSightProfile.ownerId`
@@ -36,6 +37,8 @@ Protected owner-like fields:
 
 `UsernameReservation` stores normalized username claims separately from private `UserProfile` records. The reservation record uses the normalized username as its record id for an MVP uniqueness guard, stores no profile details, and is created before profile setup writes the username. Existing profiles can create a matching reservation when loaded; conflicts require manual/admin resolution.
 
+New owner-scoped records use Amplify Auth's current Cognito username as the canonical owner key. Username reservation validation also recognizes the same session's Cognito `userId`, `sub`, and `cognito:username` as legacy aliases. A true mismatch never overwrites the reservation and blocks public identity synchronization without blocking the owner's private profile. See `USERNAME_RESERVATION_REPAIR.md`.
+
 The moderation queue may use `UsernameReservation` to translate a report's Cognito-backed `reporterId` into a public-safe `@username`. It must not broaden `UserProfile` read authorization to do so. See `USERNAME_SIGN_IN_PLAN.md` for the separate future username authentication design.
 
 `UserProfile.nameLastChangedAt` supports a lightweight client-side monthly limit for first and last name edits. This is a UX guard only; use a server-side workflow if stronger enforcement becomes necessary.
@@ -44,6 +47,7 @@ User privacy and account defaults are stored on `UserProfile` so they remain own
 
 Public read exceptions remain intentionally narrow:
 
+- `PublicUserProfileSnapshot` provides immutable username, public display name, public bio, and visibility without exposing the owner-scoped `UserProfile`.
 - `PublicPassportSnapshot` can be read with API key for sanitized discovery.
 - `Reaction` can be read with API key so public pages can show public-safe reaction counts.
 
@@ -52,6 +56,7 @@ Private records remain owner-scoped and should not expose private notes, private
 ## Public Discovery Models
 
 - PublicPassportSnapshot
+- PublicUserProfileSnapshot
 - PublicRangeSessionSummary
 - PublicTargetPhotoPlaceholder
 - Comment

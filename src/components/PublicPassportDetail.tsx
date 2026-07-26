@@ -13,6 +13,7 @@ import { Tag } from "@/components/Tag";
 import { getSanitizedPublicPassportById } from "@/data/publicDiscovery";
 import { configureAmplifyClient } from "@/lib/amplifyClient";
 import { recordToSanitizedPublicPassport, type PublicPassportSnapshotRecord } from "@/lib/publicPassportSnapshotData";
+import { publicIdentityByOwner, type PublicUserIdentity } from "@/lib/publicUserProfileData";
 import type { SanitizedPublicPassport } from "@/types";
 
 type DetailState = "loading" | "saved" | "demo" | "missing";
@@ -24,6 +25,7 @@ export function PublicPassportDetail({ publicPassportId }: { publicPassportId?: 
   }, []);
   const [state, setState] = useState<DetailState>("loading");
   const [record, setRecord] = useState<PublicPassportSnapshotRecord | null>(null);
+  const [owner, setOwner] = useState<PublicUserIdentity | undefined>();
   const [error, setError] = useState("");
 
   const loadPublicPassport = useCallback(async () => {
@@ -31,6 +33,7 @@ export function PublicPassportDetail({ publicPassportId }: { publicPassportId?: 
 
     if (!publicPassportId) {
       setRecord(null);
+      setOwner(undefined);
       setError("Missing record ID.");
       setState("missing");
       return;
@@ -40,6 +43,7 @@ export function PublicPassportDetail({ publicPassportId }: { publicPassportId?: 
 
     if (demoPassport) {
       setRecord(null);
+      setOwner(undefined);
       setState("demo");
       return;
     }
@@ -53,6 +57,13 @@ export function PublicPassportDetail({ publicPassportId }: { publicPassportId?: 
 
       if (result.data) {
         setRecord(result.data);
+        const profileResult = await client.models.PublicUserProfileSnapshot.list({
+          filter: { ownerId: { eq: result.data.ownerId } },
+          authMode: "apiKey"
+        });
+        if (!profileResult.errors?.length) {
+          setOwner(publicIdentityByOwner(profileResult.data)[result.data.ownerId]);
+        }
         setState("saved");
         return;
       }
@@ -62,6 +73,7 @@ export function PublicPassportDetail({ publicPassportId }: { publicPassportId?: 
     }
 
     setRecord(null);
+    setOwner(undefined);
     setState("missing");
   }, [client, publicPassportId]);
 
@@ -91,7 +103,7 @@ export function PublicPassportDetail({ publicPassportId }: { publicPassportId?: 
     );
   }
 
-  const passport = state === "saved" && record ? recordToSanitizedPublicPassport(record) : getSanitizedPublicPassportById(publicPassportId);
+  const passport = state === "saved" && record ? recordToSanitizedPublicPassport(record, owner) : getSanitizedPublicPassportById(publicPassportId);
 
   if (!passport) {
     return null;
@@ -120,6 +132,17 @@ function PublicPassportDetailContent({ passport, source }: { passport: Sanitized
         <p className="text-sm leading-6 text-ink/70">
           {source}. This page shows only sanitized setup overview fields. Private notes, private images, owner details, purchase records, exact locations, and image metadata are excluded.
         </p>
+      </div>
+
+      <div className="mb-6 rounded-md border border-ink/10 bg-white p-4 shadow-soft">
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-ink/45">Published by</p>
+        {passport.publicOwnerUsername ? (
+          <Link href={`/u/${encodeURIComponent(passport.publicOwnerUsername)}`} className="mt-2 inline-flex font-semibold text-moss">
+            {passport.publicOwnerDisplayName ? `${passport.publicOwnerDisplayName} (@${passport.publicOwnerUsername})` : `@${passport.publicOwnerUsername}`}
+          </Link>
+        ) : (
+          <p className="mt-2 text-sm font-semibold text-ink/65">UnifiedRange user</p>
+        )}
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">

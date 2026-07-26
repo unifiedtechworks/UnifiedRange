@@ -14,6 +14,8 @@ import {
   type VisibilityPreference
 } from "@/lib/privacySettingsData";
 import { isProfileComplete, type UserProfileRecord } from "@/lib/userProfileData";
+import { syncPublicUserProfileSnapshot } from "@/lib/publicUserProfileData";
+import { ensureUsernameReservation, ownerIdentityFromAuth, UsernameReservationConflictError } from "@/lib/usernameReservationData";
 
 type PrivacySettingsState = "loading" | "signed-out" | "setup-required" | "ready" | "error";
 
@@ -104,6 +106,11 @@ export function PrivacySettingsPanel() {
   }
 
   async function saveSettings() {
+    if (authState.status !== "signed-in") {
+      setError("Sign in again before saving privacy settings.");
+      return;
+    }
+
     if (!profile?.id) {
       setError("Complete profile setup before saving account privacy settings.");
       return;
@@ -120,9 +127,21 @@ export function PrivacySettingsPanel() {
         throw new Error(result.errors.map((item) => item.message).join(" "));
       }
 
+      if (result.data) {
+        try {
+          if (result.data.username) {
+            await ensureUsernameReservation(client, result.data.username, ownerIdentityFromAuth(authState), true);
+            await syncPublicUserProfileSnapshot(client, result.data, result.data.ownerId, true);
+          }
+        } catch (reservationError) {
+          if (!(reservationError instanceof UsernameReservationConflictError)) throw reservationError;
+          setMessage("Privacy settings saved. Public profile sync is paused pending username ownership review.");
+        }
+      }
+
       setProfile(result.data ?? profile);
       setSettings(toPrivacySettingsValues(result.data ?? profile));
-      setMessage("Privacy settings saved to your account.");
+      setMessage((current) => current || "Privacy settings saved to your account.");
     } catch (saveError) {
       setError(isAuthTokenClearedError(saveError) ? "Sign in again before saving privacy settings." : getAuthErrorMessage(saveError));
     } finally {

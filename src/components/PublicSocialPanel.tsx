@@ -7,6 +7,7 @@ import type { Schema } from "../../amplify/data/resource";
 import { useAuthUser } from "@/hooks/useAuthUser";
 import { configureAmplifyClient, getAuthErrorMessage } from "@/lib/amplifyClient";
 import { formatCommentDate, reactionCounts, reportReasons, type CommentRecord, type ReactionRecord } from "@/lib/publicSocialData";
+import { publicIdentityByOwner, type PublicUserIdentity } from "@/lib/publicUserProfileData";
 import type { ReactionType } from "@/types";
 
 type LoadState = "loading" | "ready";
@@ -167,6 +168,7 @@ function PublicComments({ publicPassportId, publicPassportTitle }: { publicPassp
   }, []);
   const { authState } = useAuthUser();
   const [comments, setComments] = useState<CommentRecord[]>([]);
+  const [commentAuthors, setCommentAuthors] = useState<Record<string, PublicUserIdentity>>({});
   const [body, setBody] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -183,6 +185,7 @@ function PublicComments({ publicPassportId, publicPassportTitle }: { publicPassp
 
     if (authState.status !== "signed-in") {
       setComments([]);
+      setCommentAuthors({});
       setIsLoading(false);
       return;
     }
@@ -200,10 +203,16 @@ function PublicComments({ publicPassportId, publicPassportTitle }: { publicPassp
       }
 
       setComments([...result.data].sort((a, b) => new Date(b.createdAt ?? "").getTime() - new Date(a.createdAt ?? "").getTime()));
+      const authorIds = [...new Set(result.data.map((comment) => comment.authorId))];
+      const profileResults = await Promise.all(
+        authorIds.map((ownerId) => client.models.PublicUserProfileSnapshot.list({ filter: { ownerId: { eq: ownerId } }, authMode: "apiKey" }))
+      );
+      setCommentAuthors(publicIdentityByOwner(profileResults.flatMap((profileResult) => (profileResult.errors?.length ? [] : profileResult.data))));
     } catch (loadError) {
       console.error("Unable to load comments", loadError);
       setError("Comments could not be loaded.");
       setComments([]);
+      setCommentAuthors({});
     } finally {
       setIsLoading(false);
     }
@@ -297,7 +306,13 @@ function PublicComments({ publicPassportId, publicPassportTitle }: { publicPassp
           {comments.map((comment) => (
             <article key={comment.id} className="rounded-md border border-ink/10 bg-paper p-4">
               <div className="flex flex-col justify-between gap-2 sm:flex-row">
-                <p className="text-sm font-semibold text-ink">{comment.authorId}</p>
+                {commentAuthors[comment.authorId] ? (
+                  <Link href={`/u/${encodeURIComponent(commentAuthors[comment.authorId].username)}`} className="text-sm font-semibold text-moss">
+                    @{commentAuthors[comment.authorId].username}
+                  </Link>
+                ) : (
+                  <p className="text-sm font-semibold text-ink/65">UnifiedRange user</p>
+                )}
                 <p className="text-xs text-ink/55">{formatCommentDate(comment.createdAt)}</p>
               </div>
               <p className="mt-2 text-sm leading-6 text-ink/75">{comment.body}</p>
