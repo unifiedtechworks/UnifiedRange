@@ -61,7 +61,6 @@ export function AuthNav({ compact = false }: { compact?: boolean }) {
       {authState.status === "signed-in" ? (
         <>
           <p className="mt-2 truncate text-sm font-semibold text-ink">{authState.label}</p>
-          <p className="mt-1 truncate text-xs text-ink/55">{authState.username}</p>
           <div className="mt-3 grid grid-cols-2 gap-2">
             <Link href="/profile" className="inline-flex justify-center rounded-md border border-ink/15 bg-white px-3 py-2 text-sm font-semibold text-ink">
               Profile
@@ -82,9 +81,9 @@ export function AuthNav({ compact = false }: { compact?: boolean }) {
       ) : null}
       {authState.status === "signed-out" ? (
         <>
-          <p className="mt-2 text-sm leading-5 text-ink/70">Sign in to save your own records. Demo screens stay available.</p>
+          <p className="mt-2 text-sm leading-5 text-ink/70">Sign in to save private records. Public and clearly labeled sample pages remain available.</p>
           <Link href="/auth/sign-in" className="mt-3 inline-flex w-full justify-center rounded-md bg-ink px-3 py-2 text-sm font-semibold text-white">
-            Sign in
+            Sign in or create account
           </Link>
         </>
       ) : null}

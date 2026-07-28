@@ -9,7 +9,7 @@ export default async function EditSessionPage({ params }: { params: Promise<{ se
       <PageHeader
         eyebrow="Edit range session"
         title="Update a practice record"
-        description="Signed-in users edit saved AppSync records. Demo sessions keep local placeholder behavior."
+        description="Update a saved private record, or explore the clearly labeled sample editor while signed out."
       />
       <RangeSessionEdit sessionId={sessionId} />
     </section>

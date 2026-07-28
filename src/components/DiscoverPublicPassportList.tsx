@@ -122,7 +122,7 @@ export function DiscoverPublicPassportList() {
       setPublicProfiles(profileResult.data);
     } catch (loadError) {
       console.warn("Unable to load public snapshots", loadError);
-      setError("Public setup snapshots are unavailable right now. Demo discovery data remains available.");
+      setError("Public setup snapshots are unavailable right now. Sample discovery data remains available.");
       setRecords([]);
       setPublicProfiles([]);
     } finally {
@@ -159,8 +159,8 @@ export function DiscoverPublicPassportList() {
 
       {showDemo ? (
         <section className="rounded-md border border-ink/10 bg-white p-4 shadow-soft">
-          <h2 className="text-lg font-bold text-ink">Demo Discovery Data</h2>
-          <p className="mt-2 text-sm leading-6 text-ink/70">No account-backed public snapshots are available yet, so Discover is showing clearly labeled demo setup snapshots.</p>
+          <h2 className="text-lg font-bold text-ink">Sample discovery data</h2>
+          <p className="mt-2 text-sm leading-6 text-ink/70">No published setup snapshots are available yet, so Discover is showing clearly labeled sample snapshots.</p>
         </section>
       ) : null}
 
@@ -228,7 +228,7 @@ export function DiscoverPublicPassportList() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         {filteredSnapshots.map((snapshot) => (
-          <PublicPassportCard key={snapshot.id} snapshot={snapshot} sourceLabel={showDemo ? "Demo data" : "Public snapshot"} />
+          <PublicPassportCard key={snapshot.id} snapshot={snapshot} sourceLabel={showDemo ? "Sample data" : "Public snapshot"} />
         ))}
       </div>
     </div>

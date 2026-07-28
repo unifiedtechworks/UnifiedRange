@@ -10,7 +10,7 @@ export default function AccountDataSettingsPage() {
         description="Review planned controls for exporting your account data and safely deleting your account. These controls are not active yet."
         action={
           <Link href="/settings" className="inline-flex rounded-md border border-ink/15 bg-white px-4 py-2 text-sm font-semibold text-ink">
-            Back to Settings
+            Back to settings
           </Link>
         }
       />

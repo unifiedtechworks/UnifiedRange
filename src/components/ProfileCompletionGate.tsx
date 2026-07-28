@@ -108,7 +108,7 @@ export function ProfileCompletionGate({ children }: { children: ReactNode }) {
       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-moss">Profile setup</p>
       <h2 className="mt-2 text-2xl font-bold text-ink">Complete your profile</h2>
       <p className="mt-3 text-sm leading-6 text-ink/70">
-        Choose your permanent username before creating or editing saved account records. Public Discover and signed-out demo browsing remain available without this step.
+        Choose your permanent username before creating or editing saved account records. Public Discover and signed-out sample browsing remain available without this step.
       </p>
       <Link href="/profile/setup" className="mt-4 inline-flex rounded-md bg-ink px-4 py-2 text-sm font-semibold text-white">
         Continue setup

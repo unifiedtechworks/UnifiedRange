@@ -100,7 +100,7 @@ export function MaintenanceLogForm({
       roundOrShotCount: Number(values.roundOrShotCount || 0)
     };
     console.log(`Maintenance ${mode} placeholder submit`, payload);
-    setLocalSuccessMessage(mode === "create" ? "Draft saved locally for this mock MVP. No backend write occurred." : "Updates saved locally for this mock MVP. No backend write occurred.");
+    setLocalSuccessMessage(mode === "create" ? "Sample draft validated. Sign in to save a Maintenance record to your account." : "Sample changes validated. Sign in to save changes to an account record.");
   }
 
   return (
@@ -112,7 +112,7 @@ export function MaintenanceLogForm({
       </section>
 
       <section className="rounded-md border border-ink/10 bg-white p-4 shadow-soft sm:p-5">
-        <h3 className="text-lg font-bold text-ink">Maintenance Details</h3>
+        <h3 className="text-lg font-bold text-ink">Maintenance details</h3>
         <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <FormField label="Equipment passport">
             <select
@@ -137,7 +137,7 @@ export function MaintenanceLogForm({
       </section>
 
       <section className="rounded-md border border-ink/10 bg-white p-4 shadow-soft sm:p-5">
-        <h3 className="text-lg font-bold text-ink">Private Notes</h3>
+        <h3 className="text-lg font-bold text-ink">Private notes</h3>
         <div className="mt-5 grid gap-4 lg:grid-cols-3">
           <TextArea label="Cleaning notes" value={values.cleaningNotes} onChange={(value) => updateField("cleaningNotes", value)} />
           <TextArea label="Torque / check notes" value={values.torqueCheckNotes} onChange={(value) => updateField("torqueCheckNotes", value)} />

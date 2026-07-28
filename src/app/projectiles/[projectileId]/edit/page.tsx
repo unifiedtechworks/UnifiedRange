@@ -9,7 +9,7 @@ export default async function EditProjectilePage({ params }: { params: Promise<{
       <PageHeader
         eyebrow="Edit projectile / ammo"
         title="Update a projectile profile"
-        description="Signed-in users edit saved AppSync records. Demo profiles keep local placeholder behavior."
+        description="Update a saved private record, or explore the clearly labeled sample editor while signed out."
       />
       <ProjectileProfileEdit projectileId={projectileId} />
     </section>

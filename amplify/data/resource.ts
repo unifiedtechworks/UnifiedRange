@@ -3,6 +3,9 @@ import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
 // TODO: Wire mock-data screens to generated AppSync clients after the sandbox
 // produces amplify_outputs.json. Until then, this schema is the backend contract.
 const schema = a.schema({
+  ReportTargetType: a.enum(["passport", "session", "public_passport", "comment"]),
+  ReportStatus: a.enum(["open", "reviewed", "dismissed", "action_needed"]),
+
   UsernameReservation: a
     .model({
       username: a.string().required(),
@@ -302,15 +305,31 @@ const schema = a.schema({
         .string()
         .required()
         .authorization((allow) => [allow.ownerDefinedIn("reporterId").to(["create", "read", "delete"]), allow.groups(["admin", "moderator"]).to(["read"])]),
-      targetType: a.enum(["passport", "session", "public_passport", "comment"]),
-      targetId: a.id().required(),
-      reason: a.string().required(),
-      details: a.string(),
-      status: a.enum(["open", "reviewed", "resolved"]),
-      createdAt: a.datetime(),
-      updatedAt: a.datetime()
+      targetType: a
+        .ref("ReportTargetType")
+        .authorization((allow) => [allow.ownerDefinedIn("reporterId").to(["create", "read", "delete"]), allow.groups(["admin", "moderator"]).to(["read"])]),
+      targetId: a
+        .id()
+        .required()
+        .authorization((allow) => [allow.ownerDefinedIn("reporterId").to(["create", "read", "delete"]), allow.groups(["admin", "moderator"]).to(["read"])]),
+      reason: a
+        .string()
+        .required()
+        .authorization((allow) => [allow.ownerDefinedIn("reporterId").to(["create", "read", "delete"]), allow.groups(["admin", "moderator"]).to(["read"])]),
+      details: a
+        .string()
+        .authorization((allow) => [allow.ownerDefinedIn("reporterId").to(["create", "read", "delete"]), allow.groups(["admin", "moderator"]).to(["read"])]),
+      status: a
+        .ref("ReportStatus")
+        .authorization((allow) => [allow.ownerDefinedIn("reporterId").to(["create", "read", "delete"]), allow.groups(["admin", "moderator"]).to(["read", "update"])]),
+      createdAt: a
+        .datetime()
+        .authorization((allow) => [allow.ownerDefinedIn("reporterId").to(["create", "read", "delete"]), allow.groups(["admin", "moderator"]).to(["read"])]),
+      updatedAt: a
+        .datetime()
+        .authorization((allow) => [allow.ownerDefinedIn("reporterId").to(["create", "read", "delete"]), allow.groups(["admin", "moderator"]).to(["read"])]),
     })
-    .authorization((allow) => [allow.ownerDefinedIn("reporterId").to(["create", "read", "delete"]), allow.groups(["admin", "moderator"]).to(["read"])])
+    .authorization((allow) => [allow.ownerDefinedIn("reporterId").to(["create", "read", "delete"]), allow.groups(["admin", "moderator"]).to(["read", "update"])])
 });
 
 export type Schema = ClientSchema<typeof schema>;

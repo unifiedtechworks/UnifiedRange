@@ -136,7 +136,7 @@ export function RangeSessionForm({
     }
 
     console.log(`Range session ${mode} placeholder submit`, values);
-    setLocalSuccessMessage(mode === "create" ? "Demo draft saved locally. Sign in to save this range session to your account." : "Demo updates saved locally. Sign in to save range session changes to your account.");
+    setLocalSuccessMessage(mode === "create" ? "Sample draft validated. Sign in to save a Range Session to your account." : "Sample changes validated. Sign in to save changes to an account record.");
   }
 
   return (
@@ -160,7 +160,7 @@ export function RangeSessionForm({
       </section>
 
       <section className="rounded-md border border-ink/10 bg-white p-4 shadow-soft sm:p-5">
-        <h3 className="text-lg font-bold text-ink">Practice Context</h3>
+        <h3 className="text-lg font-bold text-ink">Practice context</h3>
         <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <TextField label="Distance" value={values.distance} error={errors.distance} required inputMode="decimal" onChange={(value) => updateField("distance", value)} />
           <FormField label="Distance unit">
@@ -201,7 +201,7 @@ export function RangeSessionForm({
           Real image upload will come later with S3 storage and Lambda metadata cleanup. Target photos are private unless explicitly shared.
         </p>
         <div className="mt-5 rounded-md border border-dashed border-ink/25 bg-paper p-6 text-center">
-          <p className="text-sm font-semibold text-ink">Mock upload drop zone</p>
+          <p className="text-sm font-semibold text-ink">Sample upload area</p>
           <p className="mt-1 text-xs text-ink/55">No file is uploaded yet. Add a note or manual score below for now.</p>
         </div>
         <div className="mt-5 grid gap-4 md:grid-cols-2">

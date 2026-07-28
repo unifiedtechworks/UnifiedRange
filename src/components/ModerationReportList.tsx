@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { useModerationReports } from "@/hooks/useModerationReports";
-import { isPendingReportStatus } from "@/lib/moderationAccess";
+import { isPendingReportStatus, reportStatuses, type ReportStatus } from "@/lib/moderationAccess";
 import { getReporterPrimaryLabel, shortInternalId, type ReporterIdentity } from "@/lib/moderationReporterIdentity";
 
 function formatDate(value?: string | null) {
@@ -15,7 +16,8 @@ function formatDate(value?: string | null) {
 }
 
 function getStatusLabel(status?: string | null) {
-  return isPendingReportStatus(status) ? "pending" : (status ?? "unknown");
+  if (!status) return "open";
+  return status.replaceAll("_", " ");
 }
 
 function getStatusClass(status?: string | null) {
@@ -23,11 +25,14 @@ function getStatusClass(status?: string | null) {
     return "bg-clay text-white";
   }
 
+  if (status === "action_needed") return "bg-amber-100 text-amber-900";
+  if (status === "dismissed") return "bg-ink/10 text-ink/65";
+
   return "bg-field text-ink";
 }
 
 export function ModerationReportList() {
-  const { state, reports, reporterIdentities, pendingCount, error, identityWarning } = useModerationReports();
+  const { state, reports, reporterIdentities, pendingCount, error, identityWarning, updateReportStatus } = useModerationReports();
 
   if (state === "loading") {
     return <p className="rounded-md border border-ink/10 bg-white p-4 text-sm text-ink/65 shadow-soft">Loading reports...</p>;
@@ -38,7 +43,7 @@ export function ModerationReportList() {
       <section className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
         <h2 className="text-xl font-bold text-ink">Sign in to review reports</h2>
         <p className="mt-2 text-sm leading-6 text-ink/70">
-          Moderation review is limited to Cognito admin and moderator group users.
+          Moderation review is limited to authorized admin and moderator accounts.
         </p>
         <Link href="/auth/sign-in" className="mt-4 inline-flex rounded-md bg-ink px-4 py-2 text-sm font-semibold text-white">
           Sign in
@@ -52,7 +57,7 @@ export function ModerationReportList() {
       <section className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
         <h2 className="text-xl font-bold text-ink">You do not have access to moderation tools</h2>
         <p className="mt-2 text-sm leading-6 text-ink/70">
-          Moderation access is limited to users in the Cognito admin or moderator groups. Report data is not available to normal signed-in accounts.
+          Moderation access is limited to authorized admin and moderator accounts. Report data is not available to normal signed-in accounts.
         </p>
       </section>
     );
@@ -71,14 +76,14 @@ export function ModerationReportList() {
     <div className="space-y-6">
       <section className="rounded-md border border-moss/20 bg-field p-4">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="text-base font-bold text-ink">Hosted-Dev Review Boundary</h2>
+          <h2 className="text-base font-bold text-ink">Moderation privacy boundary</h2>
           <span className="rounded-md bg-white px-3 py-1 text-sm font-bold text-ink">{pendingCount} pending</span>
         </div>
         <p className="mt-2 text-sm leading-6 text-ink/70">
           This page shows report metadata only. It does not load private passports, private images, private notes, purchase records, lot numbers, exact locations, or private profile fields.
         </p>
         <p className="mt-2 text-sm leading-6 text-ink/70">
-          Reports with missing or open status are counted as pending. Status updates are intentionally read-only in this MVP until a dedicated admin-only action path is added.
+          Reports with missing or open status are counted as pending. Status changes update report workflow metadata only; they do not delete, hide, suspend, or mutate reported content.
         </p>
       </section>
 
@@ -117,16 +122,73 @@ export function ModerationReportList() {
                   ) : null}
                 </div>
 
-                <div className="w-full rounded-md border border-ink/10 bg-paper p-4 sm:min-w-56 xl:w-64">
-                  <p className="text-sm font-semibold text-ink">Review status</p>
-                  <p className="mt-2 rounded-md bg-white px-3 py-2 text-sm font-semibold text-ink">{getStatusLabel(report.status)}</p>
-                  <p className="mt-3 text-xs leading-5 text-ink/60">Status changes need a future admin-only action path.</p>
-                </div>
+                <ReportStatusControl
+                  key={`${report.id}:${report.status ?? "open"}`}
+                  reportId={report.id}
+                  status={(report.status as ReportStatus | null | undefined) ?? "open"}
+                  onUpdate={updateReportStatus}
+                />
               </div>
             </article>
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function ReportStatusControl({
+  reportId,
+  status,
+  onUpdate
+}: {
+  reportId: string;
+  status: ReportStatus;
+  onUpdate: (reportId: string, status: ReportStatus) => Promise<void>;
+}) {
+  const [selectedStatus, setSelectedStatus] = useState<ReportStatus>(status);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  async function saveStatus() {
+    if (selectedStatus === status) return;
+    setIsSaving(true);
+    setError("");
+    try {
+      await onUpdate(reportId, selectedStatus);
+    } catch (updateError) {
+      setError(updateError instanceof Error ? updateError.message : "Report status could not be updated.");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  return (
+    <div className="w-full rounded-md border border-ink/10 bg-paper p-4 sm:min-w-56 xl:w-64">
+      <label className="block">
+        <span className="text-sm font-semibold text-ink">Review status</span>
+        <select
+          value={selectedStatus}
+          disabled={isSaving}
+          onChange={(event) => {
+            setSelectedStatus(event.target.value as ReportStatus);
+            setError("");
+          }}
+          className="mt-2 min-h-10 w-full rounded-md border border-ink/15 bg-white px-3 py-2 text-sm font-semibold text-ink outline-none focus:border-moss disabled:opacity-60"
+        >
+          {reportStatuses.map((item) => <option key={item} value={item}>{getStatusLabel(item)}</option>)}
+        </select>
+      </label>
+      <button
+        type="button"
+        disabled={isSaving || selectedStatus === status}
+        onClick={() => void saveStatus()}
+        className="mt-3 w-full rounded-md bg-ink px-3 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        {isSaving ? "Saving..." : "Save status"}
+      </button>
+      <p className="mt-3 text-xs leading-5 text-ink/60">Workflow status only. No content action is performed.</p>
+      {error ? <p className="mt-2 text-xs font-semibold leading-5 text-clay">{error}</p> : null}
     </div>
   );
 }

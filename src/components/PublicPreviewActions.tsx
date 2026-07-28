@@ -10,7 +10,7 @@ export function PublicPreviewActions() {
       <div className="flex flex-col gap-3 sm:flex-row">
         <button
           type="button"
-          onClick={() => setMessage("Demo publish preview complete. No hosted data was changed from this demo control.")}
+          onClick={() => setMessage("Sample preview complete. No public snapshot was created or changed.")}
           className="inline-flex justify-center rounded-md bg-ink px-4 py-2 text-sm font-semibold text-white"
         >
           Publish public version

@@ -128,7 +128,7 @@ export function RangeSessionCreate() {
     return (
       <div className="space-y-4">
         <p className="rounded-md border border-ink/10 bg-white p-4 text-sm leading-6 text-ink/70 shadow-soft">
-          You are creating demo data. Submit will validate and show a local demo success message; sign in and use saved records to persist Range Sessions.
+          You are creating sample data. Submit validates the sample without creating an account record; sign in and use saved records to create a private Range Session.
         </p>
         <RangeSessionForm
           mode="create"

@@ -7,7 +7,7 @@ export default function NewProjectilePage() {
       <PageHeader
         eyebrow="New projectile / ammo"
         title="Create a projectile profile"
-        description="Add ammunition now, or use the broader fields for future arrow, bolt, pellet, or other projectile support. Signed-in users save this record to private AppSync account data."
+        description="Add ammunition now, or use the broader fields for arrow, bolt, pellet, or other projectile records. Signed-in users save this record privately."
       />
       <ProjectileProfileCreate />
     </section>

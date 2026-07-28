@@ -1,6 +1,8 @@
 import type { AuthUserState } from "@/hooks/useAuthUser";
 
 export const moderationGroups = ["admin", "moderator"] as const;
+export const reportStatuses = ["open", "reviewed", "dismissed", "action_needed"] as const;
+export type ReportStatus = (typeof reportStatuses)[number];
 
 export function hasModerationAccess(authState: AuthUserState) {
   if (authState.status !== "signed-in") {
@@ -11,7 +13,7 @@ export function hasModerationAccess(authState: AuthUserState) {
 }
 
 export function isPendingReportStatus(status?: string | null) {
-  return !status || status === "open" || status === "pending";
+  return !status || status === "open";
 }
 
 export function countPendingReports<T extends { status?: string | null }>(reports: T[]) {

@@ -122,7 +122,7 @@ export function RangeSessionDetail({ sessionId }: { sessionId?: string }) {
     return (
       <section className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
         <h2 className="text-xl font-bold text-ink">Range Session not found</h2>
-        <p className="mt-2 text-sm leading-6 text-ink/70">{error || "This Range Session is not available for the current signed-in account or demo data set."}</p>
+        <p className="mt-2 text-sm leading-6 text-ink/70">{error || "This Range Session is not available for the current account or sample data set."}</p>
         <Link href="/sessions" className="mt-4 inline-flex rounded-md bg-ink px-4 py-2 text-sm font-semibold text-white">
           Back to Range Sessions
         </Link>
@@ -168,7 +168,7 @@ function RangeSessionDetailContent({
   return (
     <section>
       <PageHeader
-        eyebrow={`${source === "saved" ? "Saved Range Session" : "Demo Range Session"} - ${new Date(`${session.date}T00:00:00`).toLocaleDateString()}`}
+        eyebrow={`${source === "saved" ? "Saved private Range Session" : "Sample Range Session"} - ${new Date(`${session.date}T00:00:00`).toLocaleDateString()}`}
         title={session.discipline || "Range session"}
         description="A historical practice record with user-entered context, free-text notes, and target-photo placeholders."
         action={
@@ -215,7 +215,7 @@ function RangeSessionDetailContent({
           ) : (
             <article className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
               <h3 className="text-xl font-bold text-ink">Target Photos</h3>
-                <p className="mt-2 text-sm leading-6 text-ink/65">Demo target photos are placeholders. Saved sessions can use private uploads when signed in.</p>
+                <p className="mt-2 text-sm leading-6 text-ink/65">Sample target photos are placeholders. Saved sessions can use private uploads when signed in.</p>
                 <div className="mt-4 grid gap-4 md:grid-cols-2">
                   {photos.map((photo) => (
                     <div key={photo.id} className="overflow-hidden rounded-md border border-ink/10">

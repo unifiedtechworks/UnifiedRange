@@ -109,18 +109,18 @@ export function PublicPassportDetail({ publicPassportId }: { publicPassportId?: 
     return null;
   }
 
-  return <PublicPassportDetailContent passport={passport} source={state === "saved" ? "Public snapshot" : "Demo data"} />;
+  return <PublicPassportDetailContent passport={passport} source={state === "saved" ? "Public snapshot" : "Sample data"} />;
 }
 
 function PublicPassportDetailContent({ passport, source }: { passport: SanitizedPublicPassport; source: string }) {
-  const isDemo = source === "Demo data";
+  const isDemo = source === "Sample data";
 
   return (
     <section>
       <PageHeader
         eyebrow="Public setup discovery"
         title={passport.title}
-        description="Public pages are for Setup Discovery and range-log sharing, with sanitized documentation only. They are not firing solutions or operational guidance."
+        description="Browse sanitized setup documentation and shared range-log context. Public pages do not provide aiming adjustments or operational guidance."
         action={
           <Link href="/discover" className="inline-flex rounded-md border border-ink/15 bg-white px-4 py-2 text-sm font-semibold text-ink">
             Back to Discover
@@ -164,7 +164,7 @@ function PublicPassportDetailContent({ passport, source }: { passport: Sanitized
 
         <div className="space-y-6">
           <article className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
-            <h3 className="text-xl font-bold text-ink">Public Notes</h3>
+            <h3 className="text-xl font-bold text-ink">Public notes</h3>
             <p className="mt-3 text-sm leading-6 text-ink/70">{passport.publicNotes ?? "No public notes shared."}</p>
           </article>
 
@@ -178,7 +178,7 @@ function PublicPassportDetailContent({ passport, source }: { passport: Sanitized
               </article>
 
               <article className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
-                <h3 className="text-xl font-bold text-ink">Report Content</h3>
+                <h3 className="text-xl font-bold text-ink">Report content</h3>
                 <p className="mt-2 text-sm leading-6 text-ink/65">Help keep discovery focused on safe, legal, privacy-preserving setup documentation.</p>
                 <div className="mt-4">
                   <ReportContentButton targetLabel={passport.title} />
@@ -190,14 +190,14 @@ function PublicPassportDetailContent({ passport, source }: { passport: Sanitized
       </div>
 
       <section className="mt-6 rounded-md border border-ink/10 bg-white p-5 shadow-soft">
-        <h3 className="text-xl font-bold text-ink">Public Range-Session Summaries</h3>
+        <h3 className="text-xl font-bold text-ink">Public range-session summaries</h3>
         <div className="mt-4">
           <PublicRangeSessionList passport={passport} />
         </div>
       </section>
 
       <section className="mt-6 rounded-md border border-ink/10 bg-white p-5 shadow-soft">
-        <h3 className="text-xl font-bold text-ink">Public Target Photo Placeholders</h3>
+        <h3 className="text-xl font-bold text-ink">Public target photo placeholders</h3>
         <div className="mt-4">
           <PublicPhotoPlaceholderList passport={passport} />
         </div>
@@ -206,7 +206,7 @@ function PublicPassportDetailContent({ passport, source }: { passport: Sanitized
       {isDemo ? (
         <section className="mt-6 rounded-md border border-ink/10 bg-white p-5 shadow-soft">
           <h3 className="text-xl font-bold text-ink">Comments</h3>
-          <p className="mt-2 text-sm leading-6 text-ink/65">Comments are a demo placeholder. Saved public snapshots use signed-in comments and reporting.</p>
+          <p className="mt-2 text-sm leading-6 text-ink/65">Comments are unavailable on sample snapshots. Published public snapshots support signed-in comments and reporting.</p>
         </section>
       ) : (
         <section className="mt-6">

@@ -50,14 +50,16 @@ Report reasons:
 - Cognito `admin` and `moderator` group members can review report metadata at `/moderation/reports`.
 - Normal signed-in users cannot access moderation tools.
 - Signed-out users can view public setup pages but must sign in before reporting.
-- Report status is read-only in the MVP review queue until an admin-only action workflow is added.
+- Cognito `admin` and `moderator` group members can update report workflow status only. Normal users cannot update reports.
+- Status changes do not delete, hide, suspend, or mutate reported content.
 - Public social features must not expose private passport fields, private images, owner private details, marketplace activity, or direct messaging.
 
 ## Admin Review States
 
-- Current stored statuses: `open`, `reviewed`, `resolved`.
+- Current stored statuses: `open`, `reviewed`, `dismissed`, `action_needed`.
 - Missing or `open` status counts as pending in the moderation UI.
-- Future admin-only workflows may add review states such as dismissed, action needed, content removed, user warned, or user suspended.
+- Report metadata other than `status` remains immutable to moderators through field-level authorization.
+- Destructive content actions, warnings, and suspensions require separate future workflows and are not implied by report status.
 
 ## Default Public Safety Behavior
 

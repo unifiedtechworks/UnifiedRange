@@ -2006,7 +2006,8 @@
                     "provider": "userPools",
                     "allow": "groups",
                     "operations": [
-                      "read"
+                      "read",
+                      "update"
                     ],
                     "groups": [
                       "admin",
@@ -2025,6 +2026,24 @@
         }
       },
       "enums": {
+        "ReportTargetType": {
+          "name": "ReportTargetType",
+          "values": [
+            "passport",
+            "session",
+            "public_passport",
+            "comment"
+          ]
+        },
+        "ReportStatus": {
+          "name": "ReportStatus",
+          "values": [
+            "open",
+            "reviewed",
+            "dismissed",
+            "action_needed"
+          ]
+        },
         "UserProfilePrivacyDefault": {
           "name": "UserProfilePrivacyDefault",
           "values": [
@@ -2136,23 +2155,6 @@
             "lightweight",
             "well_documented",
             "beginner_friendly"
-          ]
-        },
-        "ReportTargetType": {
-          "name": "ReportTargetType",
-          "values": [
-            "passport",
-            "session",
-            "public_passport",
-            "comment"
-          ]
-        },
-        "ReportStatus": {
-          "name": "ReportStatus",
-          "values": [
-            "open",
-            "reviewed",
-            "resolved"
           ]
         }
       },

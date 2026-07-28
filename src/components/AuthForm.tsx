@@ -16,14 +16,14 @@ type AuthMode = "sign-in" | "sign-up" | "confirm";
 
 const passwordHelp = "At least 8 characters with uppercase, lowercase, number, and symbol.";
 
-export function AuthForm() {
+export function AuthForm({ initialMode = "sign-in" }: { initialMode?: "sign-in" | "sign-up" }) {
   const router = useRouter();
   const { authState, refreshAuthState } = useAuthUser();
   const client = useMemo(() => {
     configureAmplifyClient();
     return generateClient<Schema>();
   }, []);
-  const [mode, setMode] = useState<AuthMode>("sign-in");
+  const [mode, setMode] = useState<AuthMode>(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmationCode, setConfirmationCode] = useState("");
@@ -95,7 +95,7 @@ export function AuthForm() {
       }
 
       setPassword("");
-      setSuccess("Signed in successfully. Your saved account data is available across the wired MVP sections.");
+      setSuccess("Signed in successfully. Your private account records are ready.");
       const nextAuthState = await refreshSharedAuthState({ showLoading: false });
       notifyAuthChanged();
 
@@ -135,11 +135,10 @@ export function AuthForm() {
     return (
       <article className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-moss">Amazon Cognito</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-moss">Account access</p>
           <h3 className="mt-2 text-xl font-bold text-ink">Signed in</h3>
-          <p className="mt-3 text-sm leading-6 text-ink/70">You are signed in and can use saved account data across the wired MVP sections.</p>
+          <p className="mt-3 text-sm leading-6 text-ink/70">You can now open your private records, profile, and account settings.</p>
           <p className="mt-3 text-sm font-semibold text-ink">{authState.label}</p>
-          <p className="mt-1 text-xs text-ink/55">Cognito username: {authState.username}</p>
         </div>
 
         <div className="mt-5 flex flex-col gap-2 sm:flex-row">
@@ -171,7 +170,7 @@ export function AuthForm() {
     <article className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
       <div className="flex flex-col gap-4 border-b border-ink/10 pb-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-moss">Amazon Cognito</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-moss">Account access</p>
           <h3 className="mt-2 text-xl font-bold text-ink">{title}</h3>
         </div>
         <div className="grid grid-cols-2 gap-2 rounded-md bg-field p-1 text-sm font-semibold">
@@ -239,7 +238,7 @@ export function AuthForm() {
 
       {mode !== "confirm" ? (
         <p className="mt-4 text-sm leading-6 text-ink/65">
-          Product screens remain available to signed-out visitors with clearly labeled demo data. Sign in to create and manage saved account records.
+          Public pages and clearly labeled sample records remain available while signed out. Sign in to create and manage private account records.
         </p>
       ) : (
         <button type="button" onClick={() => switchMode("sign-in")} className="mt-4 text-sm font-semibold text-moss">

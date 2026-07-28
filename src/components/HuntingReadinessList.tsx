@@ -90,8 +90,8 @@ export function HuntingReadinessList() {
       <section>
         <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h2 className="text-xl font-bold text-ink">Saved Account Data</h2>
-            <p className="mt-1 text-sm leading-6 text-ink/65">Signed-in users see owner-scoped Hunting Readiness records from AppSync here.</p>
+            <h2 className="text-xl font-bold text-ink">Your saved records</h2>
+            <p className="mt-1 text-sm leading-6 text-ink/65">Signed-in users see their saved private Hunting Readiness records here.</p>
           </div>
           <span className="w-fit rounded-md bg-field px-3 py-1 text-xs font-semibold text-ink">
             {state === "loading" ? "Loading" : state === "signed-out" ? "Sign in to save" : `${savedChecklists.length} saved`}
@@ -103,7 +103,7 @@ export function HuntingReadinessList() {
 
         {state === "signed-out" ? (
           <div className="rounded-md border border-ink/10 bg-white p-4 shadow-soft">
-            <p className="text-sm leading-6 text-ink/70">You are browsing demo readiness checklists. Sign in to save private Hunting Readiness records linked to your saved Equipment Passports.</p>
+            <p className="text-sm leading-6 text-ink/70">You are browsing sample readiness checklists. Sign in to save private Hunting Readiness records linked to your Equipment Passports.</p>
             <Link href="/auth/sign-in" className="mt-3 inline-flex rounded-md bg-ink px-4 py-2 text-sm font-semibold text-white">
               Sign in to save records
             </Link>
@@ -117,7 +117,7 @@ export function HuntingReadinessList() {
         {savedChecklists.length > 0 ? (
           <div className="grid gap-5 xl:grid-cols-2">
             {savedChecklists.map((checklist) => (
-              <HuntingChecklistCard key={checklist.id} checklist={checklist} sourceLabel="Saved account data" equipmentSummary={getEquipmentSummary(checklist.equipmentPassportId)} />
+              <HuntingChecklistCard key={checklist.id} checklist={checklist} sourceLabel="Saved private record" equipmentSummary={getEquipmentSummary(checklist.equipmentPassportId)} />
             ))}
           </div>
         ) : null}
@@ -125,12 +125,12 @@ export function HuntingReadinessList() {
 
       <section>
         <div className="mb-4">
-          <h2 className="text-xl font-bold text-ink">Demo Data</h2>
-          <p className="mt-1 text-sm leading-6 text-ink/65">Mock readiness checklists remain available for signed-out browsing and UI demos.</p>
+          <h2 className="text-xl font-bold text-ink">Sample data</h2>
+          <p className="mt-1 text-sm leading-6 text-ink/65">Sample readiness checklists remain available for signed-out browsing.</p>
         </div>
         <div className="grid gap-5 xl:grid-cols-2">
           {huntingChecklists.map((checklist) => (
-            <HuntingChecklistCard key={checklist.id} checklist={checklist} sourceLabel="Demo data" />
+            <HuntingChecklistCard key={checklist.id} checklist={checklist} sourceLabel="Sample data" />
           ))}
         </div>
       </section>

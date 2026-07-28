@@ -38,6 +38,16 @@
 - Maintenance reminders
 - Seasonal hunting checklist templates
 
+## Future Moderation and Reporting
+
+- Show report counts by status.
+- Show reported-item counts separately from report counts.
+- Filter reports by status.
+- Filter reports by target type.
+- Sort reports by newest, oldest, status, or reason.
+- Add admin-only report status workflows beyond metadata review.
+- Consider a notification center later.
+
 ## V2
 
 - Mobile app

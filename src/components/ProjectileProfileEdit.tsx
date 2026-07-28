@@ -153,7 +153,7 @@ export function ProjectileProfileEdit({ projectileId }: { projectileId?: string 
   return (
     <div className="space-y-4">
       <p className="rounded-md border border-ink/10 bg-white p-4 text-sm leading-6 text-ink/70 shadow-soft">
-        You are editing demo data. Submit will validate and show a local demo success message; sign in and create a saved Projectile / Ammo profile to persist changes.
+        You are editing sample data. Submit validates the sample without changing an account record; sign in to save a private Projectile / Ammo profile.
       </p>
       <ProjectileForm mode="edit" initialValues={toProjectileFormValues(demoProjectile)} cancelHref={`/projectiles/${demoProjectile.id}`} />
     </div>

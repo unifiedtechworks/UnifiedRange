@@ -9,7 +9,7 @@ export default async function EditOpticPage({ params }: { params: Promise<{ opti
       <PageHeader
         eyebrow="Edit optic / sight"
         title="Update a sight profile"
-        description="Signed-in users edit saved AppSync records. Demo profiles keep local placeholder behavior."
+        description="Update a saved private record, or explore the clearly labeled sample editor while signed out."
       />
       <OpticSightProfileEdit opticId={opticId} />
     </section>

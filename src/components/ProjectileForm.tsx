@@ -110,13 +110,13 @@ export function ProjectileForm({ mode, initialValues, cancelHref, submitLabel, s
     }
 
     console.log(`Projectile ${mode} placeholder submit`, values);
-    setLocalSuccessMessage(mode === "create" ? "Demo draft saved locally. Sign in to save this profile to your account." : "Demo updates saved locally. Sign in to save projectile changes to your account.");
+    setLocalSuccessMessage(mode === "create" ? "Sample draft validated. Sign in to save a Projectile / Ammo profile to your account." : "Sample changes validated. Sign in to save changes to an account record.");
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <section className="rounded-md border border-moss/20 bg-field p-4">
-        <h3 className="text-base font-bold text-ink">Inventory Privacy</h3>
+        <h3 className="text-base font-bold text-ink">Inventory privacy</h3>
         <p className="mt-2 text-sm leading-6 text-ink/70">
           Lot numbers and purchase details should stay private by default. Public notes should describe only broad setup context suitable for discovery.
         </p>

@@ -365,12 +365,14 @@ After the Amplify backend is redeployed with the Cognito `admin` and `moderator`
 6. Confirm the pending count is visible.
 7. Open `http://localhost:3000/moderation/reports`.
 8. Confirm the report appears with report metadata only and pending reports sort first.
-9. Confirm the status is visible as read-only.
-10. Confirm the page does not show private passport data, private notes, private S3 keys, private images, purchase records, lot numbers, exact locations, or private profile fields.
-11. Sign out and confirm the Moderation nav link disappears.
-12. Sign in as a normal non-moderator user and confirm `/moderation` says the account does not have access.
+9. Change the report from `open` to `reviewed`, save, refresh, and confirm the status persists and the pending count decreases.
+10. Test `dismissed` and `action_needed`, then return the report to the intended final workflow state.
+11. Confirm status changes do not delete, hide, suspend, or mutate the reported content.
+12. Confirm the page does not show private passport data, private notes, private S3 keys, private images, purchase records, lot numbers, exact locations, or private profile fields.
+13. Sign out and confirm the Moderation nav link disappears.
+14. Sign in as a normal non-moderator user and confirm `/moderation` says the account does not have access and cannot update a report.
 
-Moderation access is enforced with Cognito user pool groups named `admin` and `moderator`. The MVP report queue does not change report status, delete content, hide public snapshots, suspend users, or expose private account records. Missing or `open` report statuses are counted as pending until an admin-only status workflow is added.
+Moderation access is enforced with Cognito user pool groups named `admin` and `moderator`. Those groups may update only `Report.status`; field-level authorization keeps all other report metadata read-only. The queue does not delete content, hide public snapshots, suspend users, or expose private account records. Only missing or `open` reports count as pending.
 
 To grant hosted-dev access, add the user to a Cognito group in the correct Amplify environment. Do not store moderator emails, usernames, or temporary allowlists in committed source.
 
@@ -380,7 +382,7 @@ Previous quick smoke flow:
 2. Submit a report from a public passport detail page or a public comment.
 3. Open `http://localhost:3000/moderation/reports`.
 4. Confirm the report appears with report metadata only.
-5. Confirm the status is visible as read-only.
+5. Change status and confirm it persists without changing reported content.
 6. Confirm the page does not show private passport data, private notes, private S3 keys, private images, purchase records, lot numbers, exact locations, or private profile fields.
 
 ### Production-Readiness Manual Checklist
@@ -400,9 +402,9 @@ Run this checklist before promoting a sandbox or production environment:
 11. Public publishing: preview, publish, view in Discover, update, and unpublish a sanitized Public Passport snapshot.
 12. Discover: confirm signed-out and signed-in users can view and filter sanitized public snapshots only.
 13. Reactions/comments/reports: confirm reaction counts load or gracefully show unavailable, signed-in users can react/comment/report, and signed-out users see sign-in prompts for actions.
-14. Moderation report review: sign in as an `admin` or `moderator`, confirm the Moderation nav shows only for that account, open `/moderation/reports`, and confirm submitted reports appear as metadata only with read-only status.
+14. Moderation report review: sign in as an `admin` or `moderator`, confirm the Moderation nav shows only for that account, open `/moderation/reports`, update report workflow status, and confirm all non-status metadata remains read-only.
 15. Public/private boundary: confirm public pages and moderation review do not show private notes, private S3 keys, target photos, maintenance records, readiness records, ammo lot numbers, purchase info, exact locations, owner private details, or image metadata.
-16. Demo behavior: sign out and confirm mock/demo data remains clearly labeled across Dashboard and all major sections.
+16. Sample behavior: sign out and confirm sample/demo data remains clearly labeled across Dashboard and all major sections.
 
 ### Hosted Dev Smoke Test Checklist
 

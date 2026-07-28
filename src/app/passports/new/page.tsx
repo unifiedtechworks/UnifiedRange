@@ -7,7 +7,7 @@ export default function NewPassportPage() {
       <PageHeader
         eyebrow="New equipment passport"
         title="Create a private setup record"
-        description="Start with the setup details you want to track. Signed-in users save this record to their private AppSync account data."
+        description="Start with the setup details you want to track. Signed-in users save this record privately to their account."
       />
       <EquipmentPassportCreate />
     </section>

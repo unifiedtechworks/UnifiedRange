@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
+import { HomeLanding } from "@/components/HomeLanding";
 
 export default function HomePage() {
-  redirect("/dashboard");
+  return <HomeLanding />;
 }

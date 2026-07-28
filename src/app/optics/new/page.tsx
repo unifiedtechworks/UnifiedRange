@@ -7,7 +7,7 @@ export default function NewOpticPage() {
       <PageHeader
         eyebrow="New optic / sight"
         title="Create a sight profile"
-        description="Document optic, sight, reticle, or pin setup details for setup history and private records. Signed-in users save this record to AppSync."
+        description="Document optic, sight, reticle, or pin setup details for setup history. Signed-in users save this record privately."
       />
       <OpticSightProfileCreate />
     </section>

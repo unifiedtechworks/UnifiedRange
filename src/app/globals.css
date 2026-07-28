@@ -34,3 +34,20 @@ button,
 a {
   -webkit-tap-highlight-color: transparent;
 }
+
+main,
+section,
+article {
+  min-width: 0;
+}
+
+p,
+li,
+dd {
+  overflow-wrap: anywhere;
+}
+
+img {
+  height: auto;
+  max-width: 100%;
+}

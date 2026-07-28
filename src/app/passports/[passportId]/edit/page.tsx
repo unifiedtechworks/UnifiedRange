@@ -9,7 +9,7 @@ export default async function EditPassportPage({ params }: { params: Promise<{ p
       <PageHeader
         eyebrow="Edit equipment passport"
         title="Update a setup record"
-        description="Signed-in users edit saved AppSync records. Demo passports keep local placeholder behavior."
+        description="Update a saved private record, or explore the clearly labeled sample editor while signed out."
       />
       <EquipmentPassportEdit passportId={passportId} />
     </section>

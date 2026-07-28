@@ -187,7 +187,7 @@ export function DashboardOverview() {
 
   if (state === "loading") {
     return (
-      <DashboardShell eyebrow="Checking account" title="Loading your dashboard" description="UnifiedRange is checking for saved account-backed records.">
+      <DashboardShell eyebrow="Checking account" title="Loading your dashboard" description="UnifiedRange is checking for your saved private records.">
         <p className="rounded-md border border-ink/10 bg-white p-4 text-sm text-ink/65 shadow-soft">Loading dashboard summaries...</p>
       </DashboardShell>
     );
@@ -249,17 +249,17 @@ function DashboardContent({ data, mode, error }: { data: SavedDashboardData; mod
 
   return (
     <DashboardShell
-      eyebrow={isDemo ? "Demo dashboard" : "Saved account dashboard"}
-      title={isDemo ? "Demo range logbook and setup passport" : "Your saved range logbook and setup passport"}
+      eyebrow={isDemo ? "Sample dashboard" : "Private dashboard"}
+      title={isDemo ? "Sample range logbook and setup passport" : "Your range logbook and setup passport"}
       description={
         isDemo
-          ? "You are viewing clearly labeled demo data. Sign in to save your own private records."
-          : "These summaries are loaded from your owner-scoped AppSync records and remain private by default."
+          ? "You are viewing clearly labeled sample data. Sign in to save your own private records."
+          : "These summaries come from your saved account records and remain private by default."
       }
     >
       {isDemo ? (
         <section className="mb-6 rounded-md border border-ink/10 bg-white p-4 shadow-soft">
-          <p className="text-sm leading-6 text-ink/70">Demo data is visible while signed out so the app remains browsable.</p>
+          <p className="text-sm leading-6 text-ink/70">Sample data is visible while signed out so you can explore the app.</p>
           <Link href="/auth/sign-in" className="mt-3 inline-flex rounded-md bg-ink px-4 py-2 text-sm font-semibold text-white">
             Sign in to save your own records
           </Link>
@@ -276,16 +276,16 @@ function DashboardContent({ data, mode, error }: { data: SavedDashboardData; mod
       ) : null}
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        <StatCard label="Equipment Passports" value={String(data.passports.length)} helper={isDemo ? "Demo setup records." : "Saved private setup records."} />
-        <StatCard label="Projectiles / Ammo" value={String(data.projectiles.length)} helper={isDemo ? "Demo projectile and ammo profiles." : "Saved projectile, ammo, and future archery profiles."} />
-        <StatCard label="Optics / Sights" value={String(data.optics.length)} helper={isDemo ? "Demo sight profiles." : "Saved optic and sight documentation."} />
-        <StatCard label="Range Sessions" value={String(data.sessions.length)} helper={isDemo ? "Demo range logs." : "Saved historical practice records."} />
-        <StatCard label="Maintenance entries" value={String(data.maintenance.length)} helper={isDemo ? "Demo private care records." : "Saved private equipment care records."} />
+        <StatCard label="Equipment Passports" value={String(data.passports.length)} helper={isDemo ? "Sample setup records." : "Saved private setup records."} />
+        <StatCard label="Projectiles / Ammo" value={String(data.projectiles.length)} helper={isDemo ? "Sample projectile and ammo profiles." : "Saved private projectile and ammo profiles."} />
+        <StatCard label="Optics / Sights" value={String(data.optics.length)} helper={isDemo ? "Sample sight profiles." : "Saved private optic and sight documentation."} />
+        <StatCard label="Range Sessions" value={String(data.sessions.length)} helper={isDemo ? "Sample range logs." : "Saved private practice records."} />
+        <StatCard label="Maintenance entries" value={String(data.maintenance.length)} helper={isDemo ? "Sample care records." : "Saved private equipment care records."} />
         <StatCard label="Hunting Readiness" value={String(data.checklists.length)} helper={`${openChecklistItems} checklist items remaining.`} />
       </div>
 
       <section className="mt-8 rounded-md border border-ink/10 bg-white p-5 shadow-soft">
-        <h3 className="text-xl font-bold text-ink">Quick Actions</h3>
+        <h3 className="text-xl font-bold text-ink">Quick actions</h3>
         <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {quickActions.map((action) => (
             <Link key={action.href} href={action.href} className="inline-flex justify-center rounded-md border border-ink/10 bg-paper px-4 py-3 text-sm font-semibold text-ink transition hover:border-moss/40 hover:text-moss">
@@ -298,7 +298,7 @@ function DashboardContent({ data, mode, error }: { data: SavedDashboardData; mod
       <div className="mt-8 grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
         <section>
           <div className="mb-3 flex items-center justify-between">
-            <h3 className="text-xl font-bold text-ink">{isDemo ? "Demo Equipment Passports" : "Saved Equipment Passports"}</h3>
+            <h3 className="text-xl font-bold text-ink">{isDemo ? "Sample Equipment Passports" : "Saved Equipment Passports"}</h3>
             <Link href="/passports" className="text-sm font-semibold text-moss">
               See all
             </Link>
@@ -306,7 +306,7 @@ function DashboardContent({ data, mode, error }: { data: SavedDashboardData; mod
           {data.passports.length > 0 ? (
             <div className="grid gap-4 md:grid-cols-2">
               {data.passports.slice(0, 4).map((passport) => (
-                <PassportCard key={passport.id} passport={passport} sourceLabel={isDemo ? "Demo data" : "Saved account data"} />
+                <PassportCard key={passport.id} passport={passport} sourceLabel={isDemo ? "Sample data" : "Saved private record"} />
               ))}
             </div>
           ) : (
@@ -323,7 +323,7 @@ function DashboardContent({ data, mode, error }: { data: SavedDashboardData; mod
 
       <div className="mt-8 grid gap-4 lg:grid-cols-2">
         <section className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
-          <h3 className="text-xl font-bold text-ink">Public Sharing Reminder</h3>
+          <h3 className="text-xl font-bold text-ink">Public sharing reminder</h3>
           <p className="mt-2 text-sm leading-6 text-ink/70">
             Public Passport sharing should happen only after preview. Keep serial numbers, exact locations, private purchase details, and sensitive personal info out of public snapshots.
           </p>
@@ -332,7 +332,7 @@ function DashboardContent({ data, mode, error }: { data: SavedDashboardData; mod
           </Link>
         </section>
         <section className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
-          <h3 className="text-xl font-bold text-ink">Privacy-First Reminder</h3>
+          <h3 className="text-xl font-bold text-ink">Privacy-first reminder</h3>
           <p className="mt-2 text-sm leading-6 text-ink/70">
             Account-backed records are private by default. Public discovery and publishing remain separate review flows.
           </p>
@@ -381,7 +381,7 @@ function RecentSessions({
             <SessionCard
               key={session.id}
               session={session}
-              sourceLabel={isDemo ? "Demo data" : "Saved account data"}
+              sourceLabel={isDemo ? "Sample data" : "Saved private record"}
               equipmentSummary={getPassportSummary(passports, session.equipmentPassportId, "session")}
               projectileSummary={getProjectileSummary(projectiles, session.projectileProfileId)}
             />
@@ -409,7 +409,7 @@ function RecentMaintenance({ entries, passports, isDemo }: { entries: Maintenanc
             <MaintenanceCard
               key={entry.id}
               entry={entry}
-              sourceLabel={isDemo ? "Demo data" : "Saved account data"}
+              sourceLabel={isDemo ? "Sample data" : "Saved private record"}
               equipmentSummary={getPassportSummary(passports, entry.equipmentPassportId, "maintenance")}
             />
           ))
@@ -436,7 +436,7 @@ function RecentReadiness({ checklists, passports, isDemo }: { checklists: Huntin
             <HuntingChecklistCard
               key={checklist.id}
               checklist={checklist}
-              sourceLabel={isDemo ? "Demo data" : "Saved account data"}
+              sourceLabel={isDemo ? "Sample data" : "Saved private record"}
               equipmentSummary={getPassportSummary(passports, checklist.equipmentPassportId, "readiness")}
             />
           ))

@@ -58,9 +58,9 @@ export function EquipmentPassportCreate() {
   return (
     <div className="space-y-4">
       <section className="rounded-md border border-moss/20 bg-field p-4">
-        <h2 className="text-base font-bold text-ink">Account-backed save</h2>
+        <h2 className="text-base font-bold text-ink">Private account record</h2>
         <p className="mt-2 text-sm leading-6 text-ink/70">
-          Signed-in users save this Equipment Passport to AppSync. If you are signed out, validation still works but the form cannot create an account record.
+          Signed-in users save this Equipment Passport privately. If you are signed out, validation still works but the form cannot create an account record.
         </p>
       </section>
       <PassportForm

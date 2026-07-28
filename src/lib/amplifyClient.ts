@@ -19,7 +19,7 @@ export function notifyAuthChanged() {
 }
 
 export function getAmplifyClientMessage() {
-  return "Amplify is configured from amplify_outputs.json. Signed-in users can use saved account data, and signed-out users can browse clearly labeled demo data.";
+  return "Signed-in users can manage private account records. Signed-out visitors can browse public pages and clearly labeled sample data.";
 }
 
 export function getAuthErrorMessage(error: unknown) {

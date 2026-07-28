@@ -58,9 +58,9 @@ export function ProjectileProfileCreate() {
   return (
     <div className="space-y-4">
       <section className="rounded-md border border-moss/20 bg-field p-4">
-        <h2 className="text-base font-bold text-ink">Account-backed save</h2>
+        <h2 className="text-base font-bold text-ink">Private account record</h2>
         <p className="mt-2 text-sm leading-6 text-ink/70">
-          Signed-in users save this Projectile / Ammo profile to AppSync. Lot numbers, purchase counts, and remaining inventory are private account data.
+          Signed-in users save this Projectile / Ammo profile privately. Lot numbers, purchase counts, and remaining inventory stay private.
         </p>
       </section>
       <ProjectileForm

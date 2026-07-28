@@ -173,7 +173,7 @@ export function HuntingReadinessEdit({ checklistId }: { checklistId?: string }) 
   return (
     <div className="space-y-4">
       <p className="rounded-md border border-ink/10 bg-white p-4 text-sm leading-6 text-ink/70 shadow-soft">
-        You are editing demo data. Submit will validate and show a local demo success message; sign in and create saved records to persist readiness checklists.
+        You are editing sample data. Submit validates the sample without changing an account record; sign in to save a private Hunting Readiness checklist.
       </p>
       <HuntingReadinessForm
         mode="edit"

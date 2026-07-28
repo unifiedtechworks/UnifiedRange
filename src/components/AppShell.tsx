@@ -9,6 +9,7 @@ import { ProfileCompletionGate } from "@/components/ProfileCompletionGate";
 
 const navigation = [
   { href: "/dashboard", label: "Dashboard" },
+  { href: "/profile", label: "Profile" },
   { href: "/passports", label: "Equipment Passports" },
   { href: "/projectiles", label: "Projectiles / Ammo" },
   { href: "/optics", label: "Optics / Sights" },
@@ -16,7 +17,6 @@ const navigation = [
   { href: "/maintenance", label: "Maintenance" },
   { href: "/readiness", label: "Hunting Readiness" },
   { href: "/discover", label: "Discover" },
-  { href: "/profile", label: "Profile" },
   { href: "/settings", label: "Settings" }
 ];
 
@@ -27,9 +27,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen bg-paper">
       <aside className="fixed inset-y-0 left-0 hidden w-72 flex-col overflow-y-auto border-r border-ink/10 bg-white/85 px-5 py-6 backdrop-blur lg:flex">
-        <Link href="/dashboard" className="block">
+        <Link href="/" className="block">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-moss">UnifiedRange</p>
-          <h1 className="mt-2 text-2xl font-bold text-ink">Setup logbook</h1>
+          <h1 className="mt-2 text-2xl font-bold text-ink">Private setup logbook</h1>
         </Link>
         <nav className="mt-8 flex flex-col gap-1">
           {navigation.map((item) => {
@@ -54,7 +54,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="lg:pl-72">
         <header className="sticky top-0 z-20 border-b border-ink/10 bg-paper/95 px-4 py-3 backdrop-blur lg:hidden">
           <div className="flex min-w-0 items-center justify-between gap-3">
-            <Link href="/dashboard" className="min-w-0 shrink-0">
+            <Link href="/" className="min-w-0 shrink-0">
               <span className="text-sm font-semibold uppercase tracking-[0.18em] text-moss">UnifiedRange</span>
             </Link>
             <AuthNav compact />

@@ -110,7 +110,7 @@ export function MaintenanceLogDetail({ maintenanceId }: { maintenanceId?: string
     return (
       <section className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
         <h2 className="text-xl font-bold text-ink">Maintenance record not found</h2>
-        <p className="mt-2 text-sm leading-6 text-ink/70">{error || "This Maintenance record is not available for the current signed-in account or demo data set."}</p>
+        <p className="mt-2 text-sm leading-6 text-ink/70">{error || "This Maintenance record is not available for the current account or sample data set."}</p>
         <Link href="/maintenance" className="mt-4 inline-flex rounded-md bg-ink px-4 py-2 text-sm font-semibold text-white">
           Back to Maintenance
         </Link>
@@ -147,7 +147,7 @@ function MaintenanceLogDetailContent({
   return (
     <section>
       <PageHeader
-        eyebrow={source === "saved" ? "Saved Maintenance" : "Demo Maintenance"}
+        eyebrow={source === "saved" ? "Saved private Maintenance" : "Sample Maintenance"}
         title={entry.maintenanceType}
         description="Maintenance records are private by default and are excluded from public passport snapshots."
         action={
@@ -163,7 +163,7 @@ function MaintenanceLogDetailContent({
       />
       <article className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
         <div className="mb-4 flex flex-wrap gap-2">
-          <Tag>{source === "saved" ? "Saved account data" : "Demo data"}</Tag>
+          <Tag>{source === "saved" ? "Saved private record" : "Sample data"}</Tag>
           <Tag>Private record</Tag>
         </div>
         <dl className="grid gap-x-6 md:grid-cols-2">

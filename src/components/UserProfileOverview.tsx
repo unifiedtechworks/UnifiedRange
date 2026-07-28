@@ -219,7 +219,7 @@ export function UserProfileOverview() {
         <article className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
           <h3 className="text-xl font-bold text-ink">Profile required</h3>
           <p className="mt-3 text-sm leading-6 text-ink/70">
-            Signed-in users need a profile before creating or editing saved account records. Signed-out visitors can still browse public pages and clearly labeled demo content.
+            Signed-in users need a profile before creating or editing saved account records. Signed-out visitors can still browse public pages and clearly labeled sample content.
           </p>
         </article>
       </section>
@@ -279,7 +279,7 @@ export function UserProfileOverview() {
 
       <div className="grid gap-6 lg:grid-cols-[0.85fr_1.15fr]">
         <article className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
-          <h3 className="text-xl font-bold text-ink">Account Summary</h3>
+          <h3 className="text-xl font-bold text-ink">Account summary</h3>
           <dl className="mt-4">
             <DetailRow label="Username" value={profile.username ? `@${profile.username}` : "Not set"} />
             <DetailRow label="First name" value={profile.firstName || "Not set"} />
@@ -295,14 +295,14 @@ export function UserProfileOverview() {
         </article>
 
         <div className="space-y-6">
-          <ActivitySection title="Private Activity" description="Visible only to your signed-in account.">
+          <ActivitySection title="Private activity" description="Visible only to your signed-in account.">
             <ActivityLinks title="Recent Equipment Passports" basePath="/passports" items={recentPassports.map((item) => ({ id: item.id, label: item.nickname }))} />
             <ActivityLinks title="Recent Range Sessions" basePath="/sessions" items={recentSessions.map((item) => ({ id: item.id, label: `${item.date} - ${item.discipline}` }))} />
             <ActivityLinks title="Recent Maintenance" basePath="/maintenance" items={recentMaintenance.map((item) => ({ id: item.id, label: `${item.date} - ${item.maintenanceType}` }))} />
             <ActivityLinks title="Recent Hunting Readiness" basePath="/readiness" items={recentChecklists.map((item) => ({ id: item.id, label: item.huntName }))} />
           </ActivitySection>
 
-          <ActivitySection title="Public Activity" description="Sanitized public snapshots only. Private records and images are not shown here.">
+          <ActivitySection title="Public activity" description="Sanitized public snapshots only. Private records and images are not shown here.">
             <ActivityLinks title="Published Public Passports" basePath="/discover/passports" items={activity.publicSnapshots.map((item) => ({ id: item.id, label: item.title }))} />
           </ActivitySection>
         </div>

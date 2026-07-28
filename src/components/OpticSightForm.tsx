@@ -88,7 +88,7 @@ export function OpticSightForm({ mode, initialValues, cancelHref, submitLabel, s
     }
 
     console.log(`Optic / sight ${mode} placeholder submit`, values);
-    setLocalSuccessMessage(mode === "create" ? "Demo draft saved locally. Sign in to save this sight profile to your account." : "Demo updates saved locally. Sign in to save sight profile changes to your account.");
+    setLocalSuccessMessage(mode === "create" ? "Sample draft validated. Sign in to save an Optic / Sight profile to your account." : "Sample changes validated. Sign in to save changes to an account record.");
   }
 
   return (

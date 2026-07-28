@@ -7,14 +7,14 @@ export default function SettingsPage() {
     <section>
       <PageHeader
         eyebrow="Settings"
-        title="Privacy and account defaults"
-        description="Manage account preferences, auth status, privacy defaults, and reminders for sanitized public sharing."
+        title="Privacy and account settings"
+        description="Manage account access, privacy defaults, public profile visibility, and sanitized sharing preferences."
       />
       <div className="grid gap-6 lg:grid-cols-2">
         <article className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
           <h3 className="text-xl font-bold text-ink">Profile</h3>
           <p className="mt-3 text-sm leading-6 text-ink/70">
-            Profile setup and identity editing live in the dedicated Profile section. Settings stays focused on auth status, privacy defaults, profile visibility, and hosted-dev boundaries.
+            View your profile, update the fields you control, and keep your permanent username separate from account and privacy settings.
           </p>
           <div className="mt-4 flex flex-col gap-2 sm:flex-row">
             <Link href="/profile" className="inline-flex justify-center rounded-md bg-ink px-4 py-2 text-sm font-semibold text-white">
@@ -26,19 +26,19 @@ export default function SettingsPage() {
           </div>
         </article>
         <article className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
-          <h3 className="text-xl font-bold text-ink">Hosted Dev Boundaries</h3>
+          <h3 className="text-xl font-bold text-ink">Privacy boundaries</h3>
           <ul className="mt-4 space-y-3 text-sm leading-6 text-ink/70">
-            <li>Cognito auth, AppSync records, DynamoDB tables, and private S3 uploads are active for hosted dev testing.</li>
-            <li>Signed-out users can browse clearly labeled demo data without seeing private account records.</li>
-            <li>Public Passport publishing creates sanitized text/setup snapshots only.</li>
-            <li>Public image publishing and metadata-stripping workflows are not part of this MVP slice; moderation review is limited to report metadata for admin or moderator group users.</li>
+            <li>Private records and private images remain visible only to the signed-in owner.</li>
+            <li>Signed-out visitors can browse public pages and clearly labeled sample data without seeing private account records.</li>
+            <li>Public Passport publishing creates sanitized text and setup snapshots only.</li>
+            <li>Private images, private notes, purchase details, lot numbers, and exact locations are excluded from public pages.</li>
           </ul>
         </article>
         <AuthStatusCard />
         <article className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
-          <h3 className="text-xl font-bold text-ink">Privacy Controls</h3>
+          <h3 className="text-xl font-bold text-ink">Privacy controls</h3>
           <p className="mt-3 text-sm leading-6 text-ink/70">
-            Review privacy defaults for Public Passport preview, lot number hiding, private-note protection, and future metadata stripping.
+            Review defaults for public profile visibility, Public Passport previews, lot number hiding, private-note protection, and image privacy.
           </p>
           <Link href="/settings/privacy" className="mt-4 inline-flex rounded-md bg-ink px-4 py-2 text-sm font-semibold text-white">
             Open privacy settings
@@ -46,7 +46,7 @@ export default function SettingsPage() {
         </article>
         <article className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h3 className="text-xl font-bold text-ink">Account Data</h3>
+            <h3 className="text-xl font-bold text-ink">Account data</h3>
             <span className="rounded-md bg-field px-3 py-1 text-xs font-bold uppercase tracking-[0.12em] text-moss">Planned</span>
           </div>
           <p className="mt-3 text-sm leading-6 text-ink/70">

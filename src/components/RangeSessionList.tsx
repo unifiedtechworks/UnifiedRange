@@ -100,8 +100,8 @@ export function RangeSessionList() {
       <section>
         <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h2 className="text-xl font-bold text-ink">Saved Account Data</h2>
-            <p className="mt-1 text-sm leading-6 text-ink/65">Signed-in users see owner-scoped Range Sessions from AppSync here.</p>
+            <h2 className="text-xl font-bold text-ink">Your saved records</h2>
+            <p className="mt-1 text-sm leading-6 text-ink/65">Signed-in users see their saved private Range Sessions here.</p>
           </div>
           <span className="w-fit rounded-md bg-field px-3 py-1 text-xs font-semibold text-ink">
             {state === "loading" ? "Loading" : state === "signed-out" ? "Sign in to save" : `${savedSessions.length} saved`}
@@ -113,7 +113,7 @@ export function RangeSessionList() {
 
         {state === "signed-out" ? (
           <div className="rounded-md border border-ink/10 bg-white p-4 shadow-soft">
-            <p className="text-sm leading-6 text-ink/70">You are browsing demo sessions. Sign in to save your own Range Sessions linked to saved records.</p>
+            <p className="text-sm leading-6 text-ink/70">You are browsing sample sessions. Sign in to save private Range Sessions linked to your saved records.</p>
             <Link href="/auth/sign-in" className="mt-3 inline-flex rounded-md bg-ink px-4 py-2 text-sm font-semibold text-white">
               Sign in to save records
             </Link>
@@ -130,7 +130,7 @@ export function RangeSessionList() {
               <SessionCard
                 key={session.id}
                 session={session}
-                sourceLabel="Saved account data"
+                sourceLabel="Saved private record"
                 equipmentSummary={getEquipmentSummary(session.equipmentPassportId)}
                 projectileSummary={getProjectileSummary(session.projectileProfileId)}
               />
@@ -141,12 +141,12 @@ export function RangeSessionList() {
 
       <section>
         <div className="mb-4">
-          <h2 className="text-xl font-bold text-ink">Demo Data</h2>
-          <p className="mt-1 text-sm leading-6 text-ink/65">Mock range sessions remain available for signed-out browsing and UI demos.</p>
+          <h2 className="text-xl font-bold text-ink">Sample data</h2>
+          <p className="mt-1 text-sm leading-6 text-ink/65">Sample range sessions remain available for signed-out browsing.</p>
         </div>
         <div className="space-y-4">
           {rangeSessions.map((session) => (
-            <SessionCard key={session.id} session={session} sourceLabel="Demo data" />
+            <SessionCard key={session.id} session={session} sourceLabel="Sample data" />
           ))}
         </div>
       </section>

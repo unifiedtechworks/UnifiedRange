@@ -90,8 +90,8 @@ export function MaintenanceLogList() {
       <section>
         <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h2 className="text-xl font-bold text-ink">Saved Account Data</h2>
-            <p className="mt-1 text-sm leading-6 text-ink/65">Signed-in users see owner-scoped Maintenance records from AppSync here.</p>
+            <h2 className="text-xl font-bold text-ink">Your saved records</h2>
+            <p className="mt-1 text-sm leading-6 text-ink/65">Signed-in users see their saved private Maintenance records here.</p>
           </div>
           <span className="w-fit rounded-md bg-field px-3 py-1 text-xs font-semibold text-ink">
             {state === "loading" ? "Loading" : state === "signed-out" ? "Sign in to save" : `${savedEntries.length} saved`}
@@ -103,7 +103,7 @@ export function MaintenanceLogList() {
 
         {state === "signed-out" ? (
           <div className="rounded-md border border-ink/10 bg-white p-4 shadow-soft">
-            <p className="text-sm leading-6 text-ink/70">You are browsing demo maintenance records. Sign in to save private Maintenance records linked to your saved Equipment Passports.</p>
+            <p className="text-sm leading-6 text-ink/70">You are browsing sample maintenance records. Sign in to save private Maintenance records linked to your Equipment Passports.</p>
             <Link href="/auth/sign-in" className="mt-3 inline-flex rounded-md bg-ink px-4 py-2 text-sm font-semibold text-white">
               Sign in to save records
             </Link>
@@ -117,7 +117,7 @@ export function MaintenanceLogList() {
         {savedEntries.length > 0 ? (
           <div className="space-y-4">
             {savedEntries.map((entry) => (
-              <MaintenanceCard key={entry.id} entry={entry} sourceLabel="Saved account data" equipmentSummary={getEquipmentSummary(entry.equipmentPassportId)} />
+              <MaintenanceCard key={entry.id} entry={entry} sourceLabel="Saved private record" equipmentSummary={getEquipmentSummary(entry.equipmentPassportId)} />
             ))}
           </div>
         ) : null}
@@ -125,12 +125,12 @@ export function MaintenanceLogList() {
 
       <section>
         <div className="mb-4">
-          <h2 className="text-xl font-bold text-ink">Demo Data</h2>
-          <p className="mt-1 text-sm leading-6 text-ink/65">Mock maintenance records remain available for signed-out browsing and UI demos.</p>
+          <h2 className="text-xl font-bold text-ink">Sample data</h2>
+          <p className="mt-1 text-sm leading-6 text-ink/65">Sample maintenance records remain available for signed-out browsing.</p>
         </div>
         <div className="space-y-4">
           {maintenanceEntries.map((entry) => (
-            <MaintenanceCard key={entry.id} entry={entry} sourceLabel="Demo data" />
+            <MaintenanceCard key={entry.id} entry={entry} sourceLabel="Sample data" />
           ))}
         </div>
       </section>

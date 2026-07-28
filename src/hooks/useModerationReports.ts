@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Schema } from "../../amplify/data/resource";
 import { useAuthUser } from "@/hooks/useAuthUser";
 import { configureAmplifyClient, getAuthErrorMessage, isAuthTokenClearedError } from "@/lib/amplifyClient";
-import { countPendingReports, hasModerationAccess, sortModerationReports } from "@/lib/moderationAccess";
+import { countPendingReports, hasModerationAccess, reportStatuses, sortModerationReports, type ReportStatus } from "@/lib/moderationAccess";
 import { buildReporterIdentityMap, type ReporterIdentity } from "@/lib/moderationReporterIdentity";
 
 export type ModerationReportRecord = Schema["Report"]["type"];
@@ -111,6 +111,24 @@ export function useModerationReports() {
     };
   }, [loadReports]);
 
+  const updateReportStatus = useCallback(
+    async (reportId: string, status: ReportStatus) => {
+      if (authState.status !== "signed-in" || !canAccessModeration) {
+        throw new Error("Admin or moderator access is required to update report status.");
+      }
+      if (!reportStatuses.includes(status)) {
+        throw new Error("Unsupported report status.");
+      }
+
+      const result = await client.models.Report.update({ id: reportId, status });
+      if (result.errors?.length) {
+        throw new Error(result.errors.map((item) => item.message).join(" "));
+      }
+      await loadReports();
+    },
+    [authState.status, canAccessModeration, client, loadReports]
+  );
+
   return {
     state,
     reports,
@@ -119,6 +137,7 @@ export function useModerationReports() {
     identityWarning,
     pendingCount: countPendingReports(reports),
     canAccessModeration,
-    reloadReports: loadReports
+    reloadReports: loadReports,
+    updateReportStatus
   };
 }

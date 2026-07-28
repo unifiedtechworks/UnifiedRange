@@ -101,13 +101,13 @@ export function PassportForm({ mode, initialValues, cancelHref, submitLabel, suc
     }
 
     console.log(`Passport ${mode} placeholder submit`, values);
-    setLocalSuccessMessage(mode === "create" ? "Demo draft saved locally. Sign in to save this passport to your account." : "Demo updates saved locally. Sign in to save passport changes to your account.");
+    setLocalSuccessMessage(mode === "create" ? "Sample draft validated. Sign in to save an Equipment Passport to your account." : "Sample changes validated. Sign in to save changes to an account record.");
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <section className="rounded-md border border-moss/20 bg-field p-4">
-        <h3 className="text-base font-bold text-ink">Privacy First</h3>
+        <h3 className="text-base font-bold text-ink">Privacy first</h3>
         <p className="mt-2 text-sm leading-6 text-ink/70">
           Equipment passports are private by default. You can prepare public notes for discovery, but sharing should stay sanitized and intentional.
         </p>
@@ -115,7 +115,7 @@ export function PassportForm({ mode, initialValues, cancelHref, submitLabel, suc
 
       <div className="grid gap-5 lg:grid-cols-[1fr_0.9fr]">
         <section className="rounded-md border border-ink/10 bg-white p-4 shadow-soft sm:p-5">
-          <h3 className="text-lg font-bold text-ink">Setup Identity</h3>
+          <h3 className="text-lg font-bold text-ink">Setup identity</h3>
           <div className="mt-5 grid gap-4 sm:grid-cols-2">
             <Field label="Equipment type">
               <select
@@ -139,7 +139,7 @@ export function PassportForm({ mode, initialValues, cancelHref, submitLabel, suc
         </section>
 
         <section className="rounded-md border border-ink/10 bg-white p-4 shadow-soft sm:p-5">
-          <h3 className="text-lg font-bold text-ink">Setup Summary</h3>
+          <h3 className="text-lg font-bold text-ink">Setup summary</h3>
           <div className="mt-5 space-y-4">
             <TextField label="Optic / sight summary" value={values.opticSightSummary} onChange={(value) => updateField("opticSightSummary", value)} />
             <TextField label="Projectile / ammo summary" value={values.projectileAmmoSummary} onChange={(value) => updateField("projectileAmmoSummary", value)} />
@@ -149,7 +149,7 @@ export function PassportForm({ mode, initialValues, cancelHref, submitLabel, suc
       </div>
 
       <section className="rounded-md border border-ink/10 bg-white p-4 shadow-soft sm:p-5">
-        <h3 className="text-lg font-bold text-ink">Notes and Sharing</h3>
+        <h3 className="text-lg font-bold text-ink">Notes and sharing</h3>
         <div className="mt-5 grid gap-4 lg:grid-cols-2">
           <TextArea label="Private notes" value={values.privateNotes} helper="Private notes are for your own setup documentation and should not appear in public discovery." onChange={(value) => updateField("privateNotes", value)} />
           <TextArea label="Public notes" value={values.publicNotes} helper="Use general setup context suitable for a sanitized public passport." onChange={(value) => updateField("publicNotes", value)} />

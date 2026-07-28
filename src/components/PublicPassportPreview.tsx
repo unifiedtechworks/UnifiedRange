@@ -266,7 +266,7 @@ function PublicPreviewContent({
   return (
     <section>
       <PageHeader
-        eyebrow={source === "saved" ? "Saved public passport preview" : "Demo public passport preview"}
+        eyebrow={source === "saved" ? "Saved public passport preview" : "Sample public passport preview"}
         title={passport.nickname}
         description="Review the private record beside the sanitized public version before publishing anything to discovery."
         action={
@@ -353,7 +353,7 @@ function PublicPreviewContent({
       </section>
 
       <section className="mt-6 rounded-md border border-ink/10 bg-white p-5 shadow-soft">
-        <h3 className="text-xl font-bold text-ink">{source === "saved" ? "Publish Controls" : "Mock Publish Controls"}</h3>
+        <h3 className="text-xl font-bold text-ink">{source === "saved" ? "Publish controls" : "Sample publish controls"}</h3>
         <p className="mt-2 text-sm leading-6 text-ink/65">
           {source === "saved" ? "Publish or update the sanitized text/setup snapshot in Discover. Private images remain private." : "These buttons only show local confirmation messages. No backend write occurs."}
         </p>
