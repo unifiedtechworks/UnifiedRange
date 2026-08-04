@@ -7,6 +7,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Schema } from "../../amplify/data/resource";
 import { HuntingChecklistCard } from "@/components/HuntingChecklistCard";
 import { MaintenanceCard } from "@/components/MaintenanceCard";
+import { OnboardingChecklist } from "@/components/OnboardingChecklist";
 import { PageHeader } from "@/components/PageHeader";
 import { PassportCard } from "@/components/PassportCard";
 import { SessionCard } from "@/components/SessionCard";
@@ -25,6 +26,7 @@ import {
   recordToRangeSession,
   type RangeSessionRecord
 } from "@/lib/rangeSessionData";
+import { hasSavedPrivacySettings, isProfileComplete, type UserProfileRecord } from "@/lib/userProfileData";
 import type { EquipmentPassport, HuntingChecklist, MaintenanceLogEntry, OpticSightProfile, ProjectileProfile, RangeSession } from "@/types";
 
 type DashboardState = "loading" | "signed-out" | "ready";
@@ -36,6 +38,9 @@ interface SavedDashboardData {
   sessions: RangeSession[];
   maintenance: MaintenanceLogEntry[];
   checklists: HuntingChecklist[];
+  profile: UserProfileRecord | null;
+  targetPhotos: Schema["TargetPhoto"]["type"][];
+  publicSnapshots: Schema["PublicPassportSnapshot"]["type"][];
 }
 
 const emptySavedData: SavedDashboardData = {
@@ -44,7 +49,10 @@ const emptySavedData: SavedDashboardData = {
   optics: [],
   sessions: [],
   maintenance: [],
-  checklists: []
+  checklists: [],
+  profile: null,
+  targetPhotos: [],
+  publicSnapshots: []
 };
 
 const quickActions = [
@@ -119,13 +127,16 @@ export function DashboardOverview() {
     }
 
     try {
-      const [passportResult, projectileResult, opticResult, sessionResult, maintenanceResult, checklistResult] = await Promise.all([
+      const [passportResult, projectileResult, opticResult, sessionResult, maintenanceResult, checklistResult, profileResult, targetPhotoResult, publicSnapshotResult] = await Promise.all([
         client.models.EquipmentPassport.list({ filter: { ownerId: { eq: authState.username } } }),
         client.models.ProjectileProfile.list({ filter: { ownerId: { eq: authState.username } } }),
         client.models.OpticSightProfile.list({ filter: { ownerId: { eq: authState.username } } }),
         client.models.RangeSession.list({ filter: { ownerId: { eq: authState.username } } }),
         client.models.MaintenanceLogEntry.list({ filter: { ownerId: { eq: authState.username } } }),
-        client.models.HuntingChecklist.list({ filter: { ownerId: { eq: authState.username } } })
+        client.models.HuntingChecklist.list({ filter: { ownerId: { eq: authState.username } } }),
+        client.models.UserProfile.list({ filter: { ownerId: { eq: authState.username } } }),
+        client.models.TargetPhoto.list({ filter: { ownerId: { eq: authState.username } } }),
+        client.models.PublicPassportSnapshot.list({ filter: { ownerId: { eq: authState.username } } })
       ]);
 
       const errors = [
@@ -134,7 +145,10 @@ export function DashboardOverview() {
         ...(opticResult.errors ?? []),
         ...(sessionResult.errors ?? []),
         ...(maintenanceResult.errors ?? []),
-        ...(checklistResult.errors ?? [])
+        ...(checklistResult.errors ?? []),
+        ...(profileResult.errors ?? []),
+        ...(targetPhotoResult.errors ?? []),
+        ...(publicSnapshotResult.errors ?? [])
       ];
 
       if (errors.length) {
@@ -151,7 +165,10 @@ export function DashboardOverview() {
         optics: opticResult.data.map((record: OpticSightProfileRecord) => recordToOpticSightProfile(record)),
         sessions: sessionResult.data.map((record: RangeSessionRecord) => recordToRangeSession(record)),
         maintenance: maintenanceResult.data.map((record: MaintenanceLogEntryRecord) => recordToMaintenanceLogEntry(record)),
-        checklists: checklistResult.data.map((record: HuntingChecklistRecord) => recordToHuntingChecklist(record))
+        checklists: checklistResult.data.map((record: HuntingChecklistRecord) => recordToHuntingChecklist(record)),
+        profile: profileResult.data[0] ?? null,
+        targetPhotos: targetPhotoResult.data,
+        publicSnapshots: publicSnapshotResult.data
       });
       setState("ready");
     } catch (dashboardError) {
@@ -207,7 +224,10 @@ function getDemoDashboardData(): SavedDashboardData {
     optics,
     sessions: rangeSessions,
     maintenance: maintenanceEntries,
-    checklists: huntingChecklists
+    checklists: huntingChecklists,
+    profile: null,
+    targetPhotos: [],
+    publicSnapshots: []
   };
 }
 
@@ -245,7 +265,7 @@ function DashboardContent({ data, mode, error }: { data: SavedDashboardData; mod
   const recentSessions = sortByDateDesc(data.sessions).slice(0, 3);
   const recentMaintenance = sortByDateDesc(data.maintenance).slice(0, 3);
   const recentChecklists = sortByDateDesc(data.checklists).slice(0, 3);
-  const hasSavedRecords = Object.values(data).some((items) => items.length > 0);
+  const hasSavedRecords = [data.passports, data.projectiles, data.optics, data.sessions, data.maintenance, data.checklists].some((items) => items.length > 0);
 
   return (
     <DashboardShell
@@ -267,6 +287,25 @@ function DashboardContent({ data, mode, error }: { data: SavedDashboardData; mod
       ) : null}
 
       {error ? <p className="mb-6 rounded-md border border-clay/30 bg-clay/10 p-4 text-sm font-semibold text-clay">{error}</p> : null}
+
+      {!isDemo ? (
+        <div className="mb-6">
+          <OnboardingChecklist
+            progress={{
+              profileComplete: isProfileComplete(data.profile),
+              privacyReviewed: hasSavedPrivacySettings(data.profile),
+              equipmentPassportCount: data.passports.length,
+              projectileCount: data.projectiles.length,
+              opticCount: data.optics.length,
+              rangeSessionCount: data.sessions.length,
+              hasPrivatePhoto: data.passports.some((passport) => Boolean(passport.privateCoverPhotoKey)) || data.targetPhotos.length > 0,
+              huntingReadinessCount: data.checklists.length,
+              publicSnapshotCount: data.publicSnapshots.length,
+              firstPassportId: data.passports[0]?.id
+            }}
+          />
+        </div>
+      ) : null}
 
       {!isDemo && !hasSavedRecords ? (
         <section className="mb-6 rounded-md border border-ink/10 bg-white p-4 shadow-soft">

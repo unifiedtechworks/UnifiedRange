@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Schema } from "../../amplify/data/resource";
 import { DetailRow } from "@/components/DetailRow";
+import { OnboardingChecklist } from "@/components/OnboardingChecklist";
 import { PageHeader } from "@/components/PageHeader";
 import { useAuthUser } from "@/hooks/useAuthUser";
 import { configureAmplifyClient, getAuthErrorMessage, isAuthTokenClearedError } from "@/lib/amplifyClient";
@@ -13,6 +14,8 @@ import { recordToHuntingChecklist, type HuntingChecklistRecord } from "@/lib/hun
 import { recordToMaintenanceLogEntry, type MaintenanceLogEntryRecord } from "@/lib/maintenanceLogData";
 import { recordToRangeSession, type RangeSessionRecord } from "@/lib/rangeSessionData";
 import {
+  hasSavedPrivacySettings,
+  isProfileComplete,
   privacyDefaultLabel,
   type UserProfileRecord
 } from "@/lib/userProfileData";
@@ -34,6 +37,9 @@ interface ProfileActivity {
   maintenance: MaintenanceLogEntry[];
   checklists: HuntingChecklist[];
   publicSnapshots: Schema["PublicPassportSnapshot"]["type"][];
+  projectileCount: number;
+  opticCount: number;
+  targetPhotos: Schema["TargetPhoto"]["type"][];
 }
 
 const emptyActivity: ProfileActivity = {
@@ -41,7 +47,10 @@ const emptyActivity: ProfileActivity = {
   sessions: [],
   maintenance: [],
   checklists: [],
-  publicSnapshots: []
+  publicSnapshots: [],
+  projectileCount: 0,
+  opticCount: 0,
+  targetPhotos: []
 };
 
 function sortByRecent<T extends { date?: string | null; createdAt?: string | null; updatedAt?: string | null }>(items: T[]) {
@@ -116,12 +125,15 @@ export function UserProfileOverview() {
         }
       }
 
-      const [passportResult, sessionResult, maintenanceResult, checklistResult, publicSnapshotResult] = await Promise.all([
+      const [passportResult, sessionResult, maintenanceResult, checklistResult, publicSnapshotResult, projectileResult, opticResult, targetPhotoResult] = await Promise.all([
         client.models.EquipmentPassport.list({ filter: { ownerId: { eq: authState.username } } }),
         client.models.RangeSession.list({ filter: { ownerId: { eq: authState.username } } }),
         client.models.MaintenanceLogEntry.list({ filter: { ownerId: { eq: authState.username } } }),
         client.models.HuntingChecklist.list({ filter: { ownerId: { eq: authState.username } } }),
-        client.models.PublicPassportSnapshot.list({ filter: { ownerId: { eq: authState.username } } })
+        client.models.PublicPassportSnapshot.list({ filter: { ownerId: { eq: authState.username } } }),
+        client.models.ProjectileProfile.list({ filter: { ownerId: { eq: authState.username } } }),
+        client.models.OpticSightProfile.list({ filter: { ownerId: { eq: authState.username } } }),
+        client.models.TargetPhoto.list({ filter: { ownerId: { eq: authState.username } } })
       ]);
 
       const errors = [
@@ -129,7 +141,10 @@ export function UserProfileOverview() {
         ...(sessionResult.errors ?? []),
         ...(maintenanceResult.errors ?? []),
         ...(checklistResult.errors ?? []),
-        ...(publicSnapshotResult.errors ?? [])
+        ...(publicSnapshotResult.errors ?? []),
+        ...(projectileResult.errors ?? []),
+        ...(opticResult.errors ?? []),
+        ...(targetPhotoResult.errors ?? [])
       ];
 
       if (errors.length) {
@@ -145,7 +160,10 @@ export function UserProfileOverview() {
         sessions: sessionResult.data.map((record: RangeSessionRecord) => recordToRangeSession(record)),
         maintenance: maintenanceResult.data.map((record: MaintenanceLogEntryRecord) => recordToMaintenanceLogEntry(record)),
         checklists: checklistResult.data.map((record: HuntingChecklistRecord) => recordToHuntingChecklist(record)),
-        publicSnapshots: publicSnapshotResult.data
+        publicSnapshots: publicSnapshotResult.data,
+        projectileCount: projectileResult.data.length,
+        opticCount: opticResult.data.length,
+        targetPhotos: targetPhotoResult.data
       });
       setState("ready");
     } catch (profileError) {
@@ -276,6 +294,23 @@ export function UserProfileOverview() {
           </Link>
         </section>
       ) : null}
+
+      <div className="mb-6">
+        <OnboardingChecklist
+          progress={{
+            profileComplete: isProfileComplete(profile),
+            privacyReviewed: hasSavedPrivacySettings(profile),
+            equipmentPassportCount: activity.passports.length,
+            projectileCount: activity.projectileCount,
+            opticCount: activity.opticCount,
+            rangeSessionCount: activity.sessions.length,
+            hasPrivatePhoto: activity.passports.some((passport) => Boolean(passport.privateCoverPhotoKey)) || activity.targetPhotos.length > 0,
+            huntingReadinessCount: activity.checklists.length,
+            publicSnapshotCount: activity.publicSnapshots.length,
+            firstPassportId: activity.passports[0]?.id
+          }}
+        />
+      </div>
 
       <div className="grid gap-6 lg:grid-cols-[0.85fr_1.15fr]">
         <article className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">

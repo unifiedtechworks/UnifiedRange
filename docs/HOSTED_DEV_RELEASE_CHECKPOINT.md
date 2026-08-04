@@ -48,6 +48,14 @@ UnifiedRange is deployed as an AWS Amplify Gen 2 hosted-development MVP. This ch
 - Export and deletion controls are visibly unavailable and do not perform destructive actions.
 - Planning documents define privacy, retention, confirmation, and backend-workflow requirements for later implementation.
 
+### Onboarding checklist
+
+- Signed-in users see a helpful onboarding checklist on Dashboard and Profile; signed-out visitors continue to see public and sample experiences only.
+- Nine completion milestones are derived from the existing profile, privacy settings, private record counts, private photo records, and public snapshots. No onboarding model is required.
+- Discover remains a link-only tenth step and is intentionally not tracked.
+- The checklist emphasizes that records and photos are private by default, sanitized publishing is optional, and private photos are never public.
+- Mostly complete checklists collapse automatically and can be expanded again at any time.
+
 ## Hosted Smoke Test Checklist
 
 Run this checklist against the current Amplify Hosting development URL after each release:

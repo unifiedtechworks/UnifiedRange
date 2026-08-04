@@ -149,6 +149,21 @@ export function isProfileComplete(profile?: UserProfileRecord | null) {
   return Boolean(profile?.username && !validateUsername(profile.username));
 }
 
+export function hasSavedPrivacySettings(profile?: UserProfileRecord | null) {
+  if (!profile?.privacyDefault || !profile.accountVisibility || !profile.defaultPassportVisibility) {
+    return false;
+  }
+
+  return [
+    profile.requirePublicPreviewBeforePublishing,
+    profile.hideExactLocationsFromPublicSharing,
+    profile.hideAmmoLotNumbersFromPublicSharing,
+    profile.hidePurchaseDetailsFromPublicSharing,
+    profile.hidePrivateNotesFromPublicSharing,
+    profile.stripImageMetadataBeforePublicSharing
+  ].every((value) => typeof value === "boolean");
+}
+
 export function didLegalNameChange(values: UserProfileFormValues, profile?: UserProfileRecord | null) {
   return values.firstName.trim() !== (profile?.firstName ?? "") || values.lastName.trim() !== (profile?.lastName ?? "");
 }
