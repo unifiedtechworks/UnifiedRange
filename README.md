@@ -411,7 +411,7 @@ Run this checklist before promoting a sandbox or production environment:
 Use this checklist against the Amplify Hosting dev URL after each hosted deployment:
 
 1. Auth: open `/auth/sign-in`, sign up or sign in, refresh, and sign out.
-2. Dashboard: confirm signed-in users see saved account counts and signed-out users see clearly labeled demo data.
+2. Dashboard: confirm signed-in users see saved account counts and signed-out users see clearly labeled sample data.
 3. Profile: open `/profile/setup` for new users or `/profile/edit` for existing users, refresh, and confirm UserProfile persists with username reservation and username read-only after setup.
 4. Privacy settings: open `/settings/privacy`, change settings, save, refresh, and confirm private settings are hidden after sign-out.
 5. Equipment Passports: create, view, edit, refresh, and confirm private setup photo upload works for a saved passport.
@@ -420,7 +420,7 @@ Use this checklist against the Amplify Hosting dev URL after each hosted deploym
 8. Public publishing: open a saved passport Public Preview, publish or update a sanitized Public Passport snapshot, view it in Discover, and unpublish if needed.
 9. Discover: confirm filters work and public detail pages show sanitized fields only without exposing private notes, private S3 keys, private images, target photos, maintenance records, readiness records, ammo lot numbers, purchase details, exact locations, owner private details, or image metadata.
 10. Social actions: signed-in users can react, comment, and report; signed-out users can view public pages and see sign-in prompts for actions.
-11. Moderation report review: Cognito `admin` or `moderator` users can open `/moderation/reports`, see pending counts, and review submitted report metadata with read-only status; normal signed-in users see an access-denied message and signed-out users see a sign-in prompt.
+11. Moderation report review: Cognito `admin` or `moderator` users can open `/moderation/reports`, see pending counts, and update report workflow status without changing reported content; normal signed-in users see an access-denied message and signed-out users see a sign-in prompt.
 12. Failure states: if public snapshots or reaction counts are unavailable, the page should remain usable with a quiet fallback message.
 
 ### Before Deploying
@@ -454,12 +454,13 @@ AWS backend integration is intentionally staged. Private records, AppSync author
 
 Start here:
 
-1. `docs/PRODUCT_VISION.md`
-2. `docs/MVP_SCOPE.md`
-3. `docs/SAFETY_AND_COMPLIANCE_BOUNDARIES.md`
-4. `docs/DATA_MODEL.md`
-5. `docs/USER_FLOWS.md`
-6. `docs/SOCIAL_FEATURES.md`
-7. `docs/MODERATION_POLICY.md`
-8. `docs/AMPLIFY_HOSTING_DEPLOYMENT.md`
-9. `tasks/001-project-bootstrap.md`
+1. `docs/HOSTED_DEV_RELEASE_CHECKPOINT.md`
+2. `docs/PRODUCT_VISION.md`
+3. `docs/MVP_SCOPE.md`
+4. `docs/SAFETY_AND_COMPLIANCE_BOUNDARIES.md`
+5. `docs/DATA_MODEL.md`
+6. `docs/USER_FLOWS.md`
+7. `docs/SOCIAL_FEATURES.md`
+8. `docs/MODERATION_POLICY.md`
+9. `docs/AMPLIFY_HOSTING_DEPLOYMENT.md`
+10. `tasks/001-project-bootstrap.md`
