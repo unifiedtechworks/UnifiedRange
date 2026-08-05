@@ -64,18 +64,19 @@ Run this checklist against the current Amplify Hosting development URL after eac
 2. Open `/auth/sign-in`. Test sign-up/confirmation with a test account or sign in with an existing test account, refresh, and confirm the session persists.
 3. For a new test account, complete `/profile/setup`. Confirm the username is normalized, reserved, and read-only afterward.
 4. Open `/profile`, `/profile/edit`, `/settings`, and `/settings/privacy`. Confirm owner-only profile and privacy changes persist after refresh.
-5. If a legacy username-conflict fixture is available, confirm `/profile/username-repair` permits only the conflicted owner to reserve an available replacement username and never changes the existing owner's reservation.
-6. Create, view, edit, and delete a test record in Equipment Passports, Projectiles / Ammo, Optics / Sights, Range Sessions, Maintenance, and Hunting Readiness. Confirm records remain scoped to the signed-in owner.
-7. Upload an Equipment Passport photo and Range Session target photo. Refresh, then sign out and confirm private images, image keys, and upload controls are not exposed publicly.
-8. Preview and publish a sanitized Equipment Passport snapshot. Confirm it appears in Discover, update it, and unpublish it when the test is complete.
-9. Open `/u/[username]` while signed out. Confirm the public profile respects account visibility and shows only sanitized identity and published setup activity.
-10. Test Discover search and filters on desktop and mobile. Open a public setup and confirm private notes, private images, lot numbers, purchase details, exact locations, and raw owner IDs are absent.
-11. While signed in, add and remove a reaction, submit a test comment, and submit a test report. While signed out, confirm public content remains readable and write actions show sign-in prompts.
-12. Sign in as an `admin` or `moderator`. Confirm Moderation navigation appears, `/moderation/reports` loads metadata only, pending counts are correct, and all supported report statuses persist after refresh.
-13. Sign in as a normal user and confirm Moderation navigation is hidden and moderation routes do not expose report data or status actions.
-14. Open `/settings/account`. Confirm export and deletion remain disabled placeholders and no destructive account action is available.
-15. Complete a desktop, tablet, and mobile sweep. Confirm navigation remains usable, long content wraps, forms fit the viewport, and pages do not introduce unintended horizontal scrolling.
-16. Sign out and confirm `/profile` and private workflows show appropriate sign-in prompts while public profiles and Discover continue to work.
+5. While signed in, confirm Dashboard and Profile show the onboarding checklist with nine derived milestones and an untracked Discover link. Create a test record and confirm progress updates; sign out and confirm the checklist is absent.
+6. If a legacy username-conflict fixture is available, confirm `/profile/username-repair` permits only the conflicted owner to reserve an available replacement username and never changes the existing owner's reservation.
+7. Create, view, edit, and delete a test record in Equipment Passports, Projectiles / Ammo, Optics / Sights, Range Sessions, Maintenance, and Hunting Readiness. Confirm records remain scoped to the signed-in owner.
+8. Upload an Equipment Passport photo and Range Session target photo. Refresh, then sign out and confirm private images, image keys, and upload controls are not exposed publicly.
+9. Preview and publish a sanitized Equipment Passport snapshot. Confirm it appears in Discover, update it, and unpublish it when the test is complete.
+10. Open `/u/[username]` while signed out. Confirm the public profile respects account visibility and shows only sanitized identity and published setup activity.
+11. Test Discover search and filters on desktop and mobile. Open a public setup and confirm private notes, private images, lot numbers, purchase details, exact locations, and raw owner IDs are absent.
+12. While signed in, add and remove a reaction, submit a test comment, and submit a test report. While signed out, confirm public content remains readable and write actions show sign-in prompts.
+13. Sign in as an `admin` or `moderator`. Confirm Moderation navigation appears, `/moderation/reports` loads metadata only, pending counts are correct, and all supported report statuses persist after refresh.
+14. Sign in as a normal user and confirm Moderation navigation is hidden and moderation routes do not expose report data or status actions.
+15. Open `/settings/account`. Confirm export and deletion remain disabled placeholders and no destructive account action is available.
+16. Complete a desktop, tablet, and mobile sweep. Confirm navigation remains usable, long content wraps, forms fit the viewport, and pages do not introduce unintended horizontal scrolling.
+17. Sign out and confirm `/profile` and private workflows show appropriate sign-in prompts while public profiles and Discover continue to work.
 
 ## Known Limitations
 
@@ -94,6 +95,7 @@ Run this checklist against the current Amplify Hosting development URL after eac
 3. Implement the public-image backend processing and consent workflow described in the Public Image Publishing Plan only after its privacy, metadata-stripping, moderation, and cleanup release gates are satisfied.
 4. Add moderation report counts by status and target, plus filtering and sorting, without coupling status changes to destructive content actions.
 5. Improve Discover search, filters, result organization, and public setup browsing while preserving sanitized snapshot boundaries.
+6. Implement username sign-in only through the privacy-preserving server-side lookup described in the Username Sign-In Plan; email/password remains the current Cognito login.
 
 ## Release Boundary
 

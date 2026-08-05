@@ -196,13 +196,13 @@ export function RangeSessionForm({
       </section>
 
       <section className="rounded-md border border-dashed border-steel/40 bg-white p-4 shadow-soft sm:p-5">
-        <h3 className="text-lg font-bold text-ink">Target Photo Placeholder</h3>
+        <h3 className="text-lg font-bold text-ink">Private target photo</h3>
         <p className="mt-2 text-sm leading-6 text-ink/70">
-          Real image upload will come later with S3 storage and Lambda metadata cleanup. Target photos are private unless explicitly shared.
+          Save this session, then upload a private target photo from its detail page. Private target photos stay in your account and are not included in public snapshots.
         </p>
         <div className="mt-5 rounded-md border border-dashed border-ink/25 bg-paper p-6 text-center">
-          <p className="text-sm font-semibold text-ink">Sample upload area</p>
-          <p className="mt-1 text-xs text-ink/55">No file is uploaded yet. Add a note or manual score below for now.</p>
+          <p className="text-sm font-semibold text-ink">Photo upload is available after saving</p>
+          <p className="mt-1 text-xs text-ink/55">Add a note or manual score below, then save the session to continue.</p>
         </div>
         <div className="mt-5 grid gap-4 md:grid-cols-2">
           <TextField label="Manual group-size / score entry" value={values.targetManualEntry} onChange={(value) => updateField("targetManualEntry", value)} />

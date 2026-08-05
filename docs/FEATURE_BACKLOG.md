@@ -1,6 +1,6 @@
 # Feature Backlog
 
-## MVP
+## Implemented Hosted MVP
 
 - User accounts
 - Private equipment passports
@@ -15,18 +15,20 @@
 - Reactions
 - Comments
 - Reporting
-
-## V1.1
-
 - Amazon Cognito auth
 - AppSync GraphQL API
 - DynamoDB persistence
 - S3 storage for photos
 - AppSync authorization rules
 - Public/private sharing controls
-- EXIF metadata stripping
 - Public profile pages
-- Follow tags and users
+
+## Near-Term Release Work
+
+- Implement public image publishing with an authenticated Lambda that validates ownership and content, creates a metadata-free public derivative, and supports safe removal. Private images remain private until this complete workflow ships; see `PUBLIC_IMAGE_PUBLISHING_PLAN.md`.
+- Implement protected account data export and account deletion with server-side orchestration, private S3 cleanup, retry/audit behavior, and explicit confirmation; see `ACCOUNT_DATA_LIFECYCLE_PLAN.md`.
+- Implement username sign-in only through a rate-limited server-side lookup that does not disclose email or enable username-to-email enumeration; see `USERNAME_SIGN_IN_PLAN.md`.
+- Add moderation report counts by status and reported item, status/target filters, and sorting without coupling report status to destructive content actions.
 
 ## V1.2
 
@@ -37,6 +39,7 @@
 - Round/shot count reminders
 - Maintenance reminders
 - Seasonal hunting checklist templates
+- Follow tags and users
 
 ## Future Moderation and Reporting
 

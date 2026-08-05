@@ -183,7 +183,7 @@ export function OnboardingChecklist({ progress }: { progress: OnboardingChecklis
       )}
 
       <p className="mt-5 rounded-md border border-moss/20 bg-field px-4 py-3 text-sm leading-6 text-ink/70">
-        Records are private by default. Public sharing uses sanitized snapshots and is optional. Private equipment and target photos are never published.
+        Records are private by default. Public sharing uses sanitized snapshots and is optional. Private equipment and target photos stay private and are not included in public snapshots.
       </p>
     </section>
   );

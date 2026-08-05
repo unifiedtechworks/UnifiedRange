@@ -39,7 +39,7 @@ The app may store user-entered logs, setup details, target photos, range notes, 
 - AWS AppSync GraphQL for the API layer
 - DynamoDB for app data
 - S3 for target photos and setup images
-- Lambda for public passport sanitization and image metadata stripping
+- Future Lambda processing for public-image copying and metadata stripping (planned, not implemented)
 - Amplify Hosting for deployment
 
 A mobile app can come later using Expo/React Native against the same AWS backend.
@@ -62,9 +62,9 @@ npm run lint
 npm run build
 ```
 
-## Amplify Gen 2 Foundation
+## Amplify Gen 2 Backend
 
-The repository includes a minimal AWS Amplify Gen 2 backend draft in `amplify/`. The mock MVP still works without a deployed backend.
+The repository includes the AWS Amplify Gen 2 backend definitions used by the hosted-development app. Signed-in saved workflows use Cognito, AppSync/DynamoDB, and private S3 storage. Clearly labeled sample data remains available for signed-out browsing and local UI fallback.
 
 Declared AWS packages:
 
@@ -82,7 +82,7 @@ npm run amplify:sandbox
 
 `npm run amplify:typecheck` validates the backend TypeScript contract without deploying anything. `npm run amplify:sandbox` uses the AWS profile from your shell or `.env` and generates `amplify_outputs.json` for local client configuration. You will need AWS credentials with permission to create the sandbox resources. No AWS Console work is required by the app itself, but you may need to configure an AWS profile before running the sandbox.
 
-Current backend draft:
+Current backend capabilities:
 
 - Amazon Cognito email/password auth
 - AWS AppSync GraphQL data layer
@@ -96,6 +96,9 @@ Current backend draft:
 - Signed-in-only comments and reports
 - Owner-scoped private records for passports, projectiles/ammo, optics/sights, sessions, maintenance, and hunting checklists
 - Private S3 storage paths for signed-in user equipment/setup images and target photos
+- A derived signed-in onboarding checklist on Dashboard and Profile; it adds no onboarding model
+
+Public image publishing is planned but not implemented. Private uploads stay private today, and public snapshots contain sanitized text/setup data only. A future release requires explicit consent plus backend image copying, validation, metadata stripping, and cleanup described in `docs/PUBLIC_IMAGE_PUBLISHING_PLAN.md`.
 
 ### Account Data Lifecycle Status
 
@@ -136,7 +139,7 @@ Then test Cognito auth:
 5. Verify the Auth Status card shows the signed-in email or username.
 6. Use **Sign out** and verify the Auth Status card returns to signed-out state.
 
-Dashboard and product screens continue to use mock data for signed-out and signed-in users.
+Signed-in users see AppSync-backed saved account data. Signed-out visitors may see clearly labeled sample data on public/demo-capable screens.
 
 ### Manual UserProfile Test
 
@@ -292,7 +295,7 @@ With the Amplify sandbox and dev server running:
 8. Sign out and confirm private upload controls are not available.
 9. Confirm demo records still use demo image or placeholder behavior.
 
-Private images are private by default. Public sharing will require a separate sanitized publishing step later. Do not upload images containing serial numbers, exact locations, license plates, or sensitive personal info unless you intend to keep them private. Metadata stripping is not implemented in this slice and is required before public publishing.
+Private images stay private today and are not included in public snapshots. Do not upload images containing serial numbers, exact locations, license plates, or sensitive personal info unless you intend to keep them private. Future public image publishing requires a separate consent and backend-processing workflow; metadata stripping is not currently implemented. See `docs/PUBLIC_IMAGE_PUBLISHING_PLAN.md`.
 
 ### Manual Public Passport Publishing Test
 
@@ -413,15 +416,16 @@ Use this checklist against the Amplify Hosting dev URL after each hosted deploym
 1. Auth: open `/auth/sign-in`, sign up or sign in, refresh, and sign out.
 2. Dashboard: confirm signed-in users see saved account counts and signed-out users see clearly labeled sample data.
 3. Profile: open `/profile/setup` for new users or `/profile/edit` for existing users, refresh, and confirm UserProfile persists with username reservation and username read-only after setup.
-4. Privacy settings: open `/settings/privacy`, change settings, save, refresh, and confirm private settings are hidden after sign-out.
-5. Equipment Passports: create, view, edit, refresh, and confirm private setup photo upload works for a saved passport.
-6. Projectiles / Ammo, Optics / Sights, Range Sessions, Maintenance, and Hunting Readiness: create, view, edit, refresh, and confirm each saved record persists.
-7. Private images: upload a saved Equipment Passport setup photo and a saved Range Session target photo, then sign out and confirm upload controls are not available.
-8. Public publishing: open a saved passport Public Preview, publish or update a sanitized Public Passport snapshot, view it in Discover, and unpublish if needed.
-9. Discover: confirm filters work and public detail pages show sanitized fields only without exposing private notes, private S3 keys, private images, target photos, maintenance records, readiness records, ammo lot numbers, purchase details, exact locations, owner private details, or image metadata.
-10. Social actions: signed-in users can react, comment, and report; signed-out users can view public pages and see sign-in prompts for actions.
-11. Moderation report review: Cognito `admin` or `moderator` users can open `/moderation/reports`, see pending counts, and update report workflow status without changing reported content; normal signed-in users see an access-denied message and signed-out users see a sign-in prompt.
-12. Failure states: if public snapshots or reaction counts are unavailable, the page should remain usable with a quiet fallback message.
+4. Onboarding: while signed in, confirm Dashboard and Profile show nine derived milestones plus an untracked Discover link; complete a test record and confirm progress updates. Sign out and confirm the checklist is absent.
+5. Privacy settings: open `/settings/privacy`, change settings, save, refresh, and confirm private settings are hidden after sign-out.
+6. Equipment Passports: create, view, edit, refresh, and confirm private setup photo upload works for a saved passport.
+7. Projectiles / Ammo, Optics / Sights, Range Sessions, Maintenance, and Hunting Readiness: create, view, edit, refresh, and confirm each saved record persists.
+8. Private images: upload a saved Equipment Passport setup photo and a saved Range Session target photo, then sign out and confirm upload controls are not available.
+9. Public publishing: open a saved passport Public Preview, publish or update a sanitized Public Passport snapshot, view it in Discover, and unpublish if needed.
+10. Discover: confirm filters work and public detail pages show sanitized fields only without exposing private notes, private S3 keys, private images, target photos, maintenance records, readiness records, ammo lot numbers, purchase details, exact locations, owner private details, or image metadata.
+11. Social actions: signed-in users can react, comment, and report; signed-out users can view public pages and see sign-in prompts for actions.
+12. Moderation report review: Cognito `admin` or `moderator` users can open `/moderation/reports`, see pending counts, and update report workflow status without changing reported content; normal signed-in users see an access-denied message and signed-out users see a sign-in prompt.
+13. Failure states: if public snapshots or reaction counts are unavailable, the page should remain usable with a quiet fallback message.
 
 ### Before Deploying
 
@@ -437,18 +441,18 @@ See `docs/AMPLIFY_HOSTING_DEPLOYMENT.md` for the Amplify Hosting dev/staging run
 8. Run `npm run amplify:typecheck`, `npm run lint`, and `npm run build`.
 9. Manually test public/private data boundaries before sharing a deployed URL.
 
-## MVP App Structure
+## App Structure
 
-The initial web app uses:
+The hosted-development web app uses:
 
 - Next.js App Router
 - TypeScript
 - Tailwind CSS
-- Mock data in `src/data`
+- AppSync-backed saved account data plus clearly labeled sample fixtures in `src/data` for signed-out/demo states
 - Domain types in `src/types`
 - Responsive app navigation for dashboard, passports, projectiles/ammo, optics/sights, range sessions, maintenance, hunting readiness, discovery, and settings
 
-AWS backend integration is intentionally staged. Private records, AppSync authorization, DynamoDB access patterns, S3 image storage, Lambda metadata cleanup, and sanitized public setup snapshots should be connected at the data boundary before replacing mock data.
+The live backend boundary covers Cognito auth, owner-scoped records, private S3 images, sanitized public snapshots, public identity snapshots, social actions, and group-gated moderation. Public-image Lambda processing, account lifecycle execution, and secure username sign-in remain planned work.
 
 ## Project Docs
 
@@ -463,4 +467,8 @@ Start here:
 7. `docs/SOCIAL_FEATURES.md`
 8. `docs/MODERATION_POLICY.md`
 9. `docs/AMPLIFY_HOSTING_DEPLOYMENT.md`
-10. `tasks/001-project-bootstrap.md`
+10. `docs/PUBLIC_IMAGE_PUBLISHING_PLAN.md`
+11. `docs/ACCOUNT_DATA_LIFECYCLE_PLAN.md`
+12. `docs/USERNAME_SIGN_IN_PLAN.md`
+13. `docs/FEATURE_BACKLOG.md`
+14. `tasks/001-project-bootstrap.md`

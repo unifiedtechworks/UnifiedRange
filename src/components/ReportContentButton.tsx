@@ -18,8 +18,7 @@ export function ReportContentButton({ targetLabel }: { targetLabel: string }) {
   const [successMessage, setSuccessMessage] = useState("");
 
   function submitReport() {
-    console.log("Mock report submitted", { targetLabel, reason, details });
-    setSuccessMessage("Report received locally. Moderation workflow will be connected later.");
+    setSuccessMessage("This is sample content, so no report was submitted. Open a published setup to use reporting.");
     setIsOpen(false);
     setDetails("");
   }
