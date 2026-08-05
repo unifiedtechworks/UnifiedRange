@@ -468,7 +468,8 @@ Start here:
 8. `docs/MODERATION_POLICY.md`
 9. `docs/AMPLIFY_HOSTING_DEPLOYMENT.md`
 10. `docs/PUBLIC_IMAGE_PUBLISHING_PLAN.md`
-11. `docs/ACCOUNT_DATA_LIFECYCLE_PLAN.md`
-12. `docs/USERNAME_SIGN_IN_PLAN.md`
-13. `docs/FEATURE_BACKLOG.md`
-14. `tasks/001-project-bootstrap.md`
+11. `docs/PUBLIC_IMAGE_BACKEND_DESIGN.md`
+12. `docs/ACCOUNT_DATA_LIFECYCLE_PLAN.md`
+13. `docs/USERNAME_SIGN_IN_PLAN.md`
+14. `docs/FEATURE_BACKLOG.md`
+15. `tasks/001-project-bootstrap.md`

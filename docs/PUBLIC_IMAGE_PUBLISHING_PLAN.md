@@ -6,6 +6,8 @@ Public image publishing is planned but is not implemented. UnifiedRange currentl
 
 This document defines the privacy and safety boundary for a future release. It does not authorize schema changes, public Storage access, image-copy functions, public URLs, or moderation actions in the current hosted-dev app.
 
+See [PUBLIC_IMAGE_BACKEND_DESIGN.md](PUBLIC_IMAGE_BACKEND_DESIGN.md) for the detailed Amplify/Lambda implementation contract, identity-boundary analysis, failure handling, and phased backend work.
+
 ## Design principles
 
 - Images remain private by default.
