@@ -80,7 +80,7 @@ Run this checklist against the current Amplify Hosting development URL after eac
 ## Known Limitations
 
 - Account deletion and account data export are planned but not implemented.
-- Public image publishing is not implemented; uploaded images remain private.
+- Public image publishing is not implemented; uploaded images remain private. A future release requires explicit owner consent, a backend-generated metadata-free derivative, separate public storage, and image reporting/removal safeguards described in the [Public Image Publishing Plan](PUBLIC_IMAGE_PUBLISHING_PLAN.md).
 - Feeds and follows are not implemented.
 - A notification center is not implemented.
 - Moderation has report metadata review and status workflow only. It has no destructive content removal, hiding, suspension, or account actions.
@@ -91,7 +91,7 @@ Run this checklist against the current Amplify Hosting development URL after eac
 
 1. Implement protected account data export and account deletion workflows based on the existing lifecycle plans.
 2. Polish public profiles with improved safe empty states, presentation, and published-setup organization.
-3. Add an onboarding checklist for profile completion, first private records, privacy review, and optional public publishing.
+3. Implement the public-image backend processing and consent workflow described in the Public Image Publishing Plan only after its privacy, metadata-stripping, moderation, and cleanup release gates are satisfied.
 4. Add moderation report counts by status and target, plus filtering and sorting, without coupling status changes to destructive content actions.
 5. Improve Discover search, filters, result organization, and public setup browsing while preserving sanitized snapshot boundaries.
 
