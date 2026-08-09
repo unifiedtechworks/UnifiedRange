@@ -400,7 +400,7 @@ This client-created row is deliberately not called trusted or eligible. A modifi
 
 Phase 2B adds `verifyPrivateImageAsset`, an Identity Pool/IAM-authorized operation whose trusted resolver identity contains the caller's `cognitoIdentityId`. Given only a `PrivateImageAsset` id, the function:
 
-1. load the candidate and its source record server-side;
+1. loads the candidate and its source record server-side;
 2. requires the protected candidate `sub` and captured Storage identity to match trusted IAM resolver identity;
 3. requires the source record owner to equal the candidate's protected owner identity;
 4. requires the key shape and embedded identity segment to equal the trusted IAM caller identity and source record id;

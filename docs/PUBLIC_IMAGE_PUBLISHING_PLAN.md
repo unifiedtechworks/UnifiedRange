@@ -247,8 +247,8 @@ No destructive moderation action is part of the current app. The image release m
 ## Out of scope for this plan
 
 - Implementing public image upload or direct client writes to public storage.
-- Implementing the copy/processing Lambda or metadata-stripping service in Phase 2B.
-- Adding public image URLs or public Storage authorization in Phase 2B.
+- The current Phase 2B does not implement the copy/processing Lambda or metadata-stripping service.
+- The current Phase 2B does not add public image URLs or public Storage authorization.
 - Automatically publishing Equipment Passport or Range Session images.
 - Public profile avatars, image feeds, follows, direct messaging, or marketplace behavior.
 - Calculators, scope outputs, hold recommendations, field corrections, sight-in instructions, or directions for adjusting or aiming equipment.
