@@ -416,6 +416,8 @@ Run this checklist before promoting a sandbox or production environment:
 
 Use this checklist against the Amplify Hosting dev URL after each hosted deployment:
 
+For a comprehensive role-based release review covering every current feature, Phase 2A private image registration, responsive behavior, and public/private data boundaries, use the [Manual QA Checklist](docs/MANUAL_QA_CHECKLIST.md).
+
 1. Auth: open `/auth/sign-in`, sign up or sign in, refresh, and sign out.
 2. Dashboard: confirm signed-in users see saved account counts and signed-out users see clearly labeled sample data.
 3. Profile: open `/profile/setup` for new users or `/profile/edit` for existing users, refresh, and confirm UserProfile persists with username reservation and username read-only after setup.
@@ -462,17 +464,18 @@ The live backend boundary covers Cognito auth, owner-scoped records, private S3 
 Start here:
 
 1. `docs/HOSTED_DEV_RELEASE_CHECKPOINT.md`
-2. `docs/PRODUCT_VISION.md`
-3. `docs/MVP_SCOPE.md`
-4. `docs/SAFETY_AND_COMPLIANCE_BOUNDARIES.md`
-5. `docs/DATA_MODEL.md`
-6. `docs/USER_FLOWS.md`
-7. `docs/SOCIAL_FEATURES.md`
-8. `docs/MODERATION_POLICY.md`
-9. `docs/AMPLIFY_HOSTING_DEPLOYMENT.md`
-10. `docs/PUBLIC_IMAGE_PUBLISHING_PLAN.md`
-11. `docs/PUBLIC_IMAGE_BACKEND_DESIGN.md`
-12. `docs/ACCOUNT_DATA_LIFECYCLE_PLAN.md`
-13. `docs/USERNAME_SIGN_IN_PLAN.md`
-14. `docs/FEATURE_BACKLOG.md`
-15. `tasks/001-project-bootstrap.md`
+2. [Manual QA Checklist](docs/MANUAL_QA_CHECKLIST.md)
+3. `docs/PRODUCT_VISION.md`
+4. `docs/MVP_SCOPE.md`
+5. `docs/SAFETY_AND_COMPLIANCE_BOUNDARIES.md`
+6. `docs/DATA_MODEL.md`
+7. `docs/USER_FLOWS.md`
+8. `docs/SOCIAL_FEATURES.md`
+9. `docs/MODERATION_POLICY.md`
+10. `docs/AMPLIFY_HOSTING_DEPLOYMENT.md`
+11. `docs/PUBLIC_IMAGE_PUBLISHING_PLAN.md`
+12. `docs/PUBLIC_IMAGE_BACKEND_DESIGN.md`
+13. `docs/ACCOUNT_DATA_LIFECYCLE_PLAN.md`
+14. `docs/USERNAME_SIGN_IN_PLAN.md`
+15. `docs/FEATURE_BACKLOG.md`
+16. `tasks/001-project-bootstrap.md`
