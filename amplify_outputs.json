@@ -1302,6 +1302,13 @@
               "isRequired": true,
               "attributes": []
             },
+            "ownerSub": {
+              "name": "ownerSub",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
             "sourceType": {
               "name": "sourceType",
               "isArray": false,
@@ -1323,6 +1330,13 @@
               "isArray": false,
               "type": "String",
               "isRequired": true,
+              "attributes": []
+            },
+            "storageIdentityId": {
+              "name": "storageIdentityId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
               "attributes": []
             },
             "sanitizedFileName": {
@@ -2351,7 +2365,9 @@
           "name": "PrivateImageAssetBindingStatus",
           "values": [
             "unverified",
+            "verifying",
             "verified",
+            "failed",
             "rejected",
             "removed"
           ]
@@ -2470,7 +2486,61 @@
           ]
         }
       },
-      "nonModels": {}
+      "nonModels": {
+        "VerifyPrivateImageResult": {
+          "name": "VerifyPrivateImageResult",
+          "fields": {
+            "privateImageAssetId": {
+              "name": "privateImageAssetId",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true,
+              "attributes": []
+            },
+            "bindingStatus": {
+              "name": "bindingStatus",
+              "isArray": false,
+              "type": {
+                "enum": "PrivateImageAssetBindingStatus"
+              },
+              "isRequired": true,
+              "attributes": []
+            },
+            "failureCode": {
+              "name": "failureCode",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "verifiedAt": {
+              "name": "verifiedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": []
+            }
+          }
+        }
+      },
+      "mutations": {
+        "verifyPrivateImageAsset": {
+          "name": "verifyPrivateImageAsset",
+          "isArray": false,
+          "type": {
+            "nonModel": "VerifyPrivateImageResult"
+          },
+          "isRequired": false,
+          "arguments": {
+            "privateImageAssetId": {
+              "name": "privateImageAssetId",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true
+            }
+          }
+        }
+      }
     }
   },
   "storage": {
@@ -2490,6 +2560,7 @@
               "delete"
             ]
           },
+          "private/equipment/*": {},
           "private/targets/${cognito-identity.amazonaws.com:sub}/*": {
             "entityidentity": [
               "get",
@@ -2497,7 +2568,8 @@
               "write",
               "delete"
             ]
-          }
+          },
+          "private/targets/*": {}
         }
       }
     ]

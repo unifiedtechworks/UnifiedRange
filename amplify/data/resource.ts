@@ -1,5 +1,5 @@
 import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
-import { verifyPrivateImage } from "../functions/verify-private-image/resource";
+import { verifyPrivateImage } from "../functions/verify-private-image/resource.ts";
 
 // TODO: Wire mock-data screens to generated AppSync clients after the sandbox
 // produces amplify_outputs.json. Until then, this schema is the backend contract.
@@ -221,17 +221,56 @@ const schema = a.schema({
       ownerId: a
         .string()
         .required()
-        .authorization((allow) => [allow.ownerDefinedIn("ownerId").to(["create", "read"])]),
+        .authorization((allow) => [
+          allow.ownerDefinedIn("ownerId").to(["create", "read"]),
+          allow.ownerDefinedIn("ownerSub").identityClaim("sub").to(["read"])
+        ]),
       ownerSub: a
         .string()
         .authorization((allow) => [allow.ownerDefinedIn("ownerSub").identityClaim("sub").to(["create", "read"])]),
-      sourceType: a.ref("PrivateImageAssetSourceType").required(),
-      sourceRecordId: a.id().required(),
-      storageKey: a.string().required(),
+      sourceType: a
+        .ref("PrivateImageAssetSourceType")
+        .required()
+        .authorization((allow) => [
+          allow.ownerDefinedIn("ownerId").to(["read"]),
+          allow.ownerDefinedIn("ownerSub").identityClaim("sub").to(["read"])
+        ]),
+      sourceRecordId: a
+        .id()
+        .required()
+        .authorization((allow) => [
+          allow.ownerDefinedIn("ownerId").to(["read"]),
+          allow.ownerDefinedIn("ownerSub").identityClaim("sub").to(["read"])
+        ]),
+      storageKey: a
+        .string()
+        .required()
+        .authorization((allow) => [
+          allow.ownerDefinedIn("ownerId").to(["read"]),
+          allow.ownerDefinedIn("ownerSub").identityClaim("sub").to(["read"])
+        ]),
       storageIdentityId: a.string(),
-      sanitizedFileName: a.string().required(),
-      contentType: a.string().required(),
-      sizeBytes: a.integer().required(),
+      sanitizedFileName: a
+        .string()
+        .required()
+        .authorization((allow) => [
+          allow.ownerDefinedIn("ownerId").to(["read"]),
+          allow.ownerDefinedIn("ownerSub").identityClaim("sub").to(["read"])
+        ]),
+      contentType: a
+        .string()
+        .required()
+        .authorization((allow) => [
+          allow.ownerDefinedIn("ownerId").to(["read"]),
+          allow.ownerDefinedIn("ownerSub").identityClaim("sub").to(["read"])
+        ]),
+      sizeBytes: a
+        .integer()
+        .required()
+        .authorization((allow) => [
+          allow.ownerDefinedIn("ownerId").to(["read"]),
+          allow.ownerDefinedIn("ownerSub").identityClaim("sub").to(["read"])
+        ]),
       bindingStatus: a
         .ref("PrivateImageAssetBindingStatus")
         .authorization((allow) => [allow.ownerDefinedIn("ownerId").to(["read"])]),

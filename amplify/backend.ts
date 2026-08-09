@@ -20,7 +20,6 @@ const rangeSessionTable = backend.data.resources.tables.RangeSession;
 backend.verifyPrivateImage.addEnvironment("PRIVATE_IMAGE_ASSET_TABLE_NAME", privateImageAssetTable.tableName);
 backend.verifyPrivateImage.addEnvironment("EQUIPMENT_PASSPORT_TABLE_NAME", equipmentPassportTable.tableName);
 backend.verifyPrivateImage.addEnvironment("RANGE_SESSION_TABLE_NAME", rangeSessionTable.tableName);
-backend.verifyPrivateImage.addEnvironment("PRIVATE_IMAGE_BUCKET_NAME", backend.storage.resources.bucket.bucketName);
 
 verifierLambda.addToRolePolicy(
   new PolicyStatement({

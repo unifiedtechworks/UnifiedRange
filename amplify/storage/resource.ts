@@ -1,5 +1,5 @@
 import { defineStorage } from "@aws-amplify/backend";
-import { verifyPrivateImage } from "../functions/verify-private-image/resource";
+import { verifyPrivateImage } from "../functions/verify-private-image/resource.ts";
 
 export const storage = defineStorage({
   name: "unifiedRangePrivateImages",

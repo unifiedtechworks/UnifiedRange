@@ -1,7 +1,7 @@
 import { DynamoDBClient, GetItemCommand, UpdateItemCommand, type AttributeValue } from "@aws-sdk/client-dynamodb";
 import { HeadObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import type { AppSyncIdentityIAM } from "aws-lambda";
-import type { Schema } from "../../data/resource";
+import type { Schema } from "../../data/resource.ts";
 
 const allowedContentTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
 const privateImageMaxBytes = 8 * 1024 * 1024;
@@ -55,7 +55,7 @@ function requiredEnvironment(name: string) {
 const privateImageAssetTableName = requiredEnvironment("PRIVATE_IMAGE_ASSET_TABLE_NAME");
 const equipmentPassportTableName = requiredEnvironment("EQUIPMENT_PASSPORT_TABLE_NAME");
 const rangeSessionTableName = requiredEnvironment("RANGE_SESSION_TABLE_NAME");
-const privateImageBucketName = requiredEnvironment("PRIVATE_IMAGE_BUCKET_NAME");
+const privateImageBucketName = requiredEnvironment("unifiedRangePrivateImages_BUCKET_NAME");
 
 const dynamoClient = new DynamoDBClient({});
 const s3Client = new S3Client({});
