@@ -5,6 +5,8 @@ import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
 const schema = a.schema({
   ReportTargetType: a.enum(["passport", "session", "public_passport", "comment"]),
   ReportStatus: a.enum(["open", "reviewed", "dismissed", "action_needed"]),
+  PublicImageAssetSourceType: a.enum(["equipment_cover"]),
+  PublicImageAssetStatus: a.enum(["draft", "processing", "ready", "failed", "removed"]),
 
   UsernameReservation: a
     .model({
@@ -250,7 +252,22 @@ const schema = a.schema({
       projectileSummary: a.string(),
       useCaseTags: a.string().array(),
       publicNotes: a.string(),
-      coverPhotoUrl: a.string(),
+      // Reserved public-image projection fields. Owners and API-key clients may
+      // read them, and owners may still delete the whole snapshot, but normal
+      // client create/update operations cannot populate them. A future backend
+      // processing resource must receive explicit field-level write access.
+      coverPhotoUrl: a
+        .string()
+        .authorization((allow) => [allow.ownerDefinedIn("ownerId").to(["read", "delete"]), allow.publicApiKey().to(["read"])]),
+      publicImageAssetId: a
+        .id()
+        .authorization((allow) => [allow.ownerDefinedIn("ownerId").to(["read", "delete"]), allow.publicApiKey().to(["read"])]),
+      publicImageKey: a
+        .string()
+        .authorization((allow) => [allow.ownerDefinedIn("ownerId").to(["read", "delete"]), allow.publicApiKey().to(["read"])]),
+      publicImageAltText: a
+        .string()
+        .authorization((allow) => [allow.ownerDefinedIn("ownerId").to(["read", "delete"]), allow.publicApiKey().to(["read"])]),
       publicStats: a.json(),
       publicRangeSessions: a.json(),
       publicPhotoPlaceholders: a.json(),
@@ -258,6 +275,28 @@ const schema = a.schema({
       updatedAt: a.datetime()
     })
     .authorization((allow) => [allow.ownerDefinedIn("ownerId"), allow.publicApiKey().to(["read"])]),
+
+  // Phase 1 public-image workflow ledger. It is intentionally owner-readable
+  // only and has no client create/update/delete authorization. No records can
+  // be produced until a future backend-controlled processor is added.
+  PublicImageAsset: a
+    .model({
+      ownerId: a
+        .string()
+        .required()
+        .authorization((allow) => [allow.ownerDefinedIn("ownerId").to(["read"])]),
+      publicPassportSnapshotId: a.id().required(),
+      sourceType: a.ref("PublicImageAssetSourceType").required(),
+      sourceRecordId: a.id().required(),
+      publicImageKey: a.string(),
+      publicImageAltText: a.string(),
+      status: a.ref("PublicImageAssetStatus").required(),
+      processingErrorCode: a.string(),
+      consentConfirmedAt: a.datetime(),
+      createdAt: a.datetime(),
+      updatedAt: a.datetime()
+    })
+    .authorization((allow) => [allow.ownerDefinedIn("ownerId").to(["read"])]),
 
   Comment: a
     .model({

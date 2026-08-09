@@ -98,7 +98,7 @@ Current backend capabilities:
 - Private S3 storage paths for signed-in user equipment/setup images and target photos
 - A derived signed-in onboarding checklist on Dashboard and Profile; it adds no onboarding model
 
-Public image publishing is planned but not implemented. Private uploads stay private today, and public snapshots contain sanitized text/setup data only. A future release requires explicit consent plus backend image copying, validation, metadata stripping, and cleanup described in `docs/PUBLIC_IMAGE_PUBLISHING_PLAN.md`.
+Public image publishing is planned but not implemented. Phase 1 reserves a client-read-only workflow ledger and guarded, empty public snapshot projection fields, but adds no Lambda, public Storage access, selection UI, processing, URL, or rendering. Private uploads stay private, and current public snapshots remain sanitized text/setup data only. See `docs/PUBLIC_IMAGE_BACKEND_DESIGN.md`.
 
 ### Account Data Lifecycle Status
 

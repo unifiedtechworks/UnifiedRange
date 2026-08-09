@@ -18,6 +18,8 @@ public/passports/{publicPassportId}/
 public/profile/{publicProfileId}/
 ```
 
+Phase 1 adds no public Storage rule or prefix access. Public paths remain design placeholders until a trusted source registry, processor Lambda, metadata-removal verification, and public delivery policy are implemented together. Normal clients must never receive public-prefix write access.
+
 ## Private User Images
 
 Private setup images and target photos are readable and writable only by the signed-in owner through Amplify Storage owner-based access. Private images should not be served directly as public assets.

@@ -2,11 +2,24 @@
 
 ## Status
 
-Design only. Public image publishing is not implemented, no schema or Storage authorization is changed by this document, and no backend deployment is required for this documentation update.
+Phase 1 data guardrails were added on August 5, 2026. The schema now contains a non-public, client-read-only `PublicImageAsset` workflow ledger and backend-reserved public image projection fields. These schema changes require an Amplify backend redeploy.
+
+Public image publishing is still not implemented. There is no `PrivateImageAsset` source registry, Lambda, backend action, public Storage prefix, public image URL, selection UI, processing, or rendering. No current client can create or update a workflow asset or populate the reserved projection fields.
 
 UnifiedRange currently publishes sanitized text/setup snapshots only. Equipment Passport setup photos and Range Session target photos remain owner-private. Public pages must continue to render no private image while this design is unimplemented.
 
 This design refines the product boundary in [PUBLIC_IMAGE_PUBLISHING_PLAN.md](PUBLIC_IMAGE_PUBLISHING_PLAN.md) into an implementable AWS Amplify Gen 2 backend contract.
+
+### Phase 1 implementation details
+
+- `PublicImageAssetSourceType` currently permits only `equipment_cover`; target photos remain excluded.
+- `PublicImageAssetStatus` contains `draft`, `processing`, `ready`, `failed`, and `removed`.
+- `PublicImageAsset` stores no private S3 key and is not API-key readable. Owners may read their own future workflow records, but current clients cannot create, update, or delete them.
+- `PublicPassportSnapshot.publicImageAssetId`, `publicImageKey`, and `publicImageAltText` are readable by the owner and public API, but client create/update authorization is intentionally absent.
+- The legacy `PublicPassportSnapshot.coverPhotoUrl` field received the same create/update guard and is no longer mapped into saved public UI data.
+- `buildPublicPassportSnapshotInput` continues to omit every image field.
+- `amplify/storage/resource.ts` is unchanged; public object access remains unavailable.
+- The trusted `PrivateImageAsset` registration/finalization design is deferred until it can bind the user-pool owner and Storage identity without trusting a caller-supplied key or identity ID.
 
 ## Recommended decisions
 
@@ -529,16 +542,17 @@ Alarms should cover sustained processing failures, metadata-verification failure
 
 ### Phase 1: backend foundation, no UI
 
-- [ ] Confirm canonical user-pool owner key versus Storage identity mapping.
+- [x] Document the user-pool owner key versus Storage identity mismatch and fail closed rather than treating them as interchangeable.
 - [ ] Choose and test the trusted `PrivateImageAsset` registration/finalization strategy.
-- [ ] Decide separate public bucket versus isolated prefix and CloudFront versus guest Storage read.
-- [ ] Define `PublicImageAssetStatus`, private workflow ledger, and server-managed public projection fields.
-- [ ] Define AppSync action inputs/outputs without accepting S3 keys or URLs.
-- [ ] Scaffold the processor function and resource access so its default behavior fails closed.
-- [ ] Define least-privilege IAM policies for the exact private source and public destination.
-- [ ] Add no public read rule until a processor test proves the output contract.
+- [x] Defer the separate public bucket/prefix decision until processing and delivery are implemented; add no Storage rule now.
+- [x] Define `PublicImageAssetStatus`, a client-read-only private workflow ledger, and backend-reserved public projection fields.
+- [x] Define the future AppSync action contract in this document without accepting S3 keys or URLs.
+- [x] Defer the processor function because Phase 1 does not copy, process, or publish images.
+- [x] Defer processor IAM permissions until the trusted source and destination resources exist.
+- [x] Add no public Storage read rule before processor output tests pass.
 - [ ] Add unit tests for authorization contracts and forbidden inputs.
-- [ ] Document that backend redeployment will be required when this phase is implemented.
+- [x] Preserve payload omission and public rendering behavior through typecheck, lint, build, and manual regression expectations.
+- [x] Document that the Phase 1 schema requires backend redeployment.
 
 ### Phase 2: processing action
 
@@ -592,7 +606,9 @@ Do not enable public image selection or rendering until all of these are true:
 - public APIs and logs contain no private key, signed URL, source filename, token, or private profile/record data;
 - target photos remain excluded unless their separate release is reviewed.
 
-## Future Codex Prompt: Implement Phase 1 Public Image Publishing Foundation
+## Completed Codex Prompt: Phase 1 Public Image Publishing Foundation
+
+This prompt is retained as the historical scope for the Phase 1 schema foundation. Do not rerun it without first reviewing the current schema and the remaining trusted-source work.
 
 ```text
 Implement only Phase 1 of the UnifiedRange public image publishing backend foundation.

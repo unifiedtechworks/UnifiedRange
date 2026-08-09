@@ -1625,6 +1625,27 @@
               "isRequired": false,
               "attributes": []
             },
+            "publicImageAssetId": {
+              "name": "publicImageAssetId",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": false,
+              "attributes": []
+            },
+            "publicImageKey": {
+              "name": "publicImageKey",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "publicImageAltText": {
+              "name": "publicImageAltText",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
             "publicStats": {
               "name": "publicStats",
               "isArray": false,
@@ -1690,6 +1711,128 @@
                     "operations": [
                       "read"
                     ]
+                  }
+                ]
+              }
+            }
+          ],
+          "primaryKeyInfo": {
+            "isCustomPrimaryKey": false,
+            "primaryKeyFieldName": "id",
+            "sortKeyFieldNames": []
+          }
+        },
+        "PublicImageAsset": {
+          "name": "PublicImageAsset",
+          "fields": {
+            "id": {
+              "name": "id",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true,
+              "attributes": []
+            },
+            "ownerId": {
+              "name": "ownerId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "publicPassportSnapshotId": {
+              "name": "publicPassportSnapshotId",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true,
+              "attributes": []
+            },
+            "sourceType": {
+              "name": "sourceType",
+              "isArray": false,
+              "type": {
+                "enum": "PublicImageAssetSourceType"
+              },
+              "isRequired": true,
+              "attributes": []
+            },
+            "sourceRecordId": {
+              "name": "sourceRecordId",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true,
+              "attributes": []
+            },
+            "publicImageKey": {
+              "name": "publicImageKey",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "publicImageAltText": {
+              "name": "publicImageAltText",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "status": {
+              "name": "status",
+              "isArray": false,
+              "type": {
+                "enum": "PublicImageAssetStatus"
+              },
+              "isRequired": true,
+              "attributes": []
+            },
+            "processingErrorCode": {
+              "name": "processingErrorCode",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "consentConfirmedAt": {
+              "name": "consentConfirmedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": []
+            },
+            "createdAt": {
+              "name": "createdAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": []
+            },
+            "updatedAt": {
+              "name": "updatedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": []
+            }
+          },
+          "syncable": true,
+          "pluralName": "PublicImageAssets",
+          "attributes": [
+            {
+              "type": "model",
+              "properties": {}
+            },
+            {
+              "type": "auth",
+              "properties": {
+                "rules": [
+                  {
+                    "provider": "userPools",
+                    "ownerField": "ownerId",
+                    "allow": "owner",
+                    "operations": [
+                      "read"
+                    ],
+                    "identityClaim": "cognito:username"
                   }
                 ]
               }
@@ -2042,6 +2185,22 @@
             "reviewed",
             "dismissed",
             "action_needed"
+          ]
+        },
+        "PublicImageAssetSourceType": {
+          "name": "PublicImageAssetSourceType",
+          "values": [
+            "equipment_cover"
+          ]
+        },
+        "PublicImageAssetStatus": {
+          "name": "PublicImageAssetStatus",
+          "values": [
+            "draft",
+            "processing",
+            "ready",
+            "failed",
+            "removed"
           ]
         },
         "UserProfilePrivacyDefault": {

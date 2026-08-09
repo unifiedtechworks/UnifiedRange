@@ -17,7 +17,6 @@ type PublicPassportSnapshotInput = {
   projectileSummary?: string;
   useCaseTags?: string[];
   publicNotes?: string;
-  coverPhotoUrl?: string;
 };
 
 function filterStrings(value: Array<string | null> | null | undefined) {
@@ -123,7 +122,6 @@ export function recordToSanitizedPublicPassport(record: PublicPassportSnapshotRe
     projectileSummary: record.projectileSummary ?? undefined,
     useCaseTags: filterStrings(record.useCaseTags),
     publicNotes: record.publicNotes ?? undefined,
-    coverPhotoUrl: record.coverPhotoUrl ?? undefined,
     publicOwnerUsername: owner?.username,
     publicOwnerDisplayName: owner?.displayName,
     publicRangeSessions: normalizePublicRangeSessions(record.publicRangeSessions),

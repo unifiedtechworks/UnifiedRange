@@ -10,6 +10,7 @@
 - TargetPhoto
 - MaintenanceLogEntry
 - HuntingChecklist
+- PublicImageAsset (future public-image workflow ledger; owner-readable but not client-writable)
 
 Each private model should include an `ownerId` identity field tied to Cognito. AppSync authorization should use `allow.ownerDefinedIn("ownerId")` or the model-specific owner field so private reads and writes stay scoped to the signed-in owner.
 
@@ -29,6 +30,7 @@ Protected owner-like fields:
 - `MaintenanceLogEntry.ownerId`
 - `HuntingChecklist.ownerId`
 - `PublicPassportSnapshot.ownerId`
+- `PublicImageAsset.ownerId`
 - `Comment.authorId`
 - `Reaction.userId`
 - `Report.reporterId`
@@ -52,6 +54,26 @@ Public read exceptions remain intentionally narrow:
 - `Reaction` can be read with API key so public pages can show public-safe reaction counts.
 
 Private records remain owner-scoped and should not expose private notes, private image keys, lot numbers, purchase details, exact locations, maintenance records, readiness records, or owner private profile details through public flows.
+
+## Phase 1 Public Image Foundation
+
+`PublicImageAsset` is a non-public workflow ledger for a future backend processor. It contains the public snapshot relationship, source type and record id, processed public derivative fields, bounded processing status/error data, and consent timestamp. It deliberately contains no private S3 key and has no API-key authorization.
+
+Current owner clients may read their own future workflow records but cannot create, update, or delete them. No records are created in Phase 1 because no backend processing resource exists. Admin/moderator access is deferred.
+
+`PublicPassportSnapshot` reserves these optional public projection fields:
+
+- `publicImageAssetId`
+- `publicImageKey`
+- `publicImageAltText`
+
+The legacy `coverPhotoUrl` field is also reserved. Field-level authorization permits owner/public reads and owner snapshot deletion while denying normal client create/update writes to all image projection fields. A future backend function must receive explicit resource authorization before it can populate them.
+
+The existing public snapshot payload builder omits `coverPhotoUrl`, all new projection fields, `EquipmentPassport.privateCoverPhotoKey`, and all `TargetPhoto` keys. Saved public UI mapping also ignores image fields, so Discover and public pages remain text/setup only.
+
+Phase 1 does not add `PrivateImageAsset`. The current Data owner key and Amplify Storage `identityId` are different identity concepts, and current private key fields are client-written. A future trusted registration/finalization flow must bind them without accepting a caller-supplied key as proof before any processor receives private S3 read access.
+
+No public Storage access or Lambda is added in Phase 1.
 
 ## Public Discovery Models
 

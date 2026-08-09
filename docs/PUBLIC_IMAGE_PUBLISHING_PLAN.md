@@ -4,7 +4,9 @@
 
 Public image publishing is planned but is not implemented. UnifiedRange currently stores Equipment Passport setup photos and Range Session target photos in owner-scoped private S3 paths. `PublicPassportSnapshot` publishing copies sanitized text/setup data only; it must not expose a private image key, signed private URL, or private image bytes.
 
-This document defines the privacy and safety boundary for a future release. It does not authorize schema changes, public Storage access, image-copy functions, public URLs, or moderation actions in the current hosted-dev app.
+This document defines the privacy and safety boundary for a future release. Phase 1 now reserves a non-public workflow ledger and guarded public snapshot projection fields, but it does not add public Storage access, image-copy functions, public URLs, image selection, rendering, or moderation actions.
+
+The Phase 1 fields remain empty because normal client create/update operations cannot write them and no backend processor exists. Public image publishing is still unavailable.
 
 See [PUBLIC_IMAGE_BACKEND_DESIGN.md](PUBLIC_IMAGE_BACKEND_DESIGN.md) for the detailed Amplify/Lambda implementation contract, identity-boundary analysis, failure handling, and phased backend work.
 
