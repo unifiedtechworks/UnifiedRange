@@ -1285,6 +1285,136 @@
             "sortKeyFieldNames": []
           }
         },
+        "PrivateImageAsset": {
+          "name": "PrivateImageAsset",
+          "fields": {
+            "id": {
+              "name": "id",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true,
+              "attributes": []
+            },
+            "ownerId": {
+              "name": "ownerId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "sourceType": {
+              "name": "sourceType",
+              "isArray": false,
+              "type": {
+                "enum": "PrivateImageAssetSourceType"
+              },
+              "isRequired": true,
+              "attributes": []
+            },
+            "sourceRecordId": {
+              "name": "sourceRecordId",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true,
+              "attributes": []
+            },
+            "storageKey": {
+              "name": "storageKey",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "sanitizedFileName": {
+              "name": "sanitizedFileName",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "contentType": {
+              "name": "contentType",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "sizeBytes": {
+              "name": "sizeBytes",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": true,
+              "attributes": []
+            },
+            "bindingStatus": {
+              "name": "bindingStatus",
+              "isArray": false,
+              "type": {
+                "enum": "PrivateImageAssetBindingStatus"
+              },
+              "isRequired": false,
+              "attributes": []
+            },
+            "bindingFailureCode": {
+              "name": "bindingFailureCode",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "verifiedAt": {
+              "name": "verifiedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": []
+            },
+            "createdAt": {
+              "name": "createdAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": []
+            },
+            "updatedAt": {
+              "name": "updatedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": []
+            }
+          },
+          "syncable": true,
+          "pluralName": "PrivateImageAssets",
+          "attributes": [
+            {
+              "type": "model",
+              "properties": {}
+            },
+            {
+              "type": "auth",
+              "properties": {
+                "rules": [
+                  {
+                    "provider": "userPools",
+                    "ownerField": "ownerId",
+                    "allow": "owner",
+                    "operations": [
+                      "create",
+                      "read"
+                    ],
+                    "identityClaim": "cognito:username"
+                  }
+                ]
+              }
+            }
+          ],
+          "primaryKeyInfo": {
+            "isCustomPrimaryKey": false,
+            "primaryKeyFieldName": "id",
+            "sortKeyFieldNames": []
+          }
+        },
         "MaintenanceLogEntry": {
           "name": "MaintenanceLogEntry",
           "fields": {
@@ -1746,6 +1876,13 @@
               "isRequired": true,
               "attributes": []
             },
+            "privateImageAssetId": {
+              "name": "privateImageAssetId",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": false,
+              "attributes": []
+            },
             "sourceType": {
               "name": "sourceType",
               "isArray": false,
@@ -2200,6 +2337,22 @@
             "processing",
             "ready",
             "failed",
+            "removed"
+          ]
+        },
+        "PrivateImageAssetSourceType": {
+          "name": "PrivateImageAssetSourceType",
+          "values": [
+            "equipment_cover",
+            "range_session_target"
+          ]
+        },
+        "PrivateImageAssetBindingStatus": {
+          "name": "PrivateImageAssetBindingStatus",
+          "values": [
+            "unverified",
+            "verified",
+            "rejected",
             "removed"
           ]
         },

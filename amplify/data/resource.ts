@@ -7,6 +7,8 @@ const schema = a.schema({
   ReportStatus: a.enum(["open", "reviewed", "dismissed", "action_needed"]),
   PublicImageAssetSourceType: a.enum(["equipment_cover"]),
   PublicImageAssetStatus: a.enum(["draft", "processing", "ready", "failed", "removed"]),
+  PrivateImageAssetSourceType: a.enum(["equipment_cover", "range_session_target"]),
+  PrivateImageAssetBindingStatus: a.enum(["unverified", "verified", "rejected", "removed"]),
 
   UsernameReservation: a
     .model({
@@ -196,6 +198,36 @@ const schema = a.schema({
     })
     .authorization((allow) => [allow.ownerDefinedIn("ownerId")]),
 
+  // Private client uploads can register an owner-only candidate here, but a
+  // browser-created row is never authoritative proof of storage ownership.
+  // The guarded binding fields remain unset until a future trusted backend
+  // verifier checks the AppSync owner, source record, and S3 identity prefix.
+  PrivateImageAsset: a
+    .model({
+      ownerId: a
+        .string()
+        .required()
+        .authorization((allow) => [allow.ownerDefinedIn("ownerId").to(["create", "read"])]),
+      sourceType: a.ref("PrivateImageAssetSourceType").required(),
+      sourceRecordId: a.id().required(),
+      storageKey: a.string().required(),
+      sanitizedFileName: a.string().required(),
+      contentType: a.string().required(),
+      sizeBytes: a.integer().required(),
+      bindingStatus: a
+        .ref("PrivateImageAssetBindingStatus")
+        .authorization((allow) => [allow.ownerDefinedIn("ownerId").to(["read"])]),
+      bindingFailureCode: a
+        .string()
+        .authorization((allow) => [allow.ownerDefinedIn("ownerId").to(["read"])]),
+      verifiedAt: a
+        .datetime()
+        .authorization((allow) => [allow.ownerDefinedIn("ownerId").to(["read"])]),
+      createdAt: a.datetime(),
+      updatedAt: a.datetime()
+    })
+    .authorization((allow) => [allow.ownerDefinedIn("ownerId").to(["create", "read"])]),
+
   MaintenanceLogEntry: a
     .model({
       ownerId: a
@@ -286,6 +318,7 @@ const schema = a.schema({
         .required()
         .authorization((allow) => [allow.ownerDefinedIn("ownerId").to(["read"])]),
       publicPassportSnapshotId: a.id().required(),
+      privateImageAssetId: a.id(),
       sourceType: a.ref("PublicImageAssetSourceType").required(),
       sourceRecordId: a.id().required(),
       publicImageKey: a.string(),

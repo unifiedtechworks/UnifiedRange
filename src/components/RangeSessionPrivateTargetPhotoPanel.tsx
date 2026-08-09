@@ -6,6 +6,8 @@ import type { Schema } from "../../amplify/data/resource";
 import { PrivateImageUploadCard } from "@/components/PrivateImageUploadCard";
 import { useAuthUser } from "@/hooks/useAuthUser";
 import { configureAmplifyClient, getAuthErrorMessage } from "@/lib/amplifyClient";
+import { buildPrivateImageAssetRegistration, registerPrivateImageCandidate } from "@/lib/privateImageAssetData";
+import type { PrivateImageUploadResult } from "@/lib/privateImageStorage";
 
 type TargetPhotoRecord = Schema["TargetPhoto"]["type"];
 
@@ -17,6 +19,7 @@ export function RangeSessionPrivateTargetPhotoPanel({ sessionId }: { sessionId: 
   const { authState } = useAuthUser();
   const [photo, setPhoto] = useState<TargetPhotoRecord | null>(null);
   const [error, setError] = useState("");
+  const [registrationNotice, setRegistrationNotice] = useState("");
   const [isLoading, setIsLoading] = useState(true);
 
   const loadPhoto = useCallback(async () => {
@@ -36,7 +39,7 @@ export function RangeSessionPrivateTargetPhotoPanel({ sessionId }: { sessionId: 
     try {
       const result = await client.models.TargetPhoto.list({
         filter: {
-          ownerId: { eq: authState.username },
+          ownerId: { eq: authState.ownerKey },
           rangeSessionId: { eq: sessionId }
         }
       });
@@ -64,26 +67,45 @@ export function RangeSessionPrivateTargetPhotoPanel({ sessionId }: { sessionId: 
     };
   }, [loadPhoto]);
 
-  async function handleUploaded(uploadedKey: string) {
+  async function handleUploaded(upload: PrivateImageUploadResult) {
     setError("");
+    setRegistrationNotice("");
 
     if (authState.status !== "signed-in") {
       throw new Error("Sign in before uploading private target photos.");
     }
 
     try {
+      const source = await client.models.RangeSession.get({ id: sessionId });
+
+      if (source.errors?.length) {
+        throw new Error(source.errors.map((item) => item.message).join(" "));
+      }
+
+      if (!source.data) {
+        throw new Error("This saved Range Session could not be verified.");
+      }
+
+      const registration = buildPrivateImageAssetRegistration({
+        ownerId: authState.ownerKey,
+        ownerAliases: authState.ownerAliases,
+        sourceOwnerId: source.data.ownerId,
+        sourceType: "range_session_target",
+        sourceRecordId: sessionId,
+        upload
+      });
       const result = photo
         ? await client.models.TargetPhoto.update({
             id: photo.id,
-            storageKey: uploadedKey,
-            imageUrl: uploadedKey,
+            storageKey: upload.storageKey,
+            imageUrl: upload.storageKey,
             isPublic: false
           })
         : await client.models.TargetPhoto.create({
-            ownerId: authState.username,
+            ownerId: authState.ownerKey,
             rangeSessionId: sessionId,
-            storageKey: uploadedKey,
-            imageUrl: uploadedKey,
+            storageKey: upload.storageKey,
+            imageUrl: upload.storageKey,
             caption: "Private target photo",
             isPublic: false
           });
@@ -92,8 +114,18 @@ export function RangeSessionPrivateTargetPhotoPanel({ sessionId }: { sessionId: 
         throw new Error(result.errors.map((item) => item.message).join(" "));
       }
 
-      if (result.data) {
-        setPhoto(result.data);
+      if (!result.data || !authState.ownerAliases.includes(result.data.ownerId)) {
+        throw new Error("The private target photo record owner could not be verified.");
+      }
+
+      setPhoto(result.data);
+
+      try {
+        await registerPrivateImageCandidate(client, registration);
+        setRegistrationNotice("Private image source registered for future eligibility verification.");
+      } catch (registrationError) {
+        console.error("Unable to register private target image source", registrationError);
+        setRegistrationNotice("The image is saved and private, but its source registration is pending. Public image publishing remains unavailable.");
       }
     } catch (uploadRecordError) {
       setError(getAuthErrorMessage(uploadRecordError));
@@ -117,6 +149,7 @@ export function RangeSessionPrivateTargetPhotoPanel({ sessionId }: { sessionId: 
         onUploaded={handleUploaded}
       />
       {error ? <p className="rounded-md border border-clay/30 bg-clay/10 px-3 py-2 text-sm font-semibold text-clay">{error}</p> : null}
+      {registrationNotice ? <p className="rounded-md border border-ink/10 bg-field px-3 py-2 text-sm text-ink/70">{registrationNotice}</p> : null}
     </div>
   );
 }

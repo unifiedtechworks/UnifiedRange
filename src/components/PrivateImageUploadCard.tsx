@@ -1,7 +1,14 @@
 "use client";
 
 import { useEffect, useId, useState } from "react";
-import { getPrivateImageUrl, uploadPrivateImage, validatePrivateImageFile, type PrivateImageFolder } from "@/lib/privateImageStorage";
+import { isEligiblePrivateImageSourceRecordId } from "@/lib/privateImageAssetData";
+import {
+  getPrivateImageUrl,
+  uploadPrivateImage,
+  validatePrivateImageFile,
+  type PrivateImageFolder,
+  type PrivateImageUploadResult
+} from "@/lib/privateImageStorage";
 
 export function PrivateImageUploadCard({
   title,
@@ -18,7 +25,7 @@ export function PrivateImageUploadCard({
   recordId: string;
   storageKey?: string | null;
   uploadLabel?: string;
-  onUploaded: (storageKey: string) => Promise<void> | void;
+  onUploaded: (upload: PrivateImageUploadResult) => Promise<void> | void;
 }) {
   const inputId = useId();
   const [imageUrl, setImageUrl] = useState("");
@@ -83,18 +90,23 @@ export function PrivateImageUploadCard({
       return;
     }
 
+    if (!isEligiblePrivateImageSourceRecordId(recordId)) {
+      setError("Private images can only be uploaded to saved records.");
+      return;
+    }
+
     setIsUploading(true);
 
     try {
-      const uploadedKey = await uploadPrivateImage({
+      const upload = await uploadPrivateImage({
         file,
         folder,
         recordId,
         onProgress: setProgress
       });
 
-      await onUploaded(uploadedKey);
-      setSuccess("Private image uploaded.");
+      await onUploaded(upload);
+      setSuccess("Private image uploaded and kept private.");
       setProgress(100);
     } catch (uploadError) {
       console.error("Unable to upload private image", uploadError);

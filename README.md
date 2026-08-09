@@ -96,9 +96,10 @@ Current backend capabilities:
 - Signed-in-only comments and reports
 - Owner-scoped private records for passports, projectiles/ammo, optics/sights, sessions, maintenance, and hunting checklists
 - Private S3 storage paths for signed-in user equipment/setup images and target photos
+- Owner-only `PrivateImageAsset` candidate registration for saved private image sources; candidates remain unverified and cannot be used for public processing
 - A derived signed-in onboarding checklist on Dashboard and Profile; it adds no onboarding model
 
-Public image publishing is planned but not implemented. Phase 1 reserves a client-read-only workflow ledger and guarded, empty public snapshot projection fields, but adds no Lambda, public Storage access, selection UI, processing, URL, or rendering. Private uploads stay private, and current public snapshots remain sanitized text/setup data only. See `docs/PUBLIC_IMAGE_BACKEND_DESIGN.md`.
+Public image publishing is planned but not implemented. Phase 1 reserves a client-read-only workflow ledger and guarded, empty public snapshot projection fields. Phase 2A registers successful private uploads as owner-only, unverified source candidates, but adds no trusted verification Lambda, image-processing Lambda, public Storage access, selection UI, copy, metadata stripping, public URL, or rendering. Private uploads stay private, and current public snapshots remain sanitized text/setup data only. See `docs/PUBLIC_IMAGE_BACKEND_DESIGN.md`.
 
 ### Account Data Lifecycle Status
 
@@ -276,7 +277,7 @@ With the Amplify sandbox and dev server running:
 
 ### Manual Private Image Upload Test
 
-Restart or rerun the Amplify sandbox after pulling this change so the sandbox includes the new Storage resource and image-key schema fields.
+Restart or rerun the Amplify sandbox after pulling this change so the sandbox includes the private image registry schema. Hosted Amplify must also redeploy before the new registration flow is tested there.
 
 Private image storage uses Amplify-valid owner-scoped prefixes:
 
@@ -288,12 +289,14 @@ With the Amplify sandbox and dev server running:
 1. Sign in at `http://localhost:3000/auth/sign-in`.
 2. Open a saved Equipment Passport detail page.
 3. Upload a private setup photo using JPG, JPEG, PNG, or WEBP under 8MB.
-4. Refresh and confirm the private setup photo still displays.
-5. Open a saved Range Session detail page.
-6. Upload a private target photo.
-7. Refresh and confirm the private target photo still displays.
-8. Sign out and confirm private upload controls are not available.
-9. Confirm demo records still use demo image or placeholder behavior.
+4. Confirm the upload remains private and the panel reports that its source was registered for future eligibility verification.
+5. Refresh and confirm the private setup photo still displays.
+6. Open a saved Range Session detail page.
+7. Upload a private target photo and confirm the same private registration notice appears.
+8. Refresh and confirm the private target photo still displays.
+9. Confirm demo/sample records cannot register private image sources.
+10. Sign out and confirm private upload controls are not available.
+11. Confirm Public Preview still publishes text/setup data only and public pages contain no private key, image, or URL.
 
 Private images stay private today and are not included in public snapshots. Do not upload images containing serial numbers, exact locations, license plates, or sensitive personal info unless you intend to keep them private. Future public image publishing requires a separate consent and backend-processing workflow; metadata stripping is not currently implemented. See `docs/PUBLIC_IMAGE_PUBLISHING_PLAN.md`.
 
@@ -452,7 +455,7 @@ The hosted-development web app uses:
 - Domain types in `src/types`
 - Responsive app navigation for dashboard, passports, projectiles/ammo, optics/sights, range sessions, maintenance, hunting readiness, discovery, and settings
 
-The live backend boundary covers Cognito auth, owner-scoped records, private S3 images, sanitized public snapshots, public identity snapshots, social actions, and group-gated moderation. Public-image Lambda processing, account lifecycle execution, and secure username sign-in remain planned work.
+The live backend boundary covers Cognito auth, owner-scoped records, private S3 images, unverified owner-only private image source candidates, sanitized public snapshots, public identity snapshots, social actions, and group-gated moderation. Trusted public-image source finalization and Lambda processing, account lifecycle execution, and secure username sign-in remain planned work.
 
 ## Project Docs
 

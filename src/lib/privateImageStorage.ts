@@ -6,6 +6,14 @@ export const allowedPrivateImageTypes = ["image/jpeg", "image/png", "image/webp"
 
 export type PrivateImageFolder = "equipment" | "targets";
 
+export type PrivateImageUploadResult = {
+  storageKey: string;
+  storageIdentityId: string;
+  sanitizedFileName: string;
+  contentType: string;
+  sizeBytes: number;
+};
+
 export function validatePrivateImageFile(file: File) {
   if (!allowedPrivateImageTypes.includes(file.type)) {
     return "Use a JPG, JPEG, PNG, or WEBP image.";
@@ -30,7 +38,7 @@ function extensionForFile(file: File) {
   return "jpg";
 }
 
-function sanitizePathSegment(value: string) {
+export function sanitizePrivateImagePathSegment(value: string) {
   return value.replace(/[^a-zA-Z0-9_-]/g, "-").replace(/-+/g, "-").slice(0, 80);
 }
 
@@ -51,13 +59,21 @@ export async function uploadPrivateImage({
     throw new Error(validationMessage);
   }
 
-  const safeRecordId = sanitizePathSegment(recordId);
+  const safeRecordId = sanitizePrivateImagePathSegment(recordId);
+
+  if (!safeRecordId) {
+    throw new Error("This private image is missing a valid source record.");
+  }
+
   const safeName = `${Date.now()}-${crypto.randomUUID()}.${extensionForFile(file)}`;
+  let storageIdentityId = "";
   const result = await uploadData({
     path: ({ identityId }) => {
       if (!identityId) {
         throw new Error("Sign in before uploading private images.");
       }
+
+      storageIdentityId = identityId;
 
       return `private/${folder}/${identityId}/${safeRecordId}/${safeName}`;
     },
@@ -74,7 +90,17 @@ export async function uploadPrivateImage({
     }
   }).result;
 
-  return result.path;
+  if (!storageIdentityId) {
+    throw new Error("The private image storage identity could not be verified.");
+  }
+
+  return {
+    storageKey: result.path,
+    storageIdentityId,
+    sanitizedFileName: safeName,
+    contentType: file.type,
+    sizeBytes: file.size
+  } satisfies PrivateImageUploadResult;
 }
 
 export async function getPrivateImageUrl(storageKey?: string | null) {

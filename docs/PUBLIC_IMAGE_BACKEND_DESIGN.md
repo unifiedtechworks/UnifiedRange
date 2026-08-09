@@ -2,9 +2,11 @@
 
 ## Status
 
-Phase 1 data guardrails were added on August 5, 2026. The schema now contains a non-public, client-read-only `PublicImageAsset` workflow ledger and backend-reserved public image projection fields. These schema changes require an Amplify backend redeploy.
+Phase 1 data guardrails were added on August 5, 2026. Phase 2A private source registration was added on August 9, 2026. The schema now contains a non-public, client-read-only `PublicImageAsset` workflow ledger, backend-reserved public image projection fields, and an owner-only `PrivateImageAsset` candidate registry. These schema changes require an Amplify backend redeploy.
 
-Public image publishing is still not implemented. There is no `PrivateImageAsset` source registry, Lambda, backend action, public Storage prefix, public image URL, selection UI, processing, or rendering. No current client can create or update a workflow asset or populate the reserved projection fields.
+Public image publishing is still not implemented. There is no trusted verification Lambda, processing action, public Storage prefix, public image URL, selection UI, metadata removal, copying, or rendering. No current client can create or update a public workflow asset or populate the reserved public projection fields.
+
+The browser may create and read its own immutable `PrivateImageAsset` candidate records after a successful private upload. Those rows are private registration hints, not security attestations: the guarded `bindingStatus`, `bindingFailureCode`, and `verifiedAt` fields remain unset because normal clients cannot write them. Future processing must reject every candidate unless a trusted backend has independently marked it `verified`.
 
 UnifiedRange currently publishes sanitized text/setup snapshots only. Equipment Passport setup photos and Range Session target photos remain owner-private. Public pages must continue to render no private image while this design is unimplemented.
 
@@ -19,7 +21,9 @@ This design refines the product boundary in [PUBLIC_IMAGE_PUBLISHING_PLAN.md](PU
 - The legacy `PublicPassportSnapshot.coverPhotoUrl` field received the same create/update guard and is no longer mapped into saved public UI data.
 - `buildPublicPassportSnapshotInput` continues to omit every image field.
 - `amplify/storage/resource.ts` is unchanged; public object access remains unavailable.
-- The trusted `PrivateImageAsset` registration/finalization design is deferred until it can bind the user-pool owner and Storage identity without trusting a caller-supplied key or identity ID.
+- `PrivateImageAsset` now records owner-private upload candidates for Equipment Passport covers and Range Session target photos. Its key, filename, type, size, and source relationship have no public/API-key access.
+- The upload client performs defense-in-depth validation of the saved source owner, Cognito owner aliases, source-record path segment, Storage identity segment, generated filename, type, and size before registration.
+- Browser validation does not establish trust. Phase 2B must independently bind the AppSync user-pool owner, source-record owner, caller's IAM/Identity Pool identity, and actual S3 object before setting `bindingStatus=verified`.
 
 ## Recommended decisions
 
@@ -211,10 +215,10 @@ Data models currently use a Cognito user-pool username-style owner key, while pr
 
 Also, `privateCoverPhotoKey` and `TargetPhoto.storageKey` are currently written by the browser into owner-scoped models. Ownership of the model alone does not cryptographically prove that an arbitrary value in its key field belongs to the same Storage identity. A malicious client could attempt to replace that field with a guessed key and turn the processor into a confused deputy.
 
-Before enabling processing, Phase 1 must choose and test one trusted source-registration strategy:
+Before enabling processing, Phase 2B must implement and test a trusted source-finalization strategy. Phase 2A candidate registration alone is insufficient:
 
-- **Recommended:** add an owner-private `PrivateImageAsset` registration/finalization path for newly uploaded images. A backend-controlled operation records the verified Storage identity, record relationship, bucket/key, content length, and checksum. The public processor accepts only this registry's opaque asset ID. Existing images are ineligible until re-uploaded or migrated through a trusted proof flow.
-- **Alternative:** invoke the ownership-registration action with authenticated Identity Pool/IAM authorization and derive the trusted `cognitoIdentityId` from the resolver identity, while separately binding it to the application's canonical user owner key. This must be proven with integration tests for the exact Amplify auth modes; never trust an identity ID submitted as plain input.
+- **Recommended:** finalize the owner-private `PrivateImageAsset` candidate through an authenticated Identity Pool/IAM action. Derive the trusted `cognitoIdentityId` from resolver identity, require it to match the candidate key, bind the candidate owner to the saved source owner, and inspect the exact S3 object. This must be proven with integration tests for the exact Amplify auth modes; never trust an identity ID submitted as plain input.
+- **Alternative:** replace direct browser uploads with a server-created upload/finalization workflow that records the verified Storage identity, record relationship, bucket/key, content length, and checksum. Existing images are ineligible until re-uploaded or migrated through a trusted proof flow.
 - **Not acceptable:** compare only `EquipmentPassport.ownerId`, trust the browser-written S3 key, or rely on the obscurity of another user's private key.
 
 The first public-image release may intentionally require re-upload through the trusted registration path. That is safer than silently treating legacy key fields as verified.
@@ -387,9 +391,20 @@ All projected image fields must be backend-write-only. The existing owner must r
 
 ### Trusted private image registration
 
-For a release-safe ownership proof, also plan an owner-private `PrivateImageAsset` record or equivalent trusted registry. It may store the verified Storage identity/path, owning record relationship, checksum, type, and size. It must never be public-readable. This source registry is distinct from `PublicImageAsset`, which tracks the derivative workflow.
+`PrivateImageAsset` is now the owner-private candidate registry. It stores the canonical AppSync owner key, source type, source record id, private Storage key, generated safe filename, browser-observed content type, and byte count. The owner may create/read immutable candidate rows but cannot update/delete them or write the guarded binding result fields. There is no public/API-key or admin/moderator read authorization. A future backend lifecycle action must perform bounded cleanup.
 
-No schema fields or models are added in this design task.
+This client-created row is deliberately not called trusted or eligible. A modified browser can lie about ordinary create fields, so the future processor must require `bindingStatus=verified` and must never accept the row's key, type, or size as proof by themselves.
+
+Phase 2B should add a least-privilege backend finalization action. The preferred design is an Identity Pool/IAM-authorized operation whose trusted resolver identity contains the caller's `cognitoIdentityId`. Given only a `PrivateImageAsset` id, the function should:
+
+1. load the candidate and its source record server-side;
+2. require the source record owner to equal the candidate's AppSync owner;
+3. require the key shape and embedded identity segment to equal the trusted IAM caller identity and source record id;
+4. `HeadObject` the exact key with prefix-limited permission and validate observed size/type;
+5. write only bounded verification fields through explicit resource authorization; and
+6. return an opaque asset id and status, never the private key.
+
+If AppSync cannot provide a trustworthy Identity Pool identity for that action, use a server-created upload/finalization workflow instead and require new uploads. Do not infer a user-pool username-to-Identity-Pool mapping from client input.
 
 ## Authorization and IAM
 
@@ -543,7 +558,8 @@ Alarms should cover sustained processing failures, metadata-verification failure
 ### Phase 1: backend foundation, no UI
 
 - [x] Document the user-pool owner key versus Storage identity mismatch and fail closed rather than treating them as interchangeable.
-- [ ] Choose and test the trusted `PrivateImageAsset` registration/finalization strategy.
+- [x] Add an owner-private `PrivateImageAsset` candidate registry without treating client input as trusted.
+- [ ] Implement and test the trusted `PrivateImageAsset` finalization strategy.
 - [x] Defer the separate public bucket/prefix decision until processing and delivery are implemented; add no Storage rule now.
 - [x] Define `PublicImageAssetStatus`, a client-read-only private workflow ledger, and backend-reserved public projection fields.
 - [x] Define the future AppSync action contract in this document without accepting S3 keys or URLs.
@@ -554,10 +570,24 @@ Alarms should cover sustained processing failures, metadata-verification failure
 - [x] Preserve payload omission and public rendering behavior through typecheck, lint, build, and manual regression expectations.
 - [x] Document that the Phase 1 schema requires backend redeployment.
 
-### Phase 2: processing action
+### Phase 2A: private source candidates, no public processing
 
-- [ ] Implement authenticated command handling and canonical owner validation.
-- [ ] Resolve snapshot, passport, and trusted private source server-side.
+- [x] Register successful private Equipment Passport and Range Session target uploads as owner-only candidates.
+- [x] Bind candidate inputs to a saved owner-scoped source record in the normal client flow.
+- [x] Validate the expected private path shape, Storage identity segment, source id, generated filename, content type, and byte limit.
+- [x] Reject missing, mismatched, demo, and sample source ids before registration.
+- [x] Keep verification fields client-nonwritable and treat missing/unverified status as ineligible.
+- [x] Preserve current private display and text-only public snapshot behavior.
+- [x] Add no public Storage path, processor, selection UI, or rendering.
+
+### Phase 2B: trusted finalization and processing foundation
+
+- [ ] Implement Identity Pool/IAM-backed candidate finalization or a server-owned upload alternative.
+- [ ] Resolve the candidate and source server-side and bind AppSync owner, source owner, trusted Storage identity, and S3 object.
+- [ ] Permit the backend resource—not app clients—to set bounded binding status/failure/verification fields.
+- [ ] Keep Range Session target candidates ineligible for the first public release even if source binding is verified.
+- [ ] Implement authenticated public-image command handling and canonical owner validation.
+- [ ] Resolve snapshot, passport, and a verified private source server-side.
 - [ ] Implement idempotent job/state transitions.
 - [ ] Validate object existence, type, bytes, pixels, and frame count.
 - [ ] Auto-orient, resize, re-encode, and independently verify metadata removal.

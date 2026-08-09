@@ -4,9 +4,9 @@
 
 Public image publishing is planned but is not implemented. UnifiedRange currently stores Equipment Passport setup photos and Range Session target photos in owner-scoped private S3 paths. `PublicPassportSnapshot` publishing copies sanitized text/setup data only; it must not expose a private image key, signed private URL, or private image bytes.
 
-This document defines the privacy and safety boundary for a future release. Phase 1 now reserves a non-public workflow ledger and guarded public snapshot projection fields, but it does not add public Storage access, image-copy functions, public URLs, image selection, rendering, or moderation actions.
+This document defines the privacy and safety boundary for a future release. Phase 1 reserves a non-public workflow ledger and guarded public snapshot projection fields. Phase 2A adds owner-only registration of private upload candidates, but it does not add trusted backend verification, public Storage access, image-copy functions, public URLs, image selection, rendering, or moderation actions.
 
-The Phase 1 fields remain empty because normal client create/update operations cannot write them and no backend processor exists. Public image publishing is still unavailable.
+The public projection fields remain empty because normal client create/update operations cannot write them and no backend processor exists. `PrivateImageAsset` candidates remain unverified because normal clients cannot write their guarded binding fields. Public image publishing is still unavailable.
 
 See [PUBLIC_IMAGE_BACKEND_DESIGN.md](PUBLIC_IMAGE_BACKEND_DESIGN.md) for the detailed Amplify/Lambda implementation contract, identity-boundary analysis, failure handling, and phased backend work.
 
@@ -40,8 +40,11 @@ Current model references are:
 
 - `EquipmentPassport.privateCoverPhotoKey`
 - `TargetPhoto.storageKey`
+- owner-only `PrivateImageAsset` candidate rows for `equipment_cover` and `range_session_target`
 
 These fields and their signed download URLs are private inputs only. They must never be copied into `PublicPassportSnapshot`, returned by a public API, written to logs, embedded in image alt text, or rendered in Discover or public profiles.
+
+After a successful private upload and saved-record update, the normal client validates the source owner, source id, path shape, Storage identity segment, generated filename, MIME type, and byte limit before registering a candidate. This is useful integrity checking and association data, but it is not an authorization boundary: a modified client can bypass browser code. Only a future backend finalizer may mark a candidate `verified`, after independently resolving the source and actual S3 object against trusted caller identity.
 
 ## Proposed public destinations
 
@@ -98,7 +101,7 @@ The preview should also provide **Remove public image** independently of text un
 
 The recommended publish operation is an authenticated AppSync custom mutation or equivalent backend command backed by Lambda:
 
-1. Receive the public snapshot ID, an opaque eligible-source identifier, alt text, and the owner's explicit consent—not an arbitrary destination key.
+1. Receive the public snapshot ID, an opaque backend-verified eligible-source identifier, alt text, and the owner's explicit consent—not an arbitrary destination key.
 2. Resolve the caller from trusted Cognito claims.
 3. Confirm the caller owns the `PublicPassportSnapshot`, its source `EquipmentPassport`, and the selected private image record.
 4. Confirm username ownership is valid, the public snapshot is eligible, account visibility permits publishing, and the source key is inside the caller's expected private prefix.
@@ -129,19 +132,19 @@ Every public derivative must meet all of these requirements:
 
 The current private upload limit is 8 MB and accepts JPEG, PNG, and WEBP. The public processor may impose stricter limits. Its policy must be authoritative even when the private uploader accepted the original.
 
-## Planned data model changes
+## Data model foundation and planned changes
 
-A future schema change may add these optional fields to `PublicPassportSnapshot`:
+Phase 1 already reserves these optional, client-nonwritable fields on `PublicPassportSnapshot`:
 
 - `publicImageKey`: key of the ready public derivative only.
 - `publicImageAltText`: sanitized, public plain text.
-- `publicImageModerationStatus`: a constrained state such as `pending`, `ready`, `reported`, `removed`, or `rejected`.
+- `publicImageAssetId`: relationship to the non-public processing ledger.
 
 The existing `coverPhotoUrl` field must remain empty for private images. Before implementation, decide whether it will be removed/deprecated or populated only from a trusted public derivative. Prefer storing a key and resolving the public URL through one controlled helper rather than accepting arbitrary URLs from clients.
 
-If multiple images, image history, processing state, or independent moderation become necessary, introduce a dedicated `PublicImageAsset` model instead of adding arrays of private keys to the snapshot. A possible safe public shape includes an asset ID, snapshot ID, public derivative key, public alt text, display order, processing/moderation state, and timestamps. Any private-source mapping needed for processing or cleanup must be owner/admin-only and must not be readable through the public model.
+`PublicImageAsset` is the owner-readable, client-nonwritable future processing ledger. Phase 2A also adds `PrivateImageAsset`, an owner-only candidate registry containing private source linkage and upload metadata. Its verification fields are client-nonwritable, and the model has no public/API-key or moderator read access. `PublicImageAsset.privateImageAssetId` is reserved for a future backend-created relationship; no current client can create it.
 
-No fields or models should be added until the Lambda workflow, authorization rules, cleanup semantics, and public-read shape are ready to ship together.
+Future schema work should be limited to explicit Lambda resource authorization and any action/result types needed for trusted finalization and processing. Do not broaden client writes or public reads to ship that backend.
 
 ## Public/private boundary
 
@@ -195,11 +198,21 @@ No destructive moderation action is part of the current app. The image release m
 - Threat-model authorization bypass, private-key disclosure, metadata leakage, malformed files, stale caches, orphan objects, and race conditions.
 - Define the processing and moderation state machine and audit events.
 
-### Phase 2: backend processor
+### Phase 2A: private source registration
 
+- Register successful owner uploads as private candidates without changing private display behavior.
+- Validate the normal client's source owner, source id, key shape, Storage identity segment, generated filename, type, and byte size.
+- Keep candidate verification fields unavailable to normal client writes.
+- Treat missing or `unverified` binding status as ineligible for public processing.
+- Add no public image controls, copies, reads, URLs, or rendering.
+
+### Phase 2B: trusted finalization and backend processor
+
+- Add a trusted Identity Pool/IAM binding or a server-owned upload alternative that can independently attest the private S3 source.
+- Require backend `verified` status before a private candidate can be selected by any processing command.
 - Add least-privilege Storage permissions and the owner-authenticated Lambda operation.
 - Implement source ownership validation, decode/re-encode metadata stripping, type/size validation, randomized names, and idempotent cleanup.
-- Add schema fields or `PublicImageAsset` only when the processor and authorization are ready.
+- Grant only the backend resource permission to set binding and public projection fields.
 - Add unit and integration fixtures that prove private metadata and keys never reach public responses.
 
 ### Phase 3: owner UI
