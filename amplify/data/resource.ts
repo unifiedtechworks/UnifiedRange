@@ -1,4 +1,5 @@
 import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
+import { verifyPrivateImage } from "../functions/verify-private-image/resource";
 
 // TODO: Wire mock-data screens to generated AppSync clients after the sandbox
 // produces amplify_outputs.json. Until then, this schema is the backend contract.
@@ -8,7 +9,21 @@ const schema = a.schema({
   PublicImageAssetSourceType: a.enum(["equipment_cover"]),
   PublicImageAssetStatus: a.enum(["draft", "processing", "ready", "failed", "removed"]),
   PrivateImageAssetSourceType: a.enum(["equipment_cover", "range_session_target"]),
-  PrivateImageAssetBindingStatus: a.enum(["unverified", "verified", "rejected", "removed"]),
+  PrivateImageAssetBindingStatus: a.enum(["unverified", "verifying", "verified", "failed", "rejected", "removed"]),
+
+  VerifyPrivateImageResult: a.customType({
+    privateImageAssetId: a.id().required(),
+    bindingStatus: a.ref("PrivateImageAssetBindingStatus").required(),
+    failureCode: a.string(),
+    verifiedAt: a.datetime()
+  }),
+
+  verifyPrivateImageAsset: a
+    .mutation()
+    .arguments({ privateImageAssetId: a.id().required() })
+    .returns(a.ref("VerifyPrivateImageResult"))
+    .authorization((allow) => [allow.authenticated("identityPool")])
+    .handler(a.handler.function(verifyPrivateImage)),
 
   UsernameReservation: a
     .model({
@@ -200,17 +215,20 @@ const schema = a.schema({
 
   // Private client uploads can register an owner-only candidate here, but a
   // browser-created row is never authoritative proof of storage ownership.
-  // The guarded binding fields remain unset until a future trusted backend
-  // verifier checks the AppSync owner, source record, and S3 identity prefix.
+  // Only the trusted verifier may write the guarded binding result fields.
   PrivateImageAsset: a
     .model({
       ownerId: a
         .string()
         .required()
         .authorization((allow) => [allow.ownerDefinedIn("ownerId").to(["create", "read"])]),
+      ownerSub: a
+        .string()
+        .authorization((allow) => [allow.ownerDefinedIn("ownerSub").identityClaim("sub").to(["create", "read"])]),
       sourceType: a.ref("PrivateImageAssetSourceType").required(),
       sourceRecordId: a.id().required(),
       storageKey: a.string().required(),
+      storageIdentityId: a.string(),
       sanitizedFileName: a.string().required(),
       contentType: a.string().required(),
       sizeBytes: a.integer().required(),

@@ -8,7 +8,7 @@ import { configureAmplifyClient, getAuthErrorMessage } from "@/lib/amplifyClient
 export type AuthUserState =
   | { status: "loading"; label: "Checking session..."; username?: string; error?: string }
   | { status: "signed-out"; label: string; username?: string; error?: string }
-  | { status: "signed-in"; label: string; username: string; ownerKey: string; ownerAliases: string[]; groups: string[]; error?: string };
+  | { status: "signed-in"; label: string; username: string; userSub: string; ownerKey: string; ownerAliases: string[]; groups: string[]; error?: string };
 
 const authCheckTimeoutMs = 8000;
 const authListeners = new Set<() => void>();
@@ -65,12 +65,16 @@ export async function getCurrentAuthUserSafe(): Promise<AuthUserState> {
     const currentUser = await withTimeout(getCurrentUser(), "Auth check timed out. Please try refreshing the page.");
     let label = currentUser.signInDetails?.loginId ?? currentUser.username;
     let groups: string[] = [];
+    let userSub = currentUser.userId;
     const ownerAliases = new Set<string>([currentUser.username, currentUser.userId]);
 
     try {
       const attributes = await withTimeout(fetchUserAttributes(), "User attributes timed out. Please try refreshing the page.");
       label = attributes.email ?? label;
-      if (attributes.sub) ownerAliases.add(attributes.sub);
+      if (attributes.sub) {
+        userSub = attributes.sub;
+        ownerAliases.add(attributes.sub);
+      }
     } catch {
       // getCurrentUser succeeded, so the session is valid enough for app state.
       // Attribute lookup can briefly fail right after sign-in; keep signed-in.
@@ -82,7 +86,10 @@ export async function getCurrentAuthUserSafe(): Promise<AuthUserState> {
       const tokenUsername = session.tokens?.idToken?.payload["cognito:username"];
       const tokenSub = session.tokens?.idToken?.payload.sub;
       if (typeof tokenUsername === "string") ownerAliases.add(tokenUsername);
-      if (typeof tokenSub === "string") ownerAliases.add(tokenSub);
+      if (typeof tokenSub === "string") {
+        userSub = tokenSub;
+        ownerAliases.add(tokenSub);
+      }
     } catch {
       // Group claims can be absent for normal users. Keep the signed-in state.
     }
@@ -90,6 +97,7 @@ export async function getCurrentAuthUserSafe(): Promise<AuthUserState> {
     return {
       status: "signed-in",
       username: currentUser.username,
+      userSub,
       ownerKey: currentUser.username,
       ownerAliases: [...ownerAliases].filter(Boolean),
       label,

@@ -96,10 +96,10 @@ Current backend capabilities:
 - Signed-in-only comments and reports
 - Owner-scoped private records for passports, projectiles/ammo, optics/sights, sessions, maintenance, and hunting checklists
 - Private S3 storage paths for signed-in user equipment/setup images and target photos
-- Owner-only `PrivateImageAsset` candidate registration for saved private image sources; candidates remain unverified and cannot be used for public processing
+- Owner-only `PrivateImageAsset` registration plus an IAM/Lambda verification action that binds a candidate to its saved private source and exact S3 object metadata
 - A derived signed-in onboarding checklist on Dashboard and Profile; it adds no onboarding model
 
-Public image publishing is planned but not implemented. Phase 1 reserves a client-read-only workflow ledger and guarded, empty public snapshot projection fields. Phase 2A registers successful private uploads as owner-only, unverified source candidates, but adds no trusted verification Lambda, image-processing Lambda, public Storage access, selection UI, copy, metadata stripping, public URL, or rendering. Private uploads stay private, and current public snapshots remain sanitized text/setup data only. See `docs/PUBLIC_IMAGE_BACKEND_DESIGN.md`.
+Public image publishing is planned but not implemented. Phase 1 reserves a client-read-only workflow ledger and guarded, empty public snapshot projection fields. Phase 2A registers successful private uploads as owner-only candidates. Phase 2B adds trusted private source verification, but no image-processing Lambda, public Storage access, selection UI, copy, metadata stripping, public URL, or rendering. Verification does not publish an image. Private uploads stay private, and current public snapshots remain sanitized text/setup data only. See `docs/PUBLIC_IMAGE_BACKEND_DESIGN.md`.
 
 ### Account Data Lifecycle Status
 
@@ -277,7 +277,7 @@ With the Amplify sandbox and dev server running:
 
 ### Manual Private Image Upload Test
 
-Restart or rerun the Amplify sandbox after pulling this change so the sandbox includes the private image registry schema. Hosted Amplify must also redeploy before the new registration flow is tested there.
+Restart or rerun the Amplify sandbox after pulling this change so the sandbox includes the Phase 2B schema, verifier Lambda, and IAM grants. Hosted Amplify must also redeploy before verification is tested there.
 
 Private image storage uses Amplify-valid owner-scoped prefixes:
 
@@ -289,14 +289,15 @@ With the Amplify sandbox and dev server running:
 1. Sign in at `http://localhost:3000/auth/sign-in`.
 2. Open a saved Equipment Passport detail page.
 3. Upload a private setup photo using JPG, JPEG, PNG, or WEBP under 8MB.
-4. Confirm the upload remains private and the panel reports that its source was registered for future eligibility verification.
-5. Refresh and confirm the private setup photo still displays.
-6. Open a saved Range Session detail page.
-7. Upload a private target photo and confirm the same private registration notice appears.
-8. Refresh and confirm the private target photo still displays.
-9. Confirm demo/sample records cannot register private image sources.
-10. Sign out and confirm private upload controls are not available.
-11. Confirm Public Preview still publishes text/setup data only and public pages contain no private key, image, or URL.
+4. Confirm the upload remains private and the panel reports that its source was registered.
+5. Select **Verify private image** and confirm the private source reaches `verified` without displaying its key or publishing/copying the image.
+6. Refresh and confirm the private setup photo still displays and its verification status persists.
+7. Open a saved Range Session detail page.
+8. Upload a private target photo, request verification, and confirm the same private-only behavior.
+9. Refresh and confirm the private target photo still displays.
+10. Confirm demo/sample records cannot register or verify private image sources.
+11. Sign out and confirm private upload and verification controls are not available.
+12. Confirm Public Preview still publishes text/setup data only and public pages contain no private key, image, or URL.
 
 Private images stay private today and are not included in public snapshots. Do not upload images containing serial numbers, exact locations, license plates, or sensitive personal info unless you intend to keep them private. Future public image publishing requires a separate consent and backend-processing workflow; metadata stripping is not currently implemented. See `docs/PUBLIC_IMAGE_PUBLISHING_PLAN.md`.
 
@@ -416,7 +417,7 @@ Run this checklist before promoting a sandbox or production environment:
 
 Use this checklist against the Amplify Hosting dev URL after each hosted deployment:
 
-For a comprehensive role-based release review covering every current feature, Phase 2A private image registration, responsive behavior, and public/private data boundaries, use the [Manual QA Checklist](docs/MANUAL_QA_CHECKLIST.md).
+For a comprehensive role-based release review covering every current feature, Phase 2B private image verification, responsive behavior, and public/private data boundaries, use the [Manual QA Checklist](docs/MANUAL_QA_CHECKLIST.md).
 
 1. Auth: open `/auth/sign-in`, sign up or sign in, refresh, and sign out.
 2. Dashboard: confirm signed-in users see saved account counts and signed-out users see clearly labeled sample data.
@@ -425,7 +426,7 @@ For a comprehensive role-based release review covering every current feature, Ph
 5. Privacy settings: open `/settings/privacy`, change settings, save, refresh, and confirm private settings are hidden after sign-out.
 6. Equipment Passports: create, view, edit, refresh, and confirm private setup photo upload works for a saved passport.
 7. Projectiles / Ammo, Optics / Sights, Range Sessions, Maintenance, and Hunting Readiness: create, view, edit, refresh, and confirm each saved record persists.
-8. Private images: upload a saved Equipment Passport setup photo and a saved Range Session target photo, then sign out and confirm upload controls are not available.
+8. Private images: upload a saved Equipment Passport setup photo and a saved Range Session target photo, verify their private source bindings, then sign out and confirm upload/verification controls are not available.
 9. Public publishing: open a saved passport Public Preview, publish or update a sanitized Public Passport snapshot, view it in Discover, and unpublish if needed.
 10. Discover: confirm filters work and public detail pages show sanitized fields only without exposing private notes, private S3 keys, private images, target photos, maintenance records, readiness records, ammo lot numbers, purchase details, exact locations, owner private details, or image metadata.
 11. Social actions: signed-in users can react, comment, and report; signed-out users can view public pages and see sign-in prompts for actions.
@@ -457,7 +458,7 @@ The hosted-development web app uses:
 - Domain types in `src/types`
 - Responsive app navigation for dashboard, passports, projectiles/ammo, optics/sights, range sessions, maintenance, hunting readiness, discovery, and settings
 
-The live backend boundary covers Cognito auth, owner-scoped records, private S3 images, unverified owner-only private image source candidates, sanitized public snapshots, public identity snapshots, social actions, and group-gated moderation. Trusted public-image source finalization and Lambda processing, account lifecycle execution, and secure username sign-in remain planned work.
+The live backend boundary covers Cognito auth, owner-scoped records, private S3 images, owner-only private image candidates with trusted source verification, sanitized public snapshots, public identity snapshots, social actions, and group-gated moderation. Public-image byte processing/metadata stripping and publishing, account lifecycle execution, and secure username sign-in remain planned work.
 
 ## Project Docs
 

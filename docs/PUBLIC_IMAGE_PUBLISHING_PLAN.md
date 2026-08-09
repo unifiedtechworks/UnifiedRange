@@ -4,9 +4,9 @@
 
 Public image publishing is planned but is not implemented. UnifiedRange currently stores Equipment Passport setup photos and Range Session target photos in owner-scoped private S3 paths. `PublicPassportSnapshot` publishing copies sanitized text/setup data only; it must not expose a private image key, signed private URL, or private image bytes.
 
-This document defines the privacy and safety boundary for a future release. Phase 1 reserves a non-public workflow ledger and guarded public snapshot projection fields. Phase 2A adds owner-only registration of private upload candidates, but it does not add trusted backend verification, public Storage access, image-copy functions, public URLs, image selection, rendering, or moderation actions.
+This document defines the privacy and safety boundary for a future release. Phase 1 reserves a non-public workflow ledger and guarded public snapshot projection fields. Phase 2A adds owner-only registration of private upload candidates. Phase 2B adds trusted owner/source/S3 binding for those candidates, but it does not add public Storage access, image-copy functions, public URLs, image selection, rendering, metadata stripping, or moderation actions.
 
-The public projection fields remain empty because normal client create/update operations cannot write them and no backend processor exists. `PrivateImageAsset` candidates remain unverified because normal clients cannot write their guarded binding fields. Public image publishing is still unavailable.
+The public projection fields remain empty because normal client create/update operations cannot write them and no backend processor exists. Normal clients cannot write `PrivateImageAsset` binding fields; an IAM-authorized verifier may mark a candidate verified after re-reading its private source and exact S3 object metadata. Verification does not make an image public. Public image publishing is still unavailable.
 
 See [PUBLIC_IMAGE_BACKEND_DESIGN.md](PUBLIC_IMAGE_BACKEND_DESIGN.md) for the detailed Amplify/Lambda implementation contract, identity-boundary analysis, failure handling, and phased backend work.
 
@@ -44,7 +44,7 @@ Current model references are:
 
 These fields and their signed download URLs are private inputs only. They must never be copied into `PublicPassportSnapshot`, returned by a public API, written to logs, embedded in image alt text, or rendered in Discover or public profiles.
 
-After a successful private upload and saved-record update, the normal client validates the source owner, source id, path shape, Storage identity segment, generated filename, MIME type, and byte limit before registering a candidate. This is useful integrity checking and association data, but it is not an authorization boundary: a modified client can bypass browser code. Only a future backend finalizer may mark a candidate `verified`, after independently resolving the source and actual S3 object against trusted caller identity.
+After a successful private upload and saved-record update, the normal client validates the source owner, source id, path shape, Storage identity segment, generated filename, MIME type, and byte limit before registering a candidate. This is useful integrity checking and association data, but it is not an authorization boundary: a modified client can bypass browser code. Phase 2B's IAM-authorized verifier accepts only the candidate id, derives trusted caller identity from AppSync, re-reads the saved source, validates the exact private path, and uses `HeadObject` to compare observed MIME type and byte size before writing a bounded binding result.
 
 ## Proposed public destinations
 
@@ -206,13 +206,22 @@ No destructive moderation action is part of the current app. The image release m
 - Treat missing or `unverified` binding status as ineligible for public processing.
 - Add no public image controls, copies, reads, URLs, or rendering.
 
-### Phase 2B: trusted finalization and backend processor
+### Phase 2B: trusted private source verification
 
-- Add a trusted Identity Pool/IAM binding or a server-owned upload alternative that can independently attest the private S3 source.
-- Require backend `verified` status before a private candidate can be selected by any processing command.
-- Add least-privilege Storage permissions and the owner-authenticated Lambda operation.
-- Implement source ownership validation, decode/re-encode metadata stripping, type/size validation, randomized names, and idempotent cleanup.
-- Grant only the backend resource permission to set binding and public projection fields.
+- Implemented an authenticated Identity Pool/IAM action that accepts only a candidate id and derives the trusted Storage identity from resolver context.
+- Implemented saved-source ownership, exact private key shape, S3 existence, observed MIME type, and 8 MB size validation.
+- Granted the verifier only exact-table reads, bounded candidate status updates, and S3 read access to existing private equipment/target prefixes.
+- Kept binding result fields unavailable to normal clients and returned bounded status/failure data without keys.
+- Require backend `verified` status before a private candidate can ever be selected by a later processing command.
+- Hosted same-owner/other-owner, legacy, missing-object, metadata-mismatch, type, and size integration tests remain required.
+
+### Phase 2C: processor and metadata-free derivative foundation
+
+- Add a separate owner-authenticated processing command that resolves a verified candidate server-side.
+- Decode and validate actual image bytes, reject malformed/animated/oversized pixel inputs, auto-orient, resize, and re-encode without source metadata.
+- Independently verify metadata removal before any derivative can become eligible for a public projection.
+- Add randomized backend-only destination names, idempotent state transitions, rollback, and cleanup.
+- Grant only the processing backend permission to set public workflow/projection fields; do not give these permissions to the verification Lambda.
 - Add unit and integration fixtures that prove private metadata and keys never reach public responses.
 
 ### Phase 3: owner UI
@@ -238,8 +247,8 @@ No destructive moderation action is part of the current app. The image release m
 ## Out of scope for this plan
 
 - Implementing public image upload or direct client writes to public storage.
-- Implementing the copy/processing Lambda or metadata-stripping service.
-- Adding schema fields, public image URLs, or public Storage authorization now.
+- Implementing the copy/processing Lambda or metadata-stripping service in Phase 2B.
+- Adding public image URLs or public Storage authorization in Phase 2B.
 - Automatically publishing Equipment Passport or Range Session images.
 - Public profile avatars, image feeds, follows, direct messaging, or marketplace behavior.
 - Calculators, scope outputs, hold recommendations, field corrections, sight-in instructions, or directions for adjusting or aiming equipment.

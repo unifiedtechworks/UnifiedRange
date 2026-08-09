@@ -8,7 +8,7 @@
 - OpticSightProfile
 - RangeSession
 - TargetPhoto
-- PrivateImageAsset (owner-only, unverified private upload candidate registry)
+- PrivateImageAsset (owner-only private upload candidate registry with backend-only binding results)
 - MaintenanceLogEntry
 - HuntingChecklist
 - PublicImageAsset (future public-image workflow ledger; owner-readable but not client-writable)
@@ -29,6 +29,7 @@ Protected owner-like fields:
 - `RangeSession.ownerId`
 - `TargetPhoto.ownerId`
 - `PrivateImageAsset.ownerId`
+- `PrivateImageAsset.ownerSub` (bound to the Cognito `sub` claim during create)
 - `MaintenanceLogEntry.ownerId`
 - `HuntingChecklist.ownerId`
 - `PublicPassportSnapshot.ownerId`
@@ -57,7 +58,7 @@ Public read exceptions remain intentionally narrow:
 
 Private records remain owner-scoped and should not expose private notes, private image keys, lot numbers, purchase details, exact locations, maintenance records, readiness records, or owner private profile details through public flows.
 
-## Phase 1 and Phase 2A Public Image Foundation
+## Phase 1, Phase 2A, and Phase 2B Public Image Foundation
 
 `PublicImageAsset` is a non-public workflow ledger for a future backend processor. It contains the public snapshot relationship, source type and record id, processed public derivative fields, bounded processing status/error data, and consent timestamp. It deliberately contains no private S3 key and has no API-key authorization.
 
@@ -78,18 +79,22 @@ The existing public snapshot payload builder omits `coverPhotoUrl`, all new proj
 Phase 2A adds `PrivateImageAsset` as an owner-only registry for private upload candidates. It records:
 
 - canonical AppSync `ownerId`;
+- Cognito `ownerSub`, protected by a create/read owner rule using the `sub` identity claim;
 - `sourceType` (`equipment_cover` or `range_session_target`);
 - saved source record id;
 - private Storage key;
+- captured Storage Identity Pool id;
 - generated sanitized filename;
 - browser-observed content type and byte size; and
 - guarded binding status, failure code, and verification timestamp fields.
 
 Owners may create and read their immutable candidate rows. There is no public/API-key or admin/moderator read access. Normal clients cannot update/delete candidate data or write the binding result fields. Successful private uploads create a new candidate after validating the saved source owner, Cognito owner aliases, expected source and Identity Pool path segments, generated filename, content type, and upload limit. Retained replacement history is private; a future trusted lifecycle action must handle bounded cleanup.
 
-The registry is not yet a trust attestation. AppSync Data uses the Cognito user-pool username as the canonical owner key, while Amplify Storage paths use an Identity Pool `identityId`, and ordinary candidate fields originate in the browser. A future Phase 2B backend must independently bind the candidate to trusted IAM/Identity Pool caller identity, re-read the owner-scoped source, and inspect the exact S3 object before setting `bindingStatus=verified`. Missing or `unverified` status must be rejected by every future public processor.
+An unverified registry row is not a trust attestation. AppSync Data uses the Cognito user-pool username as the canonical `ownerId`, while Amplify Storage paths use an Identity Pool `identityId`. Phase 2B bridges the boundary with `verifyPrivateImageAsset`, an `identityPool`-authenticated custom mutation that accepts only the candidate id. Its Lambda derives the trusted Storage identity from AppSync IAM context, binds the protected user-pool `sub`, re-reads the owner-scoped source, validates the exact private path, and compares S3 `HeadObject` MIME/byte metadata before writing `verifying`, `verified`, or `failed` plus bounded failure details. Missing or non-`verified` status must be rejected by every future public processor.
 
-No public Storage access, trusted finalizer, processing Lambda, copy, metadata stripping, image selection, public URL, or public rendering is added in Phase 2A. Range Session target photos can be registered privately for future integrity/lifecycle work but remain excluded from the first public-image release.
+The verification Lambda has exact-table read permission, candidate-table status-update permission, and read access to the two existing private image prefixes. It cannot write/delete S3 objects, mutate public snapshots or workflow ledgers, or access a public prefix. Legacy candidates without the new identity bridge fields fail closed and require re-upload.
+
+No public Storage access, image processing/copy, metadata stripping, image selection, public URL, or public rendering is added in Phase 2B. Range Session target photos can be verified privately for future integrity/lifecycle work but remain excluded from the first public-image release.
 
 ## Public Discovery Models
 

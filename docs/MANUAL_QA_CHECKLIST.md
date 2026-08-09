@@ -2,7 +2,7 @@
 
 Last updated: August 9, 2026
 
-Use this checklist for a complete hosted-development release review. It starts from the current MVP, including Phase 2A owner-only `PrivateImageAsset` candidate registration. It does not assume that public image publishing, account deletion/export, username sign-in, notifications, or destructive moderation actions exist.
+Use this checklist for a complete hosted-development release review. It starts from the current MVP, including Phase 2A owner-only `PrivateImageAsset` candidate registration and Phase 2B trusted private source verification. It does not assume that public image publishing, account deletion/export, username sign-in, notifications, or destructive moderation actions exist.
 
 ## Test session record
 
@@ -38,7 +38,7 @@ Use synthetic test data and non-sensitive test images. Do not use real serial nu
 Before beginning:
 
 - [ ] Confirm the intended frontend is connected to the intended Amplify backend.
-- [ ] Confirm the Phase 2A schema has been deployed before testing `PrivateImageAsset` registration.
+- [ ] Confirm the Phase 2B schema, verifier Lambda, and IAM/storage grants have been deployed before testing `PrivateImageAsset` verification.
 - [ ] Confirm User A, User B, moderator, and admin use separate Cognito accounts.
 - [ ] Confirm at least one sanitized Public Passport is available for signed-out testing.
 - [ ] Confirm at least one test report is available, or plan to create one during social testing.
@@ -377,7 +377,7 @@ User B with a saved Equipment Passport, a second standard account, and Visitor.
 - [ ] Readiness items, tags/licenses, trip preparation, notes, and linked private IDs never appear on public pages.
 - [ ] Readiness copy remains organizational and does not provide aiming or equipment-adjustment instructions.
 
-## 12. Private image uploads and `PrivateImageAsset` registration
+## 12. Private image uploads, registration, and trusted source verification
 
 ### Account type
 
@@ -385,35 +385,44 @@ User B, a second standard account, Visitor, and optionally Backend inspector.
 
 ### Steps
 
-- [ ] Confirm the Phase 2A backend schema is deployed before starting this section.
+- [ ] Confirm the Phase 2B backend is deployed before starting this section.
 - [ ] Open a saved Equipment Passport and upload a synthetic JPG, PNG, or WEBP image under 8 MB.
 - [ ] Confirm progress, private-success copy, and the private source registration notice.
+- [ ] Confirm the private-only panel shows an unverified state and **Verify private image** action without displaying a storage key or identity value.
+- [ ] Request verification and confirm the status moves through verifying to verified.
 - [ ] Refresh and confirm the private equipment image still displays on the owner-only page.
 - [ ] Replace the equipment image and confirm the new image displays.
-- [ ] Open a saved Range Session and repeat the upload/replacement flow for a private target photo.
+- [ ] Open a saved Range Session and repeat the upload, verification, and replacement flow for a private target photo.
 - [ ] Attempt an unsupported file type and a file larger than 8 MB; confirm both are rejected before association.
 - [ ] Confirm demo/sample records do not offer a working private source registration path.
 - [ ] If authorized backend inspection is available, inspect User B’s `PrivateImageAsset` rows.
 - [ ] Confirm equipment rows use `equipment_cover` and the Equipment Passport ID; target rows use `range_session_target` and the Range Session ID.
 - [ ] Confirm the stored filename is generated/sanitized rather than the original local filename.
 - [ ] Confirm content type and byte size match the uploaded test file.
-- [ ] Confirm `bindingStatus` is missing/unverified and `verifiedAt` is unset because no trusted Phase 2B verifier exists.
+- [ ] Confirm a successful verification stores `bindingStatus=verified`, clears any prior bounded failure code, and sets `verifiedAt`.
+- [ ] If a pre-Phase-2B candidate is available, confirm verification fails closed with safe re-upload guidance because its identity bridge fields are missing.
+- [ ] In an isolated sandbox, delete or move a disposable test object after registration and confirm verification returns a safe failed state without exposing its key.
+- [ ] In an isolated sandbox or automated fixture, exercise mismatched size/type/path cases and confirm bounded failed states. Do not corrupt production records.
 - [ ] Confirm replacement uploads create immutable private candidate history rather than modifying a verified/audit record.
 - [ ] As the second account, attempt to list/read User B’s candidate data through an authenticated client if a safe QA harness exists.
+- [ ] If a safe integration harness exists, attempt to verify User B’s candidate id as the second account and confirm it cannot be marked verified.
 - [ ] As Visitor/API-key, confirm `PrivateImageAsset` cannot be read.
+- [ ] As Visitor or an unauthenticated Identity Pool session, confirm the verification mutation is unavailable or returns unauthorized.
 - [ ] Sign out and attempt to reload the prior signed private image URL after expiration or from a separate signed-out session.
 
 ### Expected results
 
 - [ ] Existing private upload and display behavior still works.
 - [ ] Successful uploads associate with the correct saved owner record and create an owner-only candidate.
-- [ ] Missing, mismatched, demo/sample, wrong-folder, invalid-type, and oversized inputs fail closed.
+- [ ] Same-owner verification succeeds only after candidate owner, protected user-pool `sub`, trusted Identity Pool identity, saved source, exact path, S3 object, MIME type, and byte size agree.
+- [ ] Missing, mismatched, legacy, demo/sample, wrong-owner, wrong-folder, invalid-type, and oversized inputs fail closed with bounded messages.
 - [ ] A registration failure, if deliberately simulated in a sandbox, leaves the saved image private and shows that registration is pending; it does not publish anything.
 - [ ] Other owners, moderators acting only through their group role, API-key clients, and visitors cannot read private registry rows.
+- [ ] Verification does not download image bytes to the UI, copy the object, create a public workflow record, or populate a public snapshot image field.
 
 ### Privacy and safety checks
 
-- [ ] Neither UI success copy nor registry state claims that the browser-created candidate is trusted or publicly eligible.
+- [ ] UI copy distinguishes verified private source binding from public eligibility and never claims that verification publishes or sanitizes the image.
 - [ ] Private keys, signed URLs, original filenames, Identity Pool IDs, and image contents are not displayed on public pages or copied into public records.
 - [ ] No public prefix, public URL, metadata stripping, image copy, selection control, or public rendering exists.
 - [ ] Target photos are never automatically selected or published.
@@ -652,7 +661,7 @@ Visitor, User B, Conflict account if available, and Moderator.
 - [ ] Confirm sign-out produces no unhandled auth errors and clears private data after refresh.
 - [ ] Review GraphQL variables/responses and storage requests for fields that should not cross the current route boundary.
 - [ ] Review console messages and any accessible backend logs for secrets or private-data leakage.
-- [ ] Confirm no frontend request attempts a public S3 write, public image copy, processing Lambda, or image projection update.
+- [ ] Confirm no frontend request attempts a public S3 write, public image copy/processing action, or image projection update. The owner-only Phase 2B verification mutation is expected.
 
 ### Expected results
 
@@ -673,4 +682,4 @@ Visitor, User B, Conflict account if available, and Moderator.
 - [ ] Re-run Sections 12, 13, 14, 17, and 19 after any data authorization, storage, public snapshot, or moderation change.
 - [ ] Re-run Sections 1, 18, and 20 after any framework, navigation, layout, or deployment change.
 - [ ] Do not approve a hosted release if another owner or signed-out/API-key client can access private records, private images, `PrivateImageAsset`, or private keys.
-- [ ] Do not approve public image publishing based on Phase 2A registration. A trusted Phase 2B verifier, metadata-free derivative processor, explicit consent UI, public storage boundary, removal lifecycle, and moderation release gates are still required.
+- [ ] Do not approve public image publishing based on Phase 2B verification. A metadata-free derivative processor, explicit consent UI, public storage boundary, removal lifecycle, and moderation release gates are still required.

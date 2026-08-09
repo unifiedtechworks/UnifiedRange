@@ -17,6 +17,7 @@ const knownNonPersistentSourceIdPattern = /^(?:(?:demo|sample)(?:[-_]|$)|(?:pass
 
 export interface PrivateImageSourceBindingInput {
   ownerId: string;
+  ownerSub: string;
   ownerAliases: string[];
   sourceOwnerId?: string | null;
   sourceType: PrivateImageAssetSourceType;
@@ -53,6 +54,10 @@ export function buildPrivateImageAssetRegistration(input: PrivateImageSourceBind
 
   if (!input.ownerId || !input.ownerAliases.includes(input.ownerId)) {
     throw new Error("The signed-in data owner could not be verified.");
+  }
+
+  if (!input.ownerSub || !ownerAliases.includes(input.ownerSub)) {
+    throw new Error("The signed-in identity bridge could not be verified.");
   }
 
   if (!input.sourceOwnerId || !ownerAliases.includes(input.sourceOwnerId)) {
@@ -95,9 +100,11 @@ export function buildPrivateImageAssetRegistration(input: PrivateImageSourceBind
 
   return {
     ownerId: input.ownerId,
+    ownerSub: input.ownerSub,
     sourceType: input.sourceType,
     sourceRecordId: input.sourceRecordId,
     storageKey: input.upload.storageKey,
+    storageIdentityId: input.upload.storageIdentityId,
     sanitizedFileName: input.upload.sanitizedFileName,
     contentType: input.upload.contentType,
     sizeBytes: input.upload.sizeBytes
@@ -107,6 +114,7 @@ export function buildPrivateImageAssetRegistration(input: PrivateImageSourceBind
 export function validateRegisteredPrivateImageAsset({
   asset,
   ownerId,
+  ownerSub,
   ownerAliases,
   sourceOwnerId,
   sourceType,
@@ -116,6 +124,7 @@ export function validateRegisteredPrivateImageAsset({
 }: {
   asset: PrivateImageAssetRecord;
   ownerId: string;
+  ownerSub: string;
   ownerAliases: string[];
   sourceOwnerId?: string | null;
   sourceType: PrivateImageAssetSourceType;
@@ -129,6 +138,10 @@ export function validateRegisteredPrivateImageAsset({
     throw new Error("The private image registration does not belong to the expected account.");
   }
 
+  if ((asset.ownerSub && asset.ownerSub !== ownerSub) || (asset.storageIdentityId && asset.storageIdentityId !== trustedStorageIdentityId)) {
+    throw new Error("The private image registration does not match the expected authenticated identity.");
+  }
+
   if (asset.sourceType !== sourceType || asset.sourceRecordId !== sourceRecordId) {
     throw new Error("The private image registration does not match the expected source record.");
   }
@@ -139,6 +152,7 @@ export function validateRegisteredPrivateImageAsset({
 
   return buildPrivateImageAssetRegistration({
     ownerId,
+    ownerSub,
     ownerAliases: aliases,
     sourceOwnerId,
     sourceType,

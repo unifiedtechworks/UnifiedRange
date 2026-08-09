@@ -18,7 +18,7 @@ public/passports/{publicPassportId}/
 public/profile/{publicProfileId}/
 ```
 
-Phase 1 and Phase 2A add no public Storage rule or prefix access. Public paths remain design placeholders until trusted source finalization, a processor Lambda, metadata-removal verification, and a public delivery policy are implemented together. Normal clients must never receive public-prefix write access.
+Phases 1, 2A, and 2B add no public Storage rule or prefix access. Public paths remain design placeholders until a processor Lambda, metadata-removal verification, and a public delivery policy are implemented together. Normal clients must never receive public-prefix write access.
 
 ## Private User Images
 
@@ -29,9 +29,11 @@ The current MVP stores:
 - `EquipmentPassport.privateCoverPhotoKey`
 - `TargetPhoto.storageKey`
 
-Phase 2A also registers successful uploads as owner-only `PrivateImageAsset` candidates. The candidate records store the private key, source relationship, generated safe filename, browser-observed content type, and byte size. They have no public/API-key access. Their backend-guarded verification fields remain unset, so the candidate records alone do not authorize S3 reads or public processing.
+Phase 2A registers successful uploads as owner-only `PrivateImageAsset` candidates. The candidate records store the private key, source relationship, protected Cognito `sub`, captured Storage identity, generated safe filename, browser-observed content type, and byte size. They have no public/API-key or moderator access. Candidate records alone do not authorize S3 reads or public processing.
 
-The app validates the expected key shape and matches its Identity Pool segment and saved source record in the normal upload flow. A future backend must repeat these checks using trusted resolver/IAM identity and `HeadObject`; it must not trust the browser-provided key or metadata.
+The app validates the expected key shape and matches its Identity Pool segment and saved source record in the normal upload flow. Phase 2B repeats the security checks in a Lambda-backed IAM action. It accepts only the candidate id, derives the authenticated `cognitoIdentityId` from AppSync identity, re-reads the candidate and saved source, validates the exact key, and runs `HeadObject` to compare S3 MIME type and bytes with the allowlist and 8 MB limit.
+
+The verifier receives S3 `get` access only on the existing `private/equipment/` and `private/targets/` owner path patterns. This permits `HeadObject` because S3 authorizes it through `GetObject`; the function does not download image bytes. It has no S3 write/delete permission and no public prefix exists.
 
 ## Public Sanitized Images
 
@@ -47,9 +49,9 @@ Public images should have metadata stripped before publication, including EXIF G
 
 1. User uploads a private image and S3 stores the private original.
 2. The client links the image to its saved owner-scoped record and creates an unverified owner-only source candidate.
-3. A trusted backend finalizer binds the AppSync owner, source owner, IAM/Identity Pool identity, key path, and actual object, then marks the candidate verified.
+3. The Phase 2B verifier binds the protected Cognito identity, source owner, trusted IAM/Identity Pool identity, key path, and actual object metadata, then marks the candidate verified.
 4. User previews the Public Passport and explicitly selects a backend-verified eligible source. **Publish without images** remains the default.
 5. A Lambda decodes and re-encodes a sanitized derivative into a separate public namespace.
 6. The public snapshot references only the approved sanitized derivative.
 
-Steps 3-6 are not implemented. There is no public prefix, public read, public write, public URL, image copy, metadata-stripping Lambda, selection UI, or public image rendering today.
+Step 3 is implemented as private source verification only. Steps 4-6 are not implemented. There is no public prefix, public read, public write, public URL, image copy, image-byte decoding, metadata-stripping Lambda, selection UI, or public image rendering today.

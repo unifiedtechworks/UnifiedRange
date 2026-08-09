@@ -4,6 +4,7 @@ import { generateClient } from "aws-amplify/data";
 import { useMemo, useState } from "react";
 import type { Schema } from "../../amplify/data/resource";
 import { PrivateImageUploadCard } from "@/components/PrivateImageUploadCard";
+import { PrivateImageVerificationStatus } from "@/components/PrivateImageVerificationStatus";
 import { useAuthUser } from "@/hooks/useAuthUser";
 import { configureAmplifyClient, getAuthErrorMessage } from "@/lib/amplifyClient";
 import { buildPrivateImageAssetRegistration, registerPrivateImageCandidate } from "@/lib/privateImageAssetData";
@@ -24,6 +25,7 @@ export function EquipmentPassportPrivatePhotoPanel({
   }, []);
   const { authState } = useAuthUser();
   const [currentStorageKey, setCurrentStorageKey] = useState(storageKey ?? "");
+  const [candidateId, setCandidateId] = useState("");
   const [error, setError] = useState("");
   const [registrationNotice, setRegistrationNotice] = useState("");
 
@@ -48,6 +50,7 @@ export function EquipmentPassportPrivatePhotoPanel({
 
       const registration = buildPrivateImageAssetRegistration({
         ownerId: authState.ownerKey,
+        ownerSub: authState.userSub,
         ownerAliases: authState.ownerAliases,
         sourceOwnerId: source.data.ownerId,
         sourceType: "equipment_cover",
@@ -67,8 +70,9 @@ export function EquipmentPassportPrivatePhotoPanel({
       onPhotoUpdated?.(upload.storageKey);
 
       try {
-        await registerPrivateImageCandidate(client, registration);
-        setRegistrationNotice("Private image source registered for future eligibility verification.");
+        const candidate = await registerPrivateImageCandidate(client, registration);
+        setCandidateId(candidate.id);
+        setRegistrationNotice("Private image source registered. Verify it below; verification does not publish it.");
       } catch (registrationError) {
         console.error("Unable to register private equipment image source", registrationError);
         setRegistrationNotice("The image is saved and private, but its source registration is pending. Public image publishing remains unavailable.");
@@ -89,6 +93,12 @@ export function EquipmentPassportPrivatePhotoPanel({
         storageKey={currentStorageKey}
         uploadLabel={currentStorageKey ? "Replace private setup photo" : "Upload private setup photo"}
         onUploaded={handleUploaded}
+      />
+      <PrivateImageVerificationStatus
+        sourceType="equipment_cover"
+        sourceRecordId={passportId}
+        storageKey={currentStorageKey}
+        candidateId={candidateId || undefined}
       />
       {error ? <p className="rounded-md border border-clay/30 bg-clay/10 px-3 py-2 text-sm font-semibold text-clay">{error}</p> : null}
       {registrationNotice ? <p className="rounded-md border border-ink/10 bg-field px-3 py-2 text-sm text-ink/70">{registrationNotice}</p> : null}

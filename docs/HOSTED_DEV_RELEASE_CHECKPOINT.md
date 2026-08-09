@@ -60,7 +60,7 @@ UnifiedRange is deployed as an AWS Amplify Gen 2 hosted-development MVP. This ch
 
 Run this checklist against the current Amplify Hosting development URL after each release:
 
-Use the role-based [Manual QA Checklist](MANUAL_QA_CHECKLIST.md) for the comprehensive release pass, including CRUD isolation, username conflict repair, Phase 2A private image registration, moderation authorization, responsive coverage, and public/private response inspection.
+Use the role-based [Manual QA Checklist](MANUAL_QA_CHECKLIST.md) for the comprehensive release pass, including CRUD isolation, username conflict repair, Phase 2B private source verification, moderation authorization, responsive coverage, and public/private response inspection.
 
 1. Open `/` while signed out. Confirm the landing page explains the private logbook, Equipment Passports, Hunting Readiness, Discover, and privacy-first sharing.
 2. Open `/auth/sign-in`. Test sign-up/confirmation with a test account or sign in with an existing test account, refresh, and confirm the session persists.
