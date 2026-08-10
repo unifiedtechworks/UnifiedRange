@@ -72,6 +72,7 @@ export function RangeSessionPrivateTargetPhotoPanel({ sessionId }: { sessionId: 
   async function handleUploaded(upload: PrivateImageUploadResult) {
     setError("");
     setRegistrationNotice("");
+    setCandidateId("");
 
     if (authState.status !== "signed-in") {
       throw new Error("Sign in before uploading private target photos.");

@@ -2,13 +2,13 @@
 
 ## Status
 
-Phase 1 data guardrails were added on August 5, 2026. Phase 2A private source registration and Phase 2B trusted private source verification were added on August 9, 2026. The schema now contains a non-public, client-read-only `PublicImageAsset` workflow ledger, backend-reserved public image projection fields, an owner-only `PrivateImageAsset` candidate registry, and an IAM-authorized verification operation. These backend changes require an Amplify redeploy.
+Phase 1 data guardrails were added on August 5, 2026. Phase 2A private source registration, Phase 2B trusted private source verification, and the Phase 2C backend derivative foundation were added on August 9, 2026. The schema now contains a non-public, client-read-only `PublicImageAsset` workflow ledger, backend-reserved public image projection fields, an owner-only `PrivateImageAsset` candidate registry, an IAM-authorized verification operation, and an authenticated processing operation. These backend changes require an Amplify redeploy.
 
-Public image publishing is still not implemented. Phase 2B verifies only the relationship between a private candidate, its saved private source, the trusted Cognito Identity Pool caller, and the exact private S3 object. There is no public-image processing action, public Storage prefix, public image URL, selection UI, metadata removal, copying, or rendering. No current client can create or update a public workflow asset or populate the reserved public projection fields.
+Public image publishing is still not available. Phase 2C adds a backend-only action that can turn an explicitly consented, verified Equipment Passport cover candidate into a bounded metadata-free JPEG derivative and guarded public snapshot projection. There is no app selection/consent UI, client invocation, public delivery/read rule, public URL, rendering, target-photo processing, removal flow, or automatic publishing. The processor-only `public/passports/{snapshotId}/cover/` namespace is deliberately not readable by browser or guest identities.
 
-The browser may create and read its own immutable `PrivateImageAsset` candidate records after a successful private upload. Those rows remain private registration hints until `verifyPrivateImageAsset` independently marks them `verified`. Normal clients cannot write `bindingStatus`, `bindingFailureCode`, or `verifiedAt`. Future processing must still reject every candidate that is missing `verified` status; verification proves source binding only and does not prove decoded image safety or metadata removal.
+The browser may create and read its own immutable `PrivateImageAsset` candidate records after a successful private upload. Those rows remain private registration hints until `verifyPrivateImageAsset` independently marks them `verified`. Normal clients cannot write `bindingStatus`, `bindingFailureCode`, or `verifiedAt`. The Phase 2C processor rejects every candidate that is missing `verified` status and repeats the current source/object checks because verification proves source binding only and does not prove decoded image safety or metadata removal.
 
-UnifiedRange currently publishes sanitized text/setup snapshots only. Equipment Passport setup photos and Range Session target photos remain owner-private. Public pages must continue to render no private image while this design is unimplemented.
+UnifiedRange's current app flows publish sanitized text/setup snapshots only. Equipment Passport setup photos and Range Session target photos remain owner-private. Public pages must continue to render no image until the later selection, delivery, rendering, removal, and moderation phases are implemented and tested.
 
 This design refines the product boundary in [PUBLIC_IMAGE_PUBLISHING_PLAN.md](PUBLIC_IMAGE_PUBLISHING_PLAN.md) into an implementable AWS Amplify Gen 2 backend contract.
 
@@ -20,12 +20,18 @@ This design refines the product boundary in [PUBLIC_IMAGE_PUBLISHING_PLAN.md](PU
 - `PublicPassportSnapshot.publicImageAssetId`, `publicImageKey`, and `publicImageAltText` are readable by the owner and public API, but client create/update authorization is intentionally absent.
 - The legacy `PublicPassportSnapshot.coverPhotoUrl` field received the same create/update guard and is no longer mapped into saved public UI data.
 - `buildPublicPassportSnapshotInput` continues to omit every image field.
-- `amplify/storage/resource.ts` grants the verifier read access only to the two existing private prefixes; public object access remains unavailable.
+- `amplify/storage/resource.ts` grants the verifier read access only to the two existing private prefixes. It grants the processor private-equipment read plus get/write/delete on the exact derivative namespace. No client or guest read/write rule exists for that namespace.
 - `PrivateImageAsset` now records owner-private upload candidates for Equipment Passport covers and Range Session target photos. Its key, filename, type, size, and source relationship have no public/API-key access.
 - The upload client performs defense-in-depth validation of the saved source owner, Cognito owner aliases, source-record path segment, Storage identity segment, generated filename, type, and size before registration.
 - Browser validation does not establish trust. The Phase 2B Lambda receives only a candidate id, derives the caller's Identity Pool identity from AppSync IAM resolver identity, binds the protected Cognito `sub`, re-reads the saved source, validates the exact path and object metadata, and alone writes bounded verification fields.
 - Legacy candidates without the protected `ownerSub` and Storage identity bridge fields fail closed. Re-upload creates a candidate eligible for verification; the verifier does not backfill identity data from request input.
 - The owner-only private panels may request verification and display a bounded status/failure message. The action does not expose a key, read image bytes, copy an object, or publish anything.
+- `processPublicPassportImage` accepts only snapshot/candidate ids, bounded alt text, and required consent. It rejects unverified, target-photo, demo/sample, mismatched-owner, private-account, unresolved-username, stale-source, missing-object, unsupported-format, malformed, animated, oversized, or metadata-mismatched inputs with bounded failures.
+- The processor accepts JPEG and PNG up to 6 MB and 12 megapixels, applies EXIF orientation in pixel space, flattens transparency, scales to at most 1600 pixels, emits a JPEG no larger than 2 MB, and independently rejects metadata-bearing JPEG segments in the output.
+- The first implementation uses the portable JavaScript `image-js`/`jpeg-js` decode-and-re-encode path so the Amplify Lambda bundle does not depend on an architecture-specific native binary. Its strict signature/header checks and output inspection remain authoritative release gates.
+- A content-addressed backend key prevents source names or private identifiers from reaching the filename. Conditional/transactional finalization updates only the ledger and guarded image projection fields, and a newly written derivative is deleted when finalization loses a state race.
+- DynamoDB finalization permissions use the transaction's underlying attribute-limited `ConditionCheckItem` and `UpdateItem` actions, constrained by `dynamodb:EnclosingOperation=TransactWriteItems`; there is no broad transaction/table mutation grant.
+- Current Public Preview payloads and all public UI continue to ignore image projection fields, so normal app publishing remains text/setup only.
 
 ## Recommended decisions
 
@@ -33,7 +39,7 @@ This design refines the product boundary in [PUBLIC_IMAGE_PUBLISHING_PLAN.md](PU
 | --- | --- |
 | First supported source | One Equipment Passport private cover photo. Keep target photos ineligible in the first release. |
 | Public destination | A separate public-derivative bucket when practical; otherwise a strictly isolated `public/passports/` prefix. |
-| Public object name | Versioned, random key such as `public/passports/{snapshotId}/cover/{assetId}.webp`, not the private filename and not a fixed overwrite. |
+| Public object name | Content-addressed backend key such as `public/passports/{snapshotId}/cover/{assetId}.jpg`, not the private filename and not a fixed mutable overwrite. |
 | Processing entry point | An authenticated, Lambda-backed AppSync action that accepts record IDs and consent data, never an arbitrary S3 key or URL. |
 | Image processing | Decode, auto-orient, constrain dimensions, and re-encode server-side. Fail closed if decoding or metadata removal cannot be proven. |
 | Public data shape | Server-managed public projection fields on `PublicPassportSnapshot`, backed by a non-public `PublicImageAsset` workflow ledger. |
@@ -106,7 +112,7 @@ Client-side validation and consent copy improve usability but are not security c
 Use versioned derivative keys:
 
 ```text
-public/passports/{publicPassportSnapshotId}/cover/{publicImageAssetId}.webp
+public/passports/{publicPassportSnapshotId}/cover/{publicImageAssetId}.jpg
 public/passports/{publicPassportSnapshotId}/gallery/{publicImageAssetId}.webp
 ```
 
@@ -142,7 +148,7 @@ CloudFront is the stronger production option for cache invalidation, response he
 
 Public derivative writes should set only backend-controlled metadata:
 
-- `Content-Type: image/webp` for the recommended first output;
+- `Content-Type: image/jpeg` for the implemented Phase 2C output;
 - a conservative `Cache-Control` suitable for versioned objects;
 - no original filename, content disposition, user metadata, tags copied from the private object, or source-key metadata;
 - encryption at rest using the bucket default;
@@ -150,16 +156,16 @@ Public derivative writes should set only backend-controlled metadata:
 
 ## Backend components
 
-The future backend slice should contain:
+The backend design contains or still needs:
 
-1. `processPublicPassportImage` Lambda for owner-requested processing.
-2. `removePublicPassportImage` Lambda action, or a removal command handled by the same function.
-3. An authenticated AppSync custom action that invokes the function.
-4. A non-public `PublicImageAsset` workflow ledger.
-5. Server-managed projection fields on `PublicPassportSnapshot`.
-6. Least-privilege access from the function to the specific data models and S3 prefixes.
-7. A scheduled or queued orphan-cleanup path.
-8. CloudWatch metrics, structured audit events, alarms, and a dead-letter/retry strategy.
+1. `processPublicPassportImage` Lambda for explicit owner-requested processing. **Implemented as the backend-only Phase 2C foundation.**
+2. `removePublicPassportImage` Lambda action, or a removal command handled by the same function. **Not implemented.**
+3. An authenticated AppSync custom action that invokes the processor. **Implemented, but no client calls it.**
+4. A non-public `PublicImageAsset` workflow ledger. **Implemented.**
+5. Server-managed projection fields on `PublicPassportSnapshot`. **Implemented and guarded from normal client writes.**
+6. Least-privilege access from the function to the specific data models and S3 prefixes. **Implemented for Phase 2C; hosted policy and cross-account testing remain release gates.**
+7. A scheduled or queued orphan-cleanup path. **Not implemented.**
+8. CloudWatch metrics, structured audit events, alarms, and a dead-letter/retry strategy. **Bounded structured events are implemented; full operational alarms/retries are not.**
 
 The processing action should be asynchronous if operational testing shows an 8 MB decode/re-encode can exceed a comfortable AppSync request duration. A safe pattern is:
 
@@ -172,15 +178,14 @@ A synchronous first implementation is acceptable only if strict size/dimension l
 
 ## Command contract
 
-For one Equipment Passport cover image, the owner action should accept a narrow command similar to:
+For one Equipment Passport cover image, the implemented backend action accepts this narrow command:
 
 ```text
-publishPublicPassportImage({
+processPublicPassportImage({
   publicPassportSnapshotId,
-  sourceType: "equipment_cover",
+  privateImageAssetId,
   altText,
-  consentVersion,
-  idempotencyKey
+  consentConfirmed: true
 })
 ```
 
@@ -193,11 +198,11 @@ It must not accept:
 - an arbitrary owner ID;
 - a public status supplied by the client.
 
-For the first release, `publicPassportSnapshotId` already identifies the related `EquipmentPassport` through `equipmentPassportId`, and `sourceType: equipment_cover` identifies `privateCoverPhotoKey`. If later releases offer several eligible images, accept an opaque owner-only `privateImageAssetId`, not an S3 key.
+`publicPassportSnapshotId` identifies the related `EquipmentPassport` through `equipmentPassportId`, while opaque `privateImageAssetId` identifies the owner-only verified candidate. The function re-derives `equipment_cover`, the exact source key, and every owner relationship server-side.
 
-`consentVersion` records which safety checklist text the owner acknowledged. `idempotencyKey` must be unique per owner/request and constrained in length and format.
+`consentConfirmed` is required and must be exactly `true`. Phase 3 should add a versioned safety-checklist consent record before this action becomes user-facing. Phase 2C uses a content-addressed derivative id/key so an identical validated request is idempotent without accepting a client idempotency key.
 
-The response should expose only an asset/job ID and safe state such as `pending`, `processing`, `approved`, `failed`, `hidden`, or `removed`. Do not return the private key or private signed URL.
+The response exposes only the public workflow asset id, safe processing status, and bounded failure code. It never returns the private key, destination key, or signed URL.
 
 ## Ownership validation
 
@@ -228,7 +233,7 @@ The first public-image release may intentionally require re-upload through the t
 
 ## Processing sequence
 
-1. Validate command shape, alt-text length, consent version, and idempotency key.
+1. Validate command identifiers, alt-text length, and explicit consent acknowledgement.
 2. Resolve the caller's canonical owner aliases from trusted auth claims.
 3. Load the snapshot, related passport, public profile state, and trusted private image registration.
 4. Perform all ownership and relationship checks before reading S3.
@@ -237,12 +242,12 @@ The first public-image release may intentionally require re-upload through the t
 7. `HeadObject` the private source and reject missing or oversized objects before download.
 8. Stream or download within strict memory and time limits.
 9. Decode the bytes with an allowlisted image processor; reject mismatched signatures, invalid images, animation, unsupported formats, and excessive dimensions/frame counts.
-10. Auto-orient pixels, resize within the maximum display dimensions, and re-encode to a new WebP derivative without copying source metadata.
+10. Auto-orient pixels, flatten transparency onto a neutral background, resize within the maximum display dimensions, and re-encode to a new JPEG derivative without copying source metadata.
 11. Inspect the derivative to verify its format, dimensions, size, frame count, and absence of disallowed metadata.
 12. Write the new object to the backend-generated, versioned public key.
-13. Conditionally update the asset to `approved` and project `publicImageAssetId`, `publicImageKey`, and `publicImageAltText` onto the snapshot.
+13. Transactionally update the asset to `ready` and project `publicImageAssetId`, `publicImageKey`, and `publicImageAltText` onto the snapshot only if source ownership, visibility, username ownership, and verification state are still valid.
 14. If replacing an image, switch the snapshot reference only after the new object and asset are ready.
-15. Queue deletion of the previous derivative after the reference switch.
+15. Delete a newly written derivative if finalization fails. Deletion of a superseded ready derivative remains future lifecycle work.
 16. Emit a privacy-safe audit event and metrics.
 
 At no point should the browser download the private source and upload it to a public prefix.
@@ -251,16 +256,17 @@ At no point should the browser download the private source and upload it to a pu
 
 ### Recommended first-release limits
 
-These values should be confirmed through tests before implementation:
+The Phase 2C implementation enforces:
 
-- accepted private input: JPEG, PNG, or WebP still image;
-- maximum source bytes: no more than the current private limit of 8 MB, with the processor free to enforce a smaller limit;
-- maximum decoded pixels: 40 megapixels or lower;
+- accepted private input: JPEG or PNG still image; WebP remains private-upload-only and is rejected by the public processor;
+- maximum source bytes: 6 MB;
+- maximum decoded pixels: 12 megapixels;
 - maximum frames/pages: 1;
-- maximum public long edge: 2048 pixels;
-- recommended output: WebP around quality 80-85;
-- maximum public output bytes: 2 MB or lower;
-- Lambda memory: begin testing at 1024-1536 MB with bounded timeout and ephemeral storage.
+- maximum source dimension: 8192 pixels;
+- maximum derivative long edge: 1600 pixels;
+- output: JPEG with bounded quality fallback;
+- maximum derivative bytes: 2 MB;
+- Lambda configuration: 1024 MB memory, 45-second timeout, and 512 MB ephemeral storage.
 
 Reject SVG, PDF, HEIC until explicitly supported, archives, executables, multiple-frame images, and any file whose decoded format disagrees with the allowlist. Extension and browser MIME type are hints only; validate decoded content and magic bytes.
 
@@ -396,7 +402,11 @@ All projected image fields must be backend-write-only. The existing owner must r
 
 `PrivateImageAsset` is the owner-private candidate registry. It stores the canonical AppSync owner key, a `sub` protected by Cognito claim authorization, source type, source record id, private Storage key, captured Storage identity, generated safe filename, browser-observed content type, and byte count. The owner may create/read immutable candidate rows but cannot update/delete them or write the guarded binding result fields. There is no public/API-key or admin/moderator read authorization. A future backend lifecycle action must perform bounded cleanup.
 
-This client-created row is deliberately not called trusted or eligible. A modified browser can lie about ordinary create fields. The verifier therefore compares them with trusted IAM caller identity, the saved source, and S3 observations. A future processor must require `bindingStatus=verified` and must still revalidate processing-time state rather than accepting the row's key, type, or size by themselves.
+This client-created row is deliberately not called trusted or eligible. A modified browser can lie about ordinary create fields. The verifier therefore compares them with trusted IAM caller identity, the saved source, and S3 observations. The Phase 2C processor requires `bindingStatus=verified` and still revalidates processing-time state rather than accepting the row's key, type, or size by themselves.
+
+Verification is a point-in-time source-binding attestation, not an immutable claim about the object. The owner can still replace or delete the private S3 object through the normal private upload lifecycle. The Phase 2C processor therefore repeats source ownership, exact-key, `HeadObject`, and object metadata checks, conditionally downloads the bytes, and validates the decoded image immediately before derivative creation; it never trusts prior `verified` status by itself.
+
+For `range_session_target`, Phase 2B binds the candidate to the owner-scoped Range Session, expected target path, and exact S3 object metadata. It does not yet bind the candidate to one immutable `TargetPhoto` row. Target-photo candidates remain ineligible for public processing until that separate relationship and consent flow are designed and reviewed.
 
 Phase 2B adds `verifyPrivateImageAsset`, an Identity Pool/IAM-authorized operation whose trusted resolver identity contains the caller's `cognitoIdentityId`. Given only a `PrivateImageAsset` id, the function:
 
@@ -408,7 +418,7 @@ Phase 2B adds `verifyPrivateImageAsset`, an Identity Pool/IAM-authorized operati
 6. writes only `verifying`, `verified`, or `failed` plus a bounded failure code and verification time; and
 7. returns an opaque asset id and status, never the private key.
 
-The Lambda receives exact-table `dynamodb:GetItem`, candidate-table `dynamodb:UpdateItem`, and private-prefix S3 `get` permission. It has no public prefix, public projection, broad model mutation, object write/delete, or image-byte processing permission. `HeadObject` is an S3 `GetObject`-authorized API even though the function does not download the body.
+The Lambda receives attribute-limited, exact-table `dynamodb:GetItem`; attribute-limited candidate-table `dynamodb:UpdateItem`; and private-prefix S3 `get` permission. Candidate reads are projected to binding inputs, source reads to owner/key fields, and updates to the verification result fields plus the owner condition. It has no public prefix, public projection, broad model mutation, object write/delete, or image-byte processing permission. `HeadObject` is an S3 `GetObject`-authorized API even though the function does not download the body.
 
 If deployed AppSync identity integration does not provide the expected trusted Identity Pool context, keep the action failed closed and replace it with a server-created upload/finalization workflow. Do not infer a user-pool username-to-Identity-Pool mapping from ordinary request input.
 
@@ -432,18 +442,18 @@ If deployed AppSync identity integration does not provide the expected trusted I
 
 ### S3/IAM policy
 
-The processor role should receive only:
+The Phase 2C processor role receives only:
 
 - `s3:GetObject`/`HeadObject` for validated private equipment-image prefixes;
 - no target-photo read in the first release;
-- `s3:PutObject`, `GetObject`, and `DeleteObject` for the public passport derivative prefix or dedicated public bucket;
+- `s3:PutObject`, `GetObject`, and `DeleteObject` for `public/passports/{snapshot_id}/cover/*`;
 - staging access only if a private staging prefix is used;
 - no bucket-wide list unless reconciliation strictly requires a prefix-limited list;
 - no permission to alter bucket policy, object ACL, KMS policy, or unrelated objects.
 
 If the private key contains a dynamic identity segment that IAM cannot safely constrain per invocation, application-level trusted registration and owner checks are mandatory and should be reinforced with separate access points/buckets where practical.
 
-Public/guest principals receive read only for ready derivative delivery. They must have no list, write, copy, tag, or delete permission.
+Phase 2C grants public/guest principals no derivative access. A later delivery phase may grant narrowly scoped ready-derivative reads only after release testing; those principals must never receive list, write, copy, tag, or delete permission.
 
 ## Public rendering contract
 
@@ -593,19 +603,23 @@ Alarms should cover sustained processing failures, metadata-verification failure
 - [x] Permit only the backend resource—not app clients—to set bounded binding status/failure/verification fields.
 - [x] Keep Range Session target candidates ineligible for the first public release even if source binding is verified.
 - [x] Add a private-only verification control and bounded status copy without exposing keys or adding public behavior.
+- [x] Bound candidate identifiers and return bounded failures when the initial candidate lookup or metadata parse fails.
 - [ ] Run hosted integration tests for same-owner success, other-owner rejection, legacy candidate rejection, missing object, mismatched metadata, unsupported type, and oversize object.
 
 ### Phase 2C: private processing and derivative foundation
 
-- [ ] Implement authenticated public-image command handling and canonical owner validation.
-- [ ] Resolve snapshot, passport, and a verified private source server-side.
-- [ ] Implement idempotent job/state transitions.
-- [ ] Validate object existence, type, bytes, pixels, and frame count.
-- [ ] Auto-orient, resize, re-encode, and independently verify metadata removal.
-- [ ] Write a versioned public derivative using a backend-generated key.
-- [ ] Project only approved key/alt text onto the public snapshot.
-- [ ] Implement replacement rollback and orphan cleanup.
-- [ ] Add integration fixtures for another-owner attempts and metadata leakage.
+- [x] Implement authenticated public-image command handling and canonical owner validation.
+- [x] Resolve snapshot, passport, public account profile, username reservation, and a verified private source server-side.
+- [x] Treat verification as point-in-time: repeat source/key/object checks immediately before processing and validate decoded bytes independently.
+- [x] Implement idempotent/content-addressed state transitions with conditional and transactional finalization.
+- [x] Validate object existence, type, bytes, pixels, and PNG animation state.
+- [x] Auto-orient, resize, re-encode, and independently verify metadata removal from the JPEG derivative.
+- [x] Write a versioned public derivative using a backend-generated content-addressed key.
+- [x] Project only ready derivative key/alt text onto the public snapshot through backend-only writes.
+- [x] Roll back a newly written output when finalization fails.
+- [ ] Add superseded-asset removal and scheduled orphan cleanup.
+- [ ] Add hosted integration fixtures for same-owner success, another-owner/private-account/source-race attempts, malformed/animated/oversized inputs, and metadata leakage.
+- [x] Keep the destination processor-only: no public delivery rule, selection UI, client invocation, target-photo processing, or rendering.
 
 ### Phase 3: owner Public Preview workflow
 

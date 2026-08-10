@@ -45,7 +45,7 @@ Public setup cards, details, and comments may resolve their owner/author through
 7. Later, strip image metadata, including EXIF GPS/device metadata, before public image release.
 8. Later, copy only sanitized derivatives into public discovery storage.
 
-The current public publishing slice publishes sanitized text/setup data only. Phase 1 reserves guarded, empty public-image projection fields and a non-public workflow ledger. Phase 2A adds owner-only private source candidates, and Phase 2B can verify their owner/source/S3 binding through a trusted IAM action. Verification does not publish, copy, decode, or strip metadata from an image. The client snapshot payload and public UI continue to omit image projections and every private key.
+The current app publishing slice publishes sanitized text/setup data only. Phase 1 reserves guarded public-image projection fields and a non-public workflow ledger. Phase 2A adds owner-only private source candidates, and Phase 2B can verify their owner/source/S3 binding through a trusted IAM action. Phase 2C adds a separately authenticated backend action that can revalidate an explicitly consented, verified Equipment Passport cover, decode and re-encode it without source metadata, and populate guarded derivative projections. No client calls that action; the processor-only object namespace has no public delivery rule; and public UI continues to omit image projections and every private key. Verification and normal Public Preview publishing do not publish an image.
 
 ## Moderation Placeholders
 

@@ -5,6 +5,7 @@ import type { Schema } from "../../data/resource.ts";
 
 const allowedContentTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
 const privateImageMaxBytes = 8 * 1024 * 1024;
+const privateImageAssetIdPattern = /^[a-z0-9][a-z0-9_-]{0,127}$/i;
 const generatedFileNamePattern = /^\d{10,15}-[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.(?:jpe?g|png|webp)$/i;
 const nonPersistentIdPattern = /^(?:(?:demo|sample)(?:[-_]|$)|(?:passport|session|target-photo)-\d+$)/i;
 const storageIdentityPattern = /^[a-z0-9:_-]{3,160}$/i;
@@ -101,12 +102,24 @@ function cognitoUserSubFromIamIdentity(identity: AppSyncIdentityIAM) {
   return "";
 }
 
-async function getItem(tableName: string, id: string) {
+function normalizePrivateImageAssetId(value: unknown) {
+  if (typeof value !== "string") {
+    return "";
+  }
+
+  const normalized = value.trim();
+  return privateImageAssetIdPattern.test(normalized) ? normalized : "";
+}
+
+async function getItem(tableName: string, id: string, fields: string[]) {
+  const expressionAttributeNames = Object.fromEntries(fields.map((field, index) => [`#field${index}`, field]));
   const result = await dynamoClient.send(
     new GetItemCommand({
       TableName: tableName,
       Key: { id: { S: id } },
-      ConsistentRead: true
+      ConsistentRead: true,
+      ProjectionExpression: Object.keys(expressionAttributeNames).join(", "),
+      ExpressionAttributeNames: expressionAttributeNames
     })
   );
 
@@ -230,7 +243,8 @@ async function updateBindingStatus({
 
 async function validateSource(asset: PrivateImageAsset) {
   const tableName = asset.sourceType === "equipment_cover" ? equipmentPassportTableName : rangeSessionTableName;
-  const source = await getItem(tableName, asset.sourceRecordId);
+  const sourceFields = asset.sourceType === "equipment_cover" ? ["id", "ownerId", "privateCoverPhotoKey"] : ["id", "ownerId"];
+  const source = await getItem(tableName, asset.sourceRecordId, sourceFields);
 
   if (!source) {
     throw new VerificationFailure("source_not_found");
@@ -347,7 +361,7 @@ function result(
 }
 
 export const handler: Schema["verifyPrivateImageAsset"]["functionHandler"] = async (event) => {
-  const assetId = event.arguments.privateImageAssetId.trim();
+  const assetId = normalizePrivateImageAssetId(event.arguments.privateImageAssetId);
   const identity = event.identity;
 
   if (!assetId || nonPersistentIdPattern.test(assetId) || !isIamIdentity(identity) || identity.cognitoIdentityAuthType !== "authenticated") {
@@ -356,7 +370,30 @@ export const handler: Schema["verifyPrivateImageAsset"]["functionHandler"] = asy
 
   const trustedOwnerSub = cognitoUserSubFromIamIdentity(identity);
   const trustedStorageIdentityId = identity.cognitoIdentityId;
-  const asset = readPrivateImageAsset(await getItem(privateImageAssetTableName, assetId), assetId);
+  let asset: PrivateImageAsset | null;
+
+  try {
+    asset = readPrivateImageAsset(
+      await getItem(privateImageAssetTableName, assetId, [
+        "id",
+        "ownerId",
+        "ownerSub",
+        "sourceType",
+        "sourceRecordId",
+        "storageKey",
+        "storageIdentityId",
+        "sanitizedFileName",
+        "contentType",
+        "sizeBytes"
+      ]),
+      assetId
+    );
+  } catch (error) {
+    const failureCode = error instanceof VerificationFailure ? error.code : "unknown_error";
+
+    console.warn(JSON.stringify({ event: "private_image_candidate_load_failed", privateImageAssetId: assetId, failureCode }));
+    return result(assetId, "failed", failureCode);
+  }
 
   // Missing legacy bridge fields are intentionally not backfilled from caller
   // input. Re-upload creates a candidate that can be bound to both auth modes.

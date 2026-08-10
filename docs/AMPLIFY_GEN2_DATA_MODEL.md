@@ -58,11 +58,11 @@ Public read exceptions remain intentionally narrow:
 
 Private records remain owner-scoped and should not expose private notes, private image keys, lot numbers, purchase details, exact locations, maintenance records, readiness records, or owner private profile details through public flows.
 
-## Phase 1, Phase 2A, and Phase 2B Public Image Foundation
+## Phase 1 through Phase 2C Public Image Foundation
 
-`PublicImageAsset` is a non-public workflow ledger for a future backend processor. It contains the public snapshot relationship, source type and record id, processed public derivative fields, bounded processing status/error data, and consent timestamp. It deliberately contains no private S3 key and has no API-key authorization.
+`PublicImageAsset` is a non-public workflow ledger for the backend image processor. It contains the public snapshot relationship, source type and record id, processed public derivative fields, bounded processing status/error data, and consent timestamp. It deliberately contains no private S3 key and has no API-key authorization.
 
-Current owner clients may read their own future workflow records but cannot create, update, or delete them. No records are created in Phase 1 because no backend processing resource exists. Admin/moderator access is deferred.
+Current owner clients may read their own workflow records but cannot create, update, or delete them. `processPublicPassportImage` alone can create/update the Phase 2C ledger state. Admin/moderator access is deferred.
 
 `PublicPassportSnapshot` reserves these optional public projection fields:
 
@@ -70,9 +70,9 @@ Current owner clients may read their own future workflow records but cannot crea
 - `publicImageKey`
 - `publicImageAltText`
 
-`PublicImageAsset` also reserves `privateImageAssetId` so a future backend-created processing record can reference a verified private source without copying the private key into the public snapshot.
+`PublicImageAsset.privateImageAssetId` lets the backend-created processing record reference a verified private source without copying the private key into the public snapshot.
 
-The legacy `coverPhotoUrl` field is also reserved. Field-level authorization permits owner/public reads and owner snapshot deletion while denying normal client create/update writes to all image projection fields. A future backend function must receive explicit resource authorization before it can populate them.
+The legacy `coverPhotoUrl` field is also reserved. Field-level authorization permits owner/public reads and owner snapshot deletion while denying normal client create/update writes to all image projection fields. The Phase 2C function receives explicit resource authorization to populate only the new guarded projection fields; it does not populate the legacy URL field.
 
 The existing public snapshot payload builder omits `coverPhotoUrl`, all new projection fields, `EquipmentPassport.privateCoverPhotoKey`, and all `TargetPhoto` keys. Saved public UI mapping also ignores image fields, so Discover and public pages remain text/setup only.
 
@@ -92,9 +92,13 @@ Owners may create and read their immutable candidate rows. There is no public/AP
 
 An unverified registry row is not a trust attestation. AppSync Data uses the Cognito user-pool username as the canonical `ownerId`, while Amplify Storage paths use an Identity Pool `identityId`. Phase 2B bridges the boundary with `verifyPrivateImageAsset`, an `identityPool`-authenticated custom mutation that accepts only the candidate id. Its Lambda derives the trusted Storage identity from AppSync IAM context, binds the protected user-pool `sub`, re-reads the owner-scoped source, validates the exact private path, and compares S3 `HeadObject` MIME/byte metadata before writing `verifying`, `verified`, or `failed` plus bounded failure details. Missing or non-`verified` status must be rejected by every future public processor.
 
-The verification Lambda has exact-table read permission, candidate-table status-update permission, and read access to the two existing private image prefixes. It cannot write/delete S3 objects, mutate public snapshots or workflow ledgers, or access a public prefix. Legacy candidates without the new identity bridge fields fail closed and require re-upload.
+`verified` is a point-in-time source-binding result, not an immutable object or decoded-content attestation. Because owners retain private S3 replacement/deletion access, Phase 2C repeats source, key, object metadata, account visibility, immutable username reservation, and ownership checks at processing time and independently validates decoded bytes. A `range_session_target` candidate is currently bound to its owner-scoped Range Session and exact private object, not to one immutable `TargetPhoto` row, so it remains ineligible for public processing.
 
-No public Storage access, image processing/copy, metadata stripping, image selection, public URL, or public rendering is added in Phase 2B. Range Session target photos can be verified privately for future integrity/lifecycle work but remain excluded from the first public-image release.
+The verification Lambda has attribute-limited exact-table read permission, attribute-limited candidate-table status-update permission, and read access to the two existing private image prefixes. It cannot write/delete S3 objects, mutate public snapshots or workflow ledgers, or access a public prefix. Legacy candidates without the new identity bridge fields fail closed and require re-upload.
+
+Phase 2C adds `processPublicPassportImage`, a user-pool-authenticated mutation with snapshot id, private candidate id, optional bounded alt text, and required consent acknowledgement. The function accepts only verified `equipment_cover` candidates, resolves the complete ownership graph server-side, uses the `userProfilesByOwnerId` index instead of scanning private profiles, and fails closed when the profile is private or immutable username ownership is unresolved. It accepts bounded JPEG/PNG input, creates a fresh metadata-free JPEG derivative, and conditionally/transactionally updates only the ledger and public snapshot image projection. Failure responses and logs are bounded and omit owner ids, private keys, filenames, private records, and image bytes.
+
+The processor-only Storage namespace is `public/passports/{snapshot_id}/cover/*`. The processor has private-equipment get plus derivative get/write/delete access. No browser, guest, API-key, moderator, or admin Storage read/write rule exists for that namespace. Current clients do not call the processing mutation, `buildPublicPassportSnapshotInput` still omits image fields, and public mapping/rendering still ignores them. Public image publishing therefore remains unavailable even though the backend derivative foundation exists. Backend removal, replacement cleanup, public delivery, selection/consent UI, target-photo support, image reporting/moderation, and lifecycle reconciliation remain future work.
 
 ## Public Discovery Models
 

@@ -4,9 +4,9 @@
 
 Public image publishing is planned but is not implemented. UnifiedRange currently stores Equipment Passport setup photos and Range Session target photos in owner-scoped private S3 paths. `PublicPassportSnapshot` publishing copies sanitized text/setup data only; it must not expose a private image key, signed private URL, or private image bytes.
 
-This document defines the privacy and safety boundary for a future release. Phase 1 reserves a non-public workflow ledger and guarded public snapshot projection fields. Phase 2A adds owner-only registration of private upload candidates. Phase 2B adds trusted owner/source/S3 binding for those candidates, but it does not add public Storage access, image-copy functions, public URLs, image selection, rendering, metadata stripping, or moderation actions.
+This document defines the privacy and safety boundary for a future release. Phase 1 reserves a non-public workflow ledger and guarded public snapshot projection fields. Phase 2A adds owner-only registration of private upload candidates. Phase 2B adds trusted owner/source/S3 binding. Phase 2C adds a backend-only derivative processor for a verified Equipment Passport cover, but it does not add public delivery/read access, image selection UI, client invocation, public URLs, rendering, target-photo processing, or moderation actions.
 
-The public projection fields remain empty because normal client create/update operations cannot write them and no backend processor exists. Normal clients cannot write `PrivateImageAsset` binding fields; an IAM-authorized verifier may mark a candidate verified after re-reading its private source and exact S3 object metadata. Verification does not make an image public. Public image publishing is still unavailable.
+Normal client create/update operations still cannot write public image projection fields. An IAM-authorized verifier may mark a private candidate verified after re-reading its private source and exact S3 object metadata. A separate authenticated Phase 2C action can process only a verified `equipment_cover` after explicit consent and current ownership/visibility checks. The app does not call that action, and the processor-only destination has no public or browser read rule. Verification and normal text publishing do not make an image public; public image publishing is still unavailable.
 
 See [PUBLIC_IMAGE_BACKEND_DESIGN.md](PUBLIC_IMAGE_BACKEND_DESIGN.md) for the detailed Amplify/Lambda implementation contract, identity-boundary analysis, failure handling, and phased backend work.
 
@@ -210,19 +210,23 @@ No destructive moderation action is part of the current app. The image release m
 
 - Implemented an authenticated Identity Pool/IAM action that accepts only a candidate id and derives the trusted Storage identity from resolver context.
 - Implemented saved-source ownership, exact private key shape, S3 existence, observed MIME type, and 8 MB size validation.
-- Granted the verifier only exact-table reads, bounded candidate status updates, and S3 read access to existing private equipment/target prefixes.
+- Granted the verifier only attribute-limited exact-table reads, attribute-limited candidate status updates, and S3 read access to existing private equipment/target prefixes.
 - Kept binding result fields unavailable to normal clients and returned bounded status/failure data without keys.
 - Require backend `verified` status before a private candidate can ever be selected by a later processing command.
+- Treat `verified` as a point-in-time source-binding result. The Phase 2C processor repeats source ownership, key, S3 metadata, and decoded-byte checks immediately before processing because the private owner can replace or delete the object later.
+- Keep `range_session_target` ineligible for public processing: Phase 2B binds it to the owner-scoped Range Session and S3 object, not to one immutable `TargetPhoto` row or a target-photo consent flow.
 - Hosted same-owner/other-owner, legacy, missing-object, metadata-mismatch, type, and size integration tests remain required.
 
 ### Phase 2C: processor and metadata-free derivative foundation
 
-- Add a separate owner-authenticated processing command that resolves a verified candidate server-side.
-- Decode and validate actual image bytes, reject malformed/animated/oversized pixel inputs, auto-orient, resize, and re-encode without source metadata.
-- Independently verify metadata removal before any derivative can become eligible for a public projection.
-- Add randomized backend-only destination names, idempotent state transitions, rollback, and cleanup.
-- Grant only the processing backend permission to set public workflow/projection fields; do not give these permissions to the verification Lambda.
-- Add unit and integration fixtures that prove private metadata and keys never reach public responses.
+- Implemented `processPublicPassportImage`, a user-pool-authenticated backend action that accepts a public snapshot id, private candidate id, optional bounded alt text, and required consent acknowledgement. It accepts no S3 key or owner id.
+- The processor resolves and revalidates the candidate, Equipment Passport, public snapshot, public account profile, immutable username reservation, and exact private object. Only `verified` `equipment_cover` candidates are accepted; target photos remain unsupported.
+- JPEG and PNG sources are decoded under stricter 6 MB, 12-megapixel, and dimension bounds; animated PNG, malformed data, mismatched metadata, WebP, and unsupported types fail closed. Valid input is auto-oriented, flattened, resized to at most 1600 pixels, and re-encoded as a JPEG no larger than 2 MB.
+- The processor uses pinned portable JavaScript image codecs to avoid architecture-specific native Lambda artifacts; decoded-byte limits, strict format inspection, and independent derivative inspection are required regardless of library choice.
+- The generated JPEG is independently inspected for dimensions and metadata-bearing JPEG segments before it can be attached. The destination is content-addressed and backend-generated under `public/passports/{snapshotId}/cover/`.
+- The destination path grants get/write/delete only to the processor. No guest, API-key, signed-in browser, moderator, or admin Storage access was added, so the derivative is not publicly deliverable today.
+- The processor alone may write the non-public `PublicImageAsset` ledger and guarded snapshot projection fields. Conditional/transactional writes prevent stale ownership or visibility state from being attached, and a newly written object is deleted if finalization fails.
+- Hosted same-owner success and adversarial integration fixtures are still required. Superseded-derivative cleanup, explicit removal/unpublish coordination, and scheduled orphan reconciliation remain future lifecycle work.
 
 ### Phase 3: owner UI
 
@@ -247,8 +251,8 @@ No destructive moderation action is part of the current app. The image release m
 ## Out of scope for this plan
 
 - Implementing public image upload or direct client writes to public storage.
-- The current Phase 2B does not implement the copy/processing Lambda or metadata-stripping service.
-- The current Phase 2B does not add public image URLs or public Storage authorization.
+- Phase 2C does not add a client selection/consent experience, public image URLs, or public Storage delivery authorization.
+- Phase 2C does not process Range Session target photos or create public profile images.
 - Automatically publishing Equipment Passport or Range Session images.
 - Public profile avatars, image feeds, follows, direct messaging, or marketplace behavior.
 - Calculators, scope outputs, hold recommendations, field corrections, sight-in instructions, or directions for adjusting or aiming equipment.

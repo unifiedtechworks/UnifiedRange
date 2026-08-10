@@ -32,6 +32,7 @@ export function EquipmentPassportPrivatePhotoPanel({
   async function handleUploaded(upload: PrivateImageUploadResult) {
     setError("");
     setRegistrationNotice("");
+    setCandidateId("");
 
     if (authState.status !== "signed-in") {
       throw new Error("Sign in before uploading private equipment photos.");

@@ -24,15 +24,16 @@ const failureMessages: Record<string, string> = {
 
 function statusCopy(status: string, failureCode?: string | null) {
   if (status === "verified") {
-    return "Private source verified. Verification does not publish or copy the image.";
+    return "Private source ownership and storage metadata verified. This does not inspect image contents, remove metadata, publish, or copy the image.";
   }
 
   if (status === "verifying") {
-    return "Server verification is in progress. The image remains private.";
+    return "Verification is in progress or can be retried. The image remains private.";
   }
 
   if (status === "failed") {
-    return failureMessages[failureCode ?? "unknown_error"] ?? failureMessages.unknown_error;
+    const message = failureMessages[failureCode ?? "unknown_error"] ?? failureMessages.unknown_error;
+    return `${message} The image remains private and has not been published.`;
   }
 
   if (status === "rejected" || status === "removed") {
@@ -84,7 +85,16 @@ export function PrivateImageVerificationStatus({
           throw new Error(result.errors.map((item) => item.message).join(" "));
         }
 
-        setCandidate(result.data ?? null);
+        const loadedCandidate = result.data;
+        const matchesPrivateSource = Boolean(
+          loadedCandidate &&
+            authState.ownerAliases.includes(loadedCandidate.ownerId) &&
+            loadedCandidate.sourceType === sourceType &&
+            loadedCandidate.sourceRecordId === sourceRecordId &&
+            loadedCandidate.storageKey === storageKey
+        );
+
+        setCandidate(matchesPrivateSource ? loadedCandidate : null);
         return;
       }
 
@@ -160,7 +170,7 @@ export function PrivateImageVerificationStatus({
 
   const status = verificationResult?.bindingStatus ?? candidate?.bindingStatus ?? "unverified";
   const failureCode = verificationResult?.failureCode ?? candidate?.bindingFailureCode;
-  const canVerify = Boolean(candidate) && (status === "unverified" || status === "failed");
+  const canVerify = Boolean(candidate) && (status === "unverified" || status === "verifying" || status === "failed");
 
   return (
     <section className="rounded-md border border-ink/10 bg-field px-4 py-3">
@@ -168,7 +178,7 @@ export function PrivateImageVerificationStatus({
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-ink/50">Private source verification</p>
           <p className="mt-1 text-sm leading-6 text-ink/70">
-            {isLoading ? "Loading private verification status..." : candidate ? statusCopy(status, failureCode) : "No Phase 2A registration was found for this private image. Re-upload it to register a verifiable source."}
+            {isLoading ? "Loading private verification status..." : candidate ? statusCopy(status, failureCode) : "No matching private source registration was found for this image. Re-upload it to create a verifiable private source."}
           </p>
         </div>
 
@@ -179,7 +189,7 @@ export function PrivateImageVerificationStatus({
             onClick={() => void handleVerify()}
             className="inline-flex w-full shrink-0 justify-center rounded-md border border-ink/15 bg-white px-4 py-2 text-sm font-semibold text-ink disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
           >
-            {isVerifying ? "Verifying..." : "Verify private image"}
+            {isVerifying ? "Verifying..." : status === "unverified" ? "Verify private image" : "Retry verification"}
           </button>
         ) : null}
       </div>

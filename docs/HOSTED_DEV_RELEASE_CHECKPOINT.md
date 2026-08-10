@@ -60,7 +60,7 @@ UnifiedRange is deployed as an AWS Amplify Gen 2 hosted-development MVP. This ch
 
 Run this checklist against the current Amplify Hosting development URL after each release:
 
-Use the role-based [Manual QA Checklist](MANUAL_QA_CHECKLIST.md) for the comprehensive release pass, including CRUD isolation, username conflict repair, Phase 2B private source verification, moderation authorization, responsive coverage, and public/private response inspection.
+Use the role-based [Manual QA Checklist](MANUAL_QA_CHECKLIST.md) for the comprehensive release pass, including CRUD isolation, username conflict repair, Phase 2B private source verification, the Phase 2C backend-only derivative foundation, moderation authorization, responsive coverage, and public/private response inspection.
 
 1. Open `/` while signed out. Confirm the landing page explains the private logbook, Equipment Passports, Hunting Readiness, Discover, and privacy-first sharing.
 2. Open `/auth/sign-in`. Test sign-up/confirmation with a test account or sign in with an existing test account, refresh, and confirm the session persists.
@@ -83,7 +83,7 @@ Use the role-based [Manual QA Checklist](MANUAL_QA_CHECKLIST.md) for the compreh
 ## Known Limitations
 
 - Account deletion and account data export are planned but not implemented.
-- Public image publishing is not implemented; uploaded images remain private. A future release requires explicit owner consent, a backend-generated metadata-free derivative, separate public storage, and image reporting/removal safeguards described in the [Public Image Publishing Plan](PUBLIC_IMAGE_PUBLISHING_PLAN.md).
+- Public image publishing is not available in the app; uploaded originals remain private. Phase 2C provides a backend-only, explicit-consent derivative processor and processor-only destination, but there is no selection UI, public delivery/read rule, rendering, target-photo support, or removal/moderation lifecycle. See the [Public Image Publishing Plan](PUBLIC_IMAGE_PUBLISHING_PLAN.md).
 - Feeds and follows are not implemented.
 - A notification center is not implemented.
 - Moderation has report metadata review and status workflow only. It has no destructive content removal, hiding, suspension, or account actions.
@@ -94,7 +94,7 @@ Use the role-based [Manual QA Checklist](MANUAL_QA_CHECKLIST.md) for the compreh
 
 1. Implement protected account data export and account deletion workflows based on the existing lifecycle plans.
 2. Polish public profiles with improved safe empty states, presentation, and published-setup organization.
-3. Implement the public-image backend processing and consent workflow described in the Public Image Publishing Plan only after its privacy, metadata-stripping, moderation, and cleanup release gates are satisfied.
+3. Complete the public-image selection/consent UI, delivery boundary, rendering, removal/unpublish lifecycle, image reporting/moderation, cleanup, and hosted security tests described in the Public Image Publishing Plan before enabling the Phase 2C backend foundation for users.
 4. Add moderation report counts by status and target, plus filtering and sorting, without coupling status changes to destructive content actions.
 5. Improve Discover search, filters, result organization, and public setup browsing while preserving sanitized snapshot boundaries.
 6. Implement username sign-in only through the privacy-preserving server-side lookup described in the Username Sign-In Plan; email/password remains the current Cognito login.

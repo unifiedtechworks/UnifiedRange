@@ -2,7 +2,7 @@
 
 Last updated: August 9, 2026
 
-Use this checklist for a complete hosted-development release review. It starts from the current MVP, including Phase 2A owner-only `PrivateImageAsset` candidate registration and Phase 2B trusted private source verification. It does not assume that public image publishing, account deletion/export, username sign-in, notifications, or destructive moderation actions exist.
+Use this checklist for a complete hosted-development release review. It starts from the current MVP, including Phase 2A owner-only `PrivateImageAsset` candidate registration, Phase 2B trusted private source verification, and the Phase 2C backend-only derivative foundation. It does not assume that public image publishing UI/delivery, account deletion/export, username sign-in, notifications, or destructive moderation actions exist.
 
 ## Test session record
 
@@ -38,7 +38,7 @@ Use synthetic test data and non-sensitive test images. Do not use real serial nu
 Before beginning:
 
 - [ ] Confirm the intended frontend is connected to the intended Amplify backend.
-- [ ] Confirm the Phase 2B schema, verifier Lambda, and IAM/storage grants have been deployed before testing `PrivateImageAsset` verification.
+- [ ] Confirm the Phase 2B verifier and Phase 2C processor schema, functions, index, IAM grants, and Storage paths have been deployed before testing those backend operations.
 - [ ] Confirm User A, User B, moderator, and admin use separate Cognito accounts.
 - [ ] Confirm at least one sanitized Public Passport is available for signed-out testing.
 - [ ] Confirm at least one test report is available, or plan to create one during social testing.
@@ -409,6 +409,11 @@ User B, a second standard account, Visitor, and optionally Backend inspector.
 - [ ] As Visitor/API-key, confirm `PrivateImageAsset` cannot be read.
 - [ ] As Visitor or an unauthenticated Identity Pool session, confirm the verification mutation is unavailable or returns unauthorized.
 - [ ] Sign out and attempt to reload the prior signed private image URL after expiration or from a separate signed-out session.
+- [ ] If an authorized backend integration harness is available, create a disposable public-account fixture with a published snapshot and verified JPEG or PNG `equipment_cover`, then invoke `processPublicPassportImage` with its opaque ids, safe alt text, and `consentConfirmed: true`.
+- [ ] Confirm a successful invocation returns only an opaque public asset id and `ready` status; inspect the owner-only ledger/snapshot and confirm they reference a backend-generated JPEG key under the processor-only cover namespace.
+- [ ] Confirm the derivative decodes, is no larger than 1600 pixels on its long edge or 2 MB, and contains no EXIF/GPS, ICC/application metadata, Photoshop/application metadata, JPEG comments, original filename, private key, or owner identifier.
+- [ ] Exercise private-account, wrong-owner, unverified, target-photo, WebP, missing-object, source-mismatch, malformed, animated PNG, oversized-byte, and oversized-pixel fixtures; confirm bounded failure codes and no snapshot projection/object creation. Use isolated synthetic fixtures only.
+- [ ] Confirm the normal app has no control or network request that invokes `processPublicPassportImage`.
 
 ### Expected results
 
@@ -419,12 +424,13 @@ User B, a second standard account, Visitor, and optionally Backend inspector.
 - [ ] A registration failure, if deliberately simulated in a sandbox, leaves the saved image private and shows that registration is pending; it does not publish anything.
 - [ ] Other owners, moderators acting only through their group role, API-key clients, and visitors cannot read private registry rows.
 - [ ] Verification does not download image bytes to the UI, copy the object, create a public workflow record, or populate a public snapshot image field.
+- [ ] A valid direct Phase 2C backend test may create a derivative and guarded projection, but the object remains processor-only and no app/public page can resolve or render it.
 
 ### Privacy and safety checks
 
 - [ ] UI copy distinguishes verified private source binding from public eligibility and never claims that verification publishes or sanitizes the image.
 - [ ] Private keys, signed URLs, original filenames, Identity Pool IDs, and image contents are not displayed on public pages or copied into public records.
-- [ ] No public prefix, public URL, metadata stripping, image copy, selection control, or public rendering exists.
+- [ ] The processor-only derivative prefix, copy, and metadata-free re-encode exist only behind the Phase 2C backend action. No client selection control, public delivery/read authorization, public URL, or rendering exists.
 - [ ] Target photos are never automatically selected or published.
 
 ## 13. Public Passport publishing and unpublishing
@@ -441,7 +447,7 @@ User B and Visitor.
 - [ ] Publish the sanitized snapshot.
 - [ ] Open the resulting Discover detail route signed in and signed out.
 - [ ] Edit safe source fields, return to Public Preview, update the snapshot, and confirm the public page changes only after the explicit update.
-- [ ] Inspect the public snapshot request/response and confirm public image projection fields are absent or empty.
+- [ ] Inspect the normal Public Preview request and confirm it omits all image projection fields. They remain empty unless the optional direct Phase 2C integration fixture has deliberately populated the backend-managed fields.
 - [ ] Unpublish the snapshot and confirm it disappears from Discover, its prior public detail route becomes unavailable, and the private Equipment Passport remains intact.
 - [ ] Republish only if needed for later checklist sections.
 
@@ -455,7 +461,7 @@ User B and Visitor.
 ### Privacy and safety checks
 
 - [ ] Public snapshots exclude private notes, private image keys/URLs, target photos, image metadata, lot numbers, purchase details, exact locations, maintenance/readiness data, and private profile fields.
-- [ ] Public publishing never treats `PrivateImageAsset` candidates as eligible images.
+- [ ] Normal Public Preview publishing never treats `PrivateImageAsset` candidates as eligible images or invokes the processor.
 - [ ] Public setup content remains documentation-only and provides no aiming or adjustment guidance.
 
 ## 14. Public profiles
@@ -625,7 +631,7 @@ Visitor, User B, a second standard account, Moderator, and optionally Backend in
 - [ ] Create distinctive synthetic marker values in User B’s private notes and private-only fields so accidental leakage can be recognized.
 - [ ] Check `/`, Discover cards/details, `/u/[username]`, public comments, and signed-out page source for those markers.
 - [ ] Inspect public/API-key GraphQL responses for `PublicPassportSnapshot`, `PublicUserProfileSnapshot`, comments, and reactions.
-- [ ] Confirm public image projection fields remain empty and no response contains a private storage key or signed URL.
+- [ ] Confirm no public response contains a private storage key or signed URL. If the optional Phase 2C integration fixture populated public projection fields, confirm they contain only the opaque backend asset id, processor-generated derivative key, and safe alt text; otherwise they remain empty.
 - [ ] Confirm public profile responses contain only normalized username, safe display name/bio, visibility, and intended timestamps/identity metadata.
 - [ ] As the second standard account, attempt direct IDs for User B’s profile hub, private records, target photos, and private image registry.
 - [ ] As Moderator, confirm moderation access does not broaden reads of owner-private records or images.
@@ -661,7 +667,7 @@ Visitor, User B, Conflict account if available, and Moderator.
 - [ ] Confirm sign-out produces no unhandled auth errors and clears private data after refresh.
 - [ ] Review GraphQL variables/responses and storage requests for fields that should not cross the current route boundary.
 - [ ] Review console messages and any accessible backend logs for secrets or private-data leakage.
-- [ ] Confirm no frontend request attempts a public S3 write, public image copy/processing action, or image projection update. The owner-only Phase 2B verification mutation is expected.
+- [ ] Confirm no frontend request attempts a public S3 write, public image copy/processing action, or image projection update. The owner-only Phase 2B verification mutation is expected; Phase 2C is exercised only through an explicit backend integration harness.
 
 ### Expected results
 
@@ -682,4 +688,4 @@ Visitor, User B, Conflict account if available, and Moderator.
 - [ ] Re-run Sections 12, 13, 14, 17, and 19 after any data authorization, storage, public snapshot, or moderation change.
 - [ ] Re-run Sections 1, 18, and 20 after any framework, navigation, layout, or deployment change.
 - [ ] Do not approve a hosted release if another owner or signed-out/API-key client can access private records, private images, `PrivateImageAsset`, or private keys.
-- [ ] Do not approve public image publishing based on Phase 2B verification. A metadata-free derivative processor, explicit consent UI, public storage boundary, removal lifecycle, and moderation release gates are still required.
+- [ ] Do not approve public image publishing based on the Phase 2C backend foundation. Explicit safety/selection consent UI, public delivery/read authorization, rendering, removal/unpublish lifecycle, superseded/orphan cleanup, image reporting/moderation, accessibility, and hosted adversarial tests are still required.

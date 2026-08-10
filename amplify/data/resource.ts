@@ -1,4 +1,5 @@
 import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
+import { processPublicPassportImage } from "../functions/process-public-passport-image/resource.ts";
 import { verifyPrivateImage } from "../functions/verify-private-image/resource.ts";
 
 // TODO: Wire mock-data screens to generated AppSync clients after the sandbox
@@ -18,12 +19,30 @@ const schema = a.schema({
     verifiedAt: a.datetime()
   }),
 
+  ProcessPublicPassportImageResult: a.customType({
+    publicImageAssetId: a.id(),
+    processingStatus: a.ref("PublicImageAssetStatus").required(),
+    failureCode: a.string()
+  }),
+
   verifyPrivateImageAsset: a
     .mutation()
     .arguments({ privateImageAssetId: a.id().required() })
     .returns(a.ref("VerifyPrivateImageResult"))
     .authorization((allow) => [allow.authenticated("identityPool")])
     .handler(a.handler.function(verifyPrivateImage)),
+
+  processPublicPassportImage: a
+    .mutation()
+    .arguments({
+      publicPassportSnapshotId: a.id().required(),
+      privateImageAssetId: a.id().required(),
+      altText: a.string(),
+      consentConfirmed: a.boolean().required()
+    })
+    .returns(a.ref("ProcessPublicPassportImageResult"))
+    .authorization((allow) => [allow.authenticated()])
+    .handler(a.handler.function(processPublicPassportImage)),
 
   UsernameReservation: a
     .model({
@@ -63,6 +82,12 @@ const schema = a.schema({
       createdAt: a.datetime(),
       updatedAt: a.datetime()
     })
+    .secondaryIndexes((index) => [
+      index("ownerId")
+        .name("userProfilesByOwnerId")
+        .queryField("userProfilesByOwnerId")
+        .projection("INCLUDE", ["username", "accountVisibility"])
+    ])
     .authorization((allow) => [allow.ownerDefinedIn("ownerId")]),
 
   // Public identity is copied into this deliberately narrow snapshot. Never
@@ -365,9 +390,8 @@ const schema = a.schema({
     })
     .authorization((allow) => [allow.ownerDefinedIn("ownerId"), allow.publicApiKey().to(["read"])]),
 
-  // Phase 1 public-image workflow ledger. It is intentionally owner-readable
-  // only and has no client create/update/delete authorization. No records can
-  // be produced until a future backend-controlled processor is added.
+  // Backend-controlled public-image workflow ledger. It remains owner-readable
+  // only; normal clients have no create/update/delete authorization.
   PublicImageAsset: a
     .model({
       ownerId: a

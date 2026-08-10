@@ -1,4 +1,5 @@
 import { defineStorage } from "@aws-amplify/backend";
+import { processPublicPassportImage } from "../functions/process-public-passport-image/resource.ts";
 import { verifyPrivateImage } from "../functions/verify-private-image/resource.ts";
 
 export const storage = defineStorage({
@@ -6,11 +7,15 @@ export const storage = defineStorage({
   access: (allow) => ({
     "private/equipment/{entity_id}/*": [
       allow.entity("identity").to(["read", "write", "delete"]),
-      allow.resource(verifyPrivateImage).to(["get"])
+      allow.resource(verifyPrivateImage).to(["get"]),
+      allow.resource(processPublicPassportImage).to(["get"])
     ],
     "private/targets/{entity_id}/*": [
       allow.entity("identity").to(["read", "write", "delete"]),
       allow.resource(verifyPrivateImage).to(["get"])
+    ],
+    "public/passports/{snapshot_id}/cover/*": [
+      allow.resource(processPublicPassportImage).to(["get", "write", "delete"])
     ]
   })
 });
