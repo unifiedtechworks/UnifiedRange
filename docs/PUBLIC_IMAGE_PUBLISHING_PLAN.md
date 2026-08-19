@@ -232,6 +232,7 @@ No destructive moderation action is part of the current app. The image release m
 
 ### Phase 2D: owner consent UI
 
+- Follow the detailed consent, state, invocation, privacy, and rollout contract in [PUBLIC_IMAGE_PHASE_2D_CONSENT_UI_PLAN.md](PUBLIC_IMAGE_PHASE_2D_CONSENT_UI_PLAN.md).
 - Add Public Preview selection, the safety checklist, public alt text, explicit consent, processing status, **Publish without images**, and **Remove public image**.
 - Keep normal private upload screens and their keys owner-only.
 - Block account-private publishing server-side and communicate the reason clearly.

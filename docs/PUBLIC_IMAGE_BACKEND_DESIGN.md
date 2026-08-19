@@ -629,9 +629,10 @@ Alarms should cover sustained processing failures, metadata-verification failure
 
 ### Phase 2D: owner Public Preview consent workflow
 
+- Detailed design: [PUBLIC_IMAGE_PHASE_2D_CONSENT_UI_PLAN.md](PUBLIC_IMAGE_PHASE_2D_CONSENT_UI_PLAN.md)
 - [ ] Keep **Publish without images** as the default.
 - [ ] Show only backend-verified eligible private sources to the owner.
-- [ ] Add safety checklist, public alt text, and consent-version acknowledgement.
+- [ ] Add a safety checklist, public alt text, and explicit consent acknowledgement. The current action records confirmation and time, not a policy version.
 - [ ] Show pending/processing/approved/failed owner states without exposing keys.
 - [ ] Add image-specific publish, replace, and remove commands.
 - [ ] Route unpublish through backend cleanup instead of direct snapshot deletion.
