@@ -102,6 +102,8 @@ Current backend capabilities:
 
 Public image publishing is planned but not available in the app. Phase 1 reserves a client-read-only workflow ledger and guarded public snapshot projection fields. Phase 2A registers successful private uploads as owner-only candidates, and Phase 2B adds trusted private source verification. Phase 2C adds a backend-only, explicit-consent processing action for verified Equipment Passport covers. It revalidates ownership and source state, decodes JPEG/PNG bytes, auto-orients, resizes, re-encodes a metadata-free JPEG, and writes only a backend-generated derivative reference. There is still no selection UI, client invocation, public delivery/read rule, public URL, rendering, target-photo processing, or automatic publishing. Normal Public Preview publishing remains sanitized text/setup data only, and private uploads stay private. See `docs/PUBLIC_IMAGE_BACKEND_DESIGN.md`.
 
+Developers can test the deployed processor without adding product UI by following [Phase 2C Processor Manual Testing](docs/PHASE_2C_PROCESSOR_TESTING.md) and running `npm run test:public-image-processor`. The script requires a short-lived matching Cognito ID token, the two opaque owner-record IDs, and an exact confirmation phrase. It accepts no S3 key, owner ID, source record ID, destination path, URL, or image bytes. Use disposable synthetic hosted-development data because public-image removal lifecycle support is not implemented.
+
 ### Account Data Lifecycle Status
 
 Account data export and destructive account deletion are not implemented. A non-destructive placeholder is available at `/settings/account` with disabled **Coming soon** controls. The proposed server-side lifecycle, private S3 cleanup, public/social data treatment, moderation retention, and username handling are documented in:
@@ -301,6 +303,8 @@ With the Amplify sandbox and dev server running:
 12. Confirm Public Preview still publishes text/setup data only and public pages contain no private key, image, or URL.
 
 Private images stay private in every current app flow and are not included by the normal Public Preview payload. Do not upload images containing serial numbers, exact locations, license plates, or sensitive personal info unless you intend to keep them private. Phase 2C can create a metadata-free derivative only through its backend action with explicit consent; the app has no control that calls it and no public page can deliver or render its output. Public image publishing therefore remains unavailable. See `docs/PUBLIC_IMAGE_PUBLISHING_PLAN.md`.
+
+The developer-only processor test is documented in `docs/PHASE_2C_PROCESSOR_TESTING.md`. It is intentionally separate from the browser UI and must be run only with a disposable synthetic `equipment_cover` fixture. Phase 2D consent UI remains blocked on successful processor, rollback, IAM, metadata-removal, and hosted adversarial testing.
 
 ### Manual Public Passport Publishing Test
 

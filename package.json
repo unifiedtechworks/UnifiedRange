@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
+    "test:public-image-processor": "node scripts/process-public-passport-image.mjs",
     "amplify:sandbox": "ampx sandbox",
     "amplify:generate": "ampx generate outputs",
     "amplify:typecheck": "tsc -p amplify/tsconfig.json --noEmit"

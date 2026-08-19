@@ -31,7 +31,11 @@ This design refines the product boundary in [PUBLIC_IMAGE_PUBLISHING_PLAN.md](PU
 - The first implementation uses the portable JavaScript `image-js`/`jpeg-js` decode-and-re-encode path so the Amplify Lambda bundle does not depend on an architecture-specific native binary. Its strict signature/header checks and output inspection remain authoritative release gates.
 - A content-addressed backend key prevents source names or private identifiers from reaching the filename. Conditional/transactional finalization updates only the ledger and guarded image projection fields, and a newly written derivative is deleted when finalization loses a state race.
 - DynamoDB finalization permissions use the transaction's underlying attribute-limited `ConditionCheckItem` and `UpdateItem` actions, constrained by `dynamodb:EnclosingOperation=TransactWriteItems`; there is no broad transaction/table mutation grant.
+- Failure bookkeeping is conditioned on the exact active processing attempt, and snapshot finalization compares the previously observed asset id, derivative key, and alt text. A failed or stale invocation cannot overwrite a newer ledger/projection state.
+- Missing and inaccessible S3 objects share the bounded `object_not_found` result because S3 can return `403` for a missing key when least-privilege roles intentionally lack bucket-list permission. This avoids a key-existence oracle while allowing an unavailable cached derivative to follow the normal rewrite/rollback path.
+- Structured Lambda logs contain only fixed event names, bounded failure codes, and non-sensitive output type/size. They omit workflow IDs, owner identity, private/public keys, filenames, record content, tokens, URLs, and image bytes.
 - Current Public Preview payloads and all public UI continue to ignore image projection fields, so normal app publishing remains text/setup only.
+- The explicit-confirmation developer harness in [PHASE_2C_PROCESSOR_TESTING.md](PHASE_2C_PROCESSOR_TESTING.md) invokes the deployed mutation with only the two opaque IDs and optional alt text. It validates the configured AppSync/Cognito target and never accepts or prints a Storage key.
 
 ## Recommended decisions
 
@@ -200,7 +204,7 @@ It must not accept:
 
 `publicPassportSnapshotId` identifies the related `EquipmentPassport` through `equipmentPassportId`, while opaque `privateImageAssetId` identifies the owner-only verified candidate. The function re-derives `equipment_cover`, the exact source key, and every owner relationship server-side.
 
-`consentConfirmed` is required and must be exactly `true`. Phase 3 should add a versioned safety-checklist consent record before this action becomes user-facing. Phase 2C uses a content-addressed derivative id/key so an identical validated request is idempotent without accepting a client idempotency key.
+`consentConfirmed` is required and must be exactly `true`. Phase 2D should add a versioned safety-checklist consent record before this action becomes user-facing. Phase 2C uses a content-addressed derivative id/key so an identical validated request is idempotent without accepting a client idempotency key.
 
 The response exposes only the public workflow asset id, safe processing status, and bounded failure code. It never returns the private key, destination key, or signed URL.
 
@@ -617,11 +621,13 @@ Alarms should cover sustained processing failures, metadata-verification failure
 - [x] Write a versioned public derivative using a backend-generated content-addressed key.
 - [x] Project only ready derivative key/alt text onto the public snapshot through backend-only writes.
 - [x] Roll back a newly written output when finalization fails.
+- [x] Bind failure writes to the exact active processing attempt and include prior alt text in optimistic snapshot finalization.
+- [x] Add a developer-only, explicit-confirmation authenticated test script with no product UI, committed token, S3-key input, or arbitrary endpoint.
 - [ ] Add superseded-asset removal and scheduled orphan cleanup.
 - [ ] Add hosted integration fixtures for same-owner success, another-owner/private-account/source-race attempts, malformed/animated/oversized inputs, and metadata leakage.
 - [x] Keep the destination processor-only: no public delivery rule, selection UI, client invocation, target-photo processing, or rendering.
 
-### Phase 3: owner Public Preview workflow
+### Phase 2D: owner Public Preview consent workflow
 
 - [ ] Keep **Publish without images** as the default.
 - [ ] Show only backend-verified eligible private sources to the owner.
@@ -629,6 +635,7 @@ Alarms should cover sustained processing failures, metadata-verification failure
 - [ ] Show pending/processing/approved/failed owner states without exposing keys.
 - [ ] Add image-specific publish, replace, and remove commands.
 - [ ] Route unpublish through backend cleanup instead of direct snapshot deletion.
+- [ ] Do not begin this UI slice until the Phase 2C positive, negative, concurrency, metadata-removal, IAM, rollback, and hosted tests pass.
 
 ### Phase 4: public rendering and moderation
 

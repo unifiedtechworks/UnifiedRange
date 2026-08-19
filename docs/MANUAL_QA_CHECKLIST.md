@@ -409,10 +409,12 @@ User B, a second standard account, Visitor, and optionally Backend inspector.
 - [ ] As Visitor/API-key, confirm `PrivateImageAsset` cannot be read.
 - [ ] As Visitor or an unauthenticated Identity Pool session, confirm the verification mutation is unavailable or returns unauthorized.
 - [ ] Sign out and attempt to reload the prior signed private image URL after expiration or from a separate signed-out session.
-- [ ] If an authorized backend integration harness is available, create a disposable public-account fixture with a published snapshot and verified JPEG or PNG `equipment_cover`, then invoke `processPublicPassportImage` with its opaque ids, safe alt text, and `consentConfirmed: true`.
+- [ ] Follow [Phase 2C Processor Manual Testing](PHASE_2C_PROCESSOR_TESTING.md) with a disposable public-account fixture and verified JPEG or PNG `equipment_cover`; run `npm run test:public-image-processor` with a short-lived matching ID token, the two opaque IDs, optional safe alt text, and the exact confirmation phrase.
+- [ ] Confirm the script fails before making a request when the token, either ID, or explicit confirmation is missing; when the token is expired/wrong-pool, an ID is demo/sample-shaped, or `amplify_outputs.json` is not a trusted configured AppSync endpoint; and when alt text is empty-after-normalization or over 200 characters.
 - [ ] Confirm a successful invocation returns only an opaque public asset id and `ready` status; inspect the owner-only ledger/snapshot and confirm they reference a backend-generated JPEG key under the processor-only cover namespace.
 - [ ] Confirm the derivative decodes, is no larger than 1600 pixels on its long edge or 2 MB, and contains no EXIF/GPS, ICC/application metadata, Photoshop/application metadata, JPEG comments, original filename, private key, or owner identifier.
 - [ ] Exercise private-account, wrong-owner, unverified, target-photo, WebP, missing-object, source-mismatch, malformed, animated PNG, oversized-byte, and oversized-pixel fixtures; confirm bounded failure codes and no snapshot projection/object creation. Use isolated synthetic fixtures only.
+- [ ] Exercise two controlled concurrent requests against the same prior projection. Confirm only the valid state transition wins, stale failure bookkeeping does not overwrite a newer attempt, and an unsuccessful newly written object is rolled back.
 - [ ] Confirm the normal app has no control or network request that invokes `processPublicPassportImage`.
 
 ### Expected results
@@ -679,6 +681,7 @@ Visitor, User B, Conflict account if available, and Moderator.
 ### Privacy and safety checks
 
 - [ ] Console, network, and backend logs contain no passwords, confirmation codes, Cognito tokens, signed URLs, private image bytes, original filenames, private keys, or sensitive profile/record content.
+- [ ] Processor logs contain only fixed event names, bounded failure codes, and safe output type/size—not workflow IDs, owner IDs, record IDs, S3 keys, filenames, URLs, alt text, tokens, or image bytes.
 - [ ] Bug reports use bounded error codes/request IDs and sanitized synthetic descriptions rather than copying private payloads.
 
 ## Completion and release decision

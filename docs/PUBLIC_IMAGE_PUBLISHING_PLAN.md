@@ -226,13 +226,16 @@ No destructive moderation action is part of the current app. The image release m
 - The generated JPEG is independently inspected for dimensions and metadata-bearing JPEG segments before it can be attached. The destination is content-addressed and backend-generated under `public/passports/{snapshotId}/cover/`.
 - The destination path grants get/write/delete only to the processor. No guest, API-key, signed-in browser, moderator, or admin Storage access was added, so the derivative is not publicly deliverable today.
 - The processor alone may write the non-public `PublicImageAsset` ledger and guarded snapshot projection fields. Conditional/transactional writes prevent stale ownership or visibility state from being attached, and a newly written object is deleted if finalization fails.
+- Failure-state writes are bound to the exact active attempt, projection finalization compares the prior asset/key/alt state, and structured logs omit workflow IDs, identities, keys, filenames, URLs, tokens, and record content.
+- A developer-only script documented in [PHASE_2C_PROCESSOR_TESTING.md](PHASE_2C_PROCESSOR_TESTING.md) can invoke the deployed mutation using a short-lived matching Cognito ID token, the two opaque record IDs, optional alt text, and an exact confirmation phrase. It accepts no Storage key, destination, owner ID, or source record ID.
 - Hosted same-owner success and adversarial integration fixtures are still required. Superseded-derivative cleanup, explicit removal/unpublish coordination, and scheduled orphan reconciliation remain future lifecycle work.
 
-### Phase 3: owner UI
+### Phase 2D: owner consent UI
 
 - Add Public Preview selection, the safety checklist, public alt text, explicit consent, processing status, **Publish without images**, and **Remove public image**.
 - Keep normal private upload screens and their keys owner-only.
 - Block account-private publishing server-side and communicate the reason clearly.
+- Start this slice only after processor success/failure, concurrency, rollback, metadata-removal, and IAM boundary tests pass.
 
 ### Phase 4: public display and moderation
 

@@ -183,6 +183,15 @@ function normalizeContentType(value?: string) {
   return value?.split(";", 1)[0]?.trim().toLowerCase() ?? "";
 }
 
+function isObjectUnavailableError(error: unknown) {
+  const statusCode = (error as { $metadata?: { httpStatusCode?: number } }).$metadata?.httpStatusCode;
+  const errorName = (error as { name?: string }).name;
+  // S3 may return 403 rather than 404 for a missing object when the role has
+  // object access but intentionally lacks bucket-list permission. Do not turn
+  // that distinction into a key-existence oracle.
+  return statusCode === 403 || statusCode === 404 || errorName === "AccessDenied" || errorName === "NotFound" || errorName === "NoSuchKey";
+}
+
 function sanitizeAltText(value: unknown) {
   if (value === undefined || value === null || value === "") {
     return undefined;
@@ -441,8 +450,7 @@ async function readPrivateSourceObject(asset: PrivateImageAsset) {
   try {
     head = await s3Client.send(new HeadObjectCommand({ Bucket: imageBucketName, Key: asset.storageKey }));
   } catch (error) {
-    const statusCode = (error as { $metadata?: { httpStatusCode?: number } }).$metadata?.httpStatusCode;
-    if (statusCode === 404 || (error as { name?: string }).name === "NotFound") {
+    if (isObjectUnavailableError(error)) {
       throw new ProcessingFailure("object_not_found");
     }
     throw new ProcessingFailure("unknown_error");
@@ -477,7 +485,7 @@ async function readPrivateSourceObject(asset: PrivateImageAsset) {
     );
   } catch (error) {
     const statusCode = (error as { $metadata?: { httpStatusCode?: number } }).$metadata?.httpStatusCode;
-    if (statusCode === 404 || (error as { name?: string }).name === "NoSuchKey") {
+    if (isObjectUnavailableError(error)) {
       throw new ProcessingFailure("object_not_found");
     }
     if (statusCode === 412 || (error as { name?: string }).name === "PreconditionFailed") {
@@ -758,8 +766,7 @@ async function publicObjectExists(publicKey: string) {
     const head = await s3Client.send(new HeadObjectCommand({ Bucket: imageBucketName, Key: publicKey }));
     return head.ContentType === "image/jpeg" && Boolean(head.ContentLength && head.ContentLength <= derivativeMaxBytes);
   } catch (error) {
-    const statusCode = (error as { $metadata?: { httpStatusCode?: number } }).$metadata?.httpStatusCode;
-    if (statusCode === 404 || (error as { name?: string }).name === "NotFound") return false;
+    if (isObjectUnavailableError(error)) return false;
     throw new ProcessingFailure("unknown_error");
   }
 }
@@ -819,17 +826,23 @@ async function startProcessingLedger({
   );
 }
 
-async function markLedgerFailed(publicImageAssetId: string, ownerId: string, failureCode: FailureCode) {
+async function markLedgerFailed(
+  publicImageAssetId: string,
+  ownerId: string,
+  consentConfirmedAt: string,
+  failureCode: FailureCode
+) {
   try {
     await dynamoClient.send(
       new UpdateItemCommand({
         TableName: publicImageAssetTableName,
         Key: { id: { S: publicImageAssetId } },
-        ConditionExpression: "#ownerId = :ownerId",
+        ConditionExpression: "#ownerId = :ownerId AND #status = :processing AND #consent = :consent",
         UpdateExpression: "SET #status = :failed, #failureCode = :failureCode, #updatedAt = :now REMOVE #publicKey, #altText",
         ExpressionAttributeNames: {
           "#ownerId": "ownerId",
           "#status": "status",
+          "#consent": "consentConfirmedAt",
           "#failureCode": "processingErrorCode",
           "#updatedAt": "updatedAt",
           "#publicKey": "publicImageKey",
@@ -837,6 +850,8 @@ async function markLedgerFailed(publicImageAssetId: string, ownerId: string, fai
         },
         ExpressionAttributeValues: {
           ":ownerId": { S: ownerId },
+          ":processing": { S: "processing" },
+          ":consent": { S: consentConfirmedAt },
           ":failed": { S: "failed" },
           ":failureCode": { S: failureCode },
           ":now": { S: new Date().toISOString() }
@@ -844,7 +859,7 @@ async function markLedgerFailed(publicImageAssetId: string, ownerId: string, fai
       })
     );
   } catch {
-    console.error(JSON.stringify({ event: "public_image_failure_status_write_failed", publicImageAssetId }));
+    console.error(JSON.stringify({ event: "public_image_failure_status_write_failed" }));
   }
 }
 
@@ -930,6 +945,12 @@ async function finalizeProjection({
     snapshotCondition += " AND #publicKey = :existingPublicKey";
   } else {
     snapshotCondition += " AND attribute_not_exists(#publicKey)";
+  }
+  if (snapshot.publicImageAltText) {
+    snapshotValues[":existingAltText"] = { S: snapshot.publicImageAltText };
+    snapshotCondition += " AND #altText = :existingAltText";
+  } else {
+    snapshotCondition += " AND attribute_not_exists(#altText)";
   }
   let snapshotUpdate = "SET #publicAssetId = :publicAssetId, #publicKey = :publicKey, #updatedAt = :now";
   if (altText) {
@@ -1058,6 +1079,7 @@ export const handler: Schema["processPublicPassportImage"]["functionHandler"] = 
   let ledgerStarted = false;
   let objectWritten = false;
   let processingOwnerId = "";
+  let processingAttemptAt = "";
 
   try {
     if (!snapshotId || !privateImageAssetId) throw new ProcessingFailure("invalid_request");
@@ -1152,6 +1174,7 @@ export const handler: Schema["processPublicPassportImage"]["functionHandler"] = 
         throw new ProcessingFailure("state_changed");
       }
       ledgerStarted = true;
+      processingAttemptAt = consentConfirmedAt;
 
       try {
         await s3Client.send(
@@ -1190,7 +1213,6 @@ export const handler: Schema["processPublicPassportImage"]["functionHandler"] = 
     console.info(
       JSON.stringify({
         event: "public_image_derivative_ready",
-        publicImageAssetId,
         outputContentType: "image/jpeg",
         outputBytes: derivative.length
       })
@@ -1203,18 +1225,17 @@ export const handler: Schema["processPublicPassportImage"]["functionHandler"] = 
       try {
         await s3Client.send(new DeleteObjectCommand({ Bucket: imageBucketName, Key: publicKey }));
       } catch {
-        console.error(JSON.stringify({ event: "public_image_rollback_delete_failed", publicImageAssetId: publicImageAssetId ?? "unknown" }));
+        console.error(JSON.stringify({ event: "public_image_rollback_delete_failed" }));
       }
     }
 
-    if (ledgerStarted && publicImageAssetId && processingOwnerId) {
-      await markLedgerFailed(publicImageAssetId, processingOwnerId, failureCode);
+    if (ledgerStarted && publicImageAssetId && processingOwnerId && processingAttemptAt) {
+      await markLedgerFailed(publicImageAssetId, processingOwnerId, processingAttemptAt, failureCode);
     }
 
     console.warn(
       JSON.stringify({
         event: "public_image_derivative_failed",
-        publicImageAssetId: publicImageAssetId ?? "unknown",
         failureCode
       })
     );

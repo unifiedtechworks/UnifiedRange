@@ -298,6 +298,16 @@
               "properties": {}
             },
             {
+              "type": "key",
+              "properties": {
+                "name": "userProfilesByOwnerId",
+                "queryField": "userProfilesByOwnerId",
+                "fields": [
+                  "ownerId"
+                ]
+              }
+            },
+            {
               "type": "auth",
               "properties": {
                 "rules": [
@@ -2521,6 +2531,34 @@
               "attributes": []
             }
           }
+        },
+        "ProcessPublicPassportImageResult": {
+          "name": "ProcessPublicPassportImageResult",
+          "fields": {
+            "publicImageAssetId": {
+              "name": "publicImageAssetId",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": false,
+              "attributes": []
+            },
+            "processingStatus": {
+              "name": "processingStatus",
+              "isArray": false,
+              "type": {
+                "enum": "PublicImageAssetStatus"
+              },
+              "isRequired": true,
+              "attributes": []
+            },
+            "failureCode": {
+              "name": "failureCode",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            }
+          }
         }
       },
       "mutations": {
@@ -2536,6 +2574,40 @@
               "name": "privateImageAssetId",
               "isArray": false,
               "type": "ID",
+              "isRequired": true
+            }
+          }
+        },
+        "processPublicPassportImage": {
+          "name": "processPublicPassportImage",
+          "isArray": false,
+          "type": {
+            "nonModel": "ProcessPublicPassportImageResult"
+          },
+          "isRequired": false,
+          "arguments": {
+            "publicPassportSnapshotId": {
+              "name": "publicPassportSnapshotId",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true
+            },
+            "privateImageAssetId": {
+              "name": "privateImageAssetId",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true
+            },
+            "altText": {
+              "name": "altText",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
+            },
+            "consentConfirmed": {
+              "name": "consentConfirmed",
+              "isArray": false,
+              "type": "Boolean",
               "isRequired": true
             }
           }
@@ -2569,7 +2641,8 @@
               "delete"
             ]
           },
-          "private/targets/*": {}
+          "private/targets/*": {},
+          "public/passports/{snapshot_id}/cover/*": {}
         }
       }
     ]
