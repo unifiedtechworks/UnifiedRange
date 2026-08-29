@@ -60,7 +60,7 @@ UnifiedRange is deployed as an AWS Amplify Gen 2 hosted-development MVP. This ch
 
 Run this checklist against the current Amplify Hosting development URL after each release:
 
-Use the role-based [Manual QA Checklist](MANUAL_QA_CHECKLIST.md) for the comprehensive release pass, including CRUD isolation, username conflict repair, Phase 2B private source verification, the Phase 2C backend-only derivative foundation, moderation authorization, responsive coverage, and public/private response inspection.
+Use the role-based [Manual QA Checklist](MANUAL_QA_CHECKLIST.md) for the comprehensive release pass, including CRUD isolation, username conflict repair, Phase 2B private source verification, the Phase 2C derivative processor, Phase 2D owner consent, moderation authorization, responsive coverage, and public/private response inspection.
 
 1. Open `/` while signed out. Confirm the landing page explains the private logbook, Equipment Passports, Hunting Readiness, Discover, and privacy-first sharing.
 2. Open `/auth/sign-in`. Test sign-up/confirmation with a test account or sign in with an existing test account, refresh, and confirm the session persists.
@@ -70,7 +70,7 @@ Use the role-based [Manual QA Checklist](MANUAL_QA_CHECKLIST.md) for the compreh
 6. If a legacy username-conflict fixture is available, confirm `/profile/username-repair` permits only the conflicted owner to reserve an available replacement username and never changes the existing owner's reservation.
 7. Create, view, edit, and delete a test record in Equipment Passports, Projectiles / Ammo, Optics / Sights, Range Sessions, Maintenance, and Hunting Readiness. Confirm records remain scoped to the signed-in owner.
 8. Upload an Equipment Passport photo and Range Session target photo. Refresh, then sign out and confirm private images, image keys, and upload controls are not exposed publicly.
-9. Preview and publish a sanitized Equipment Passport snapshot. Confirm it appears in Discover, update it, and unpublish it when the test is complete.
+9. Preview and publish a sanitized Equipment Passport snapshot. Confirm **Publish without images** is the default. With a disposable verified JPEG/PNG equipment cover, test the optional consent flow and confirm no public page renders the prepared derivative. Use a text-only snapshot for the current unpublish test.
 10. Open `/u/[username]` while signed out. Confirm the public profile respects account visibility and shows only sanitized identity and published setup activity.
 11. Test Discover search and filters on desktop and mobile. Open a public setup and confirm private notes, private images, lot numbers, purchase details, exact locations, and raw owner IDs are absent.
 12. While signed in, add and remove a reaction, submit a test comment, and submit a test report. While signed out, confirm public content remains readable and write actions show sign-in prompts.
@@ -83,7 +83,7 @@ Use the role-based [Manual QA Checklist](MANUAL_QA_CHECKLIST.md) for the compreh
 ## Known Limitations
 
 - Account deletion and account data export are planned but not implemented.
-- Public image publishing is not available in the app; uploaded originals remain private. Phase 2C provides a backend-only, explicit-consent derivative processor and processor-only destination, but there is no selection UI, public delivery/read rule, rendering, target-photo support, or removal/moderation lifecycle. See the [Public Image Publishing Plan](PUBLIC_IMAGE_PUBLISHING_PLAN.md).
+- Public image delivery/rendering is not available; uploaded originals remain private. Phase 2D provides owner-only selection and consent for one verified Equipment Passport cover, but the derivative remains processor-only. There is no public delivery/read rule, rendering, target-photo support, replacement/removal/unpublish cleanup, or image-moderation lifecycle. See the [Public Image Publishing Plan](PUBLIC_IMAGE_PUBLISHING_PLAN.md).
 - Feeds and follows are not implemented.
 - A notification center is not implemented.
 - Moderation has report metadata review and status workflow only. It has no destructive content removal, hiding, suspension, or account actions.
@@ -94,7 +94,7 @@ Use the role-based [Manual QA Checklist](MANUAL_QA_CHECKLIST.md) for the compreh
 
 1. Implement protected account data export and account deletion workflows based on the existing lifecycle plans.
 2. Polish public profiles with improved safe empty states, presentation, and published-setup organization.
-3. Complete the public-image selection/consent UI, delivery boundary, rendering, removal/unpublish lifecycle, image reporting/moderation, cleanup, and hosted security tests described in the Public Image Publishing Plan before enabling the Phase 2C backend foundation for users.
+3. Complete hosted Phase 2D consent testing, then design the public delivery boundary, rendering, removal/unpublish lifecycle, image reporting/moderation, cache behavior, and cleanup described in the Public Image Publishing Plan.
 4. Add moderation report counts by status and target, plus filtering and sorting, without coupling status changes to destructive content actions.
 5. Improve Discover search, filters, result organization, and public setup browsing while preserving sanitized snapshot boundaries.
 6. Implement username sign-in only through the privacy-preserving server-side lookup described in the Username Sign-In Plan; email/password remains the current Cognito login.

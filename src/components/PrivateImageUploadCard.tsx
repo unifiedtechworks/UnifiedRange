@@ -123,9 +123,9 @@ export function PrivateImageUploadCard({
           <h3 className="text-xl font-bold text-ink">{title}</h3>
           <p className="mt-2 text-sm leading-6 text-ink/70">{description}</p>
           <p className="mt-3 rounded-md bg-field px-3 py-2 text-sm leading-6 text-ink/70">
-            Images are private by default. Public sharing will require a separate sanitized publishing step later. Do not upload images containing serial numbers, exact locations, license plates, or sensitive personal info unless you intend to keep them private.
+            Images are private by default. Eligible equipment covers require separate, explicit consent and processing in Public Preview; target photos are not eligible. Do not upload images containing serial numbers, exact locations, license plates, or sensitive personal info unless you intend to keep them private.
           </p>
-          <p className="mt-2 text-xs leading-5 text-ink/55">Metadata stripping is not implemented yet and will be required before public publishing.</p>
+          <p className="mt-2 text-xs leading-5 text-ink/55">Private originals are stored unchanged. The separate public-safe derivative processor removes metadata without changing the private original.</p>
         </div>
 
         <div className="w-full lg:w-64">

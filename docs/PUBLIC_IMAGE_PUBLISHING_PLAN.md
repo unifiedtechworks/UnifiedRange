@@ -2,11 +2,11 @@
 
 ## Status and scope
 
-Public image publishing is planned but is not implemented. UnifiedRange currently stores Equipment Passport setup photos and Range Session target photos in owner-scoped private S3 paths. `PublicPassportSnapshot` publishing copies sanitized text/setup data only; it must not expose a private image key, signed private URL, or private image bytes.
+Public image delivery and rendering are planned but are not implemented. UnifiedRange stores Equipment Passport setup photos and Range Session target photos in owner-scoped private S3 paths. Normal `PublicPassportSnapshot` publishing copies sanitized text/setup data only; it must not expose a private image key, signed private URL, or private image bytes. Phase 2D now provides an owner-only consent UI that can prepare one protected derivative from a current verified Equipment Passport cover.
 
-This document defines the privacy and safety boundary for a future release. Phase 1 reserves a non-public workflow ledger and guarded public snapshot projection fields. Phase 2A adds owner-only registration of private upload candidates. Phase 2B adds trusted owner/source/S3 binding. Phase 2C adds a backend-only derivative processor for a verified Equipment Passport cover, but it does not add public delivery/read access, image selection UI, client invocation, public URLs, rendering, target-photo processing, or moderation actions.
+This document defines the privacy and safety boundary for the phased release. Phase 1 reserves a non-public workflow ledger and guarded public snapshot projection fields. Phase 2A adds owner-only registration of private upload candidates. Phase 2B adds trusted owner/source/S3 binding. Phase 2C adds the derivative processor for a verified Equipment Passport cover. Phase 2D adds explicit owner selection, private source preview, safety acknowledgements, bounded alt text, and a constrained processor invocation. These phases still do not add public delivery/read access, public URLs, rendering, target-photo processing, or moderation actions.
 
-Normal client create/update operations still cannot write public image projection fields. An IAM-authorized verifier may mark a private candidate verified after re-reading its private source and exact S3 object metadata. A separate authenticated Phase 2C action can process only a verified `equipment_cover` after explicit consent and current ownership/visibility checks. The app does not call that action, and the processor-only destination has no public or browser read rule. Verification and normal text publishing do not make an image public; public image publishing is still unavailable.
+Normal client create/update operations still cannot write public image projection fields. An IAM-authorized verifier may mark a private candidate verified after re-reading its private source and exact S3 object metadata. The authenticated Phase 2C action can process only a verified `equipment_cover` after explicit consent and current ownership/visibility checks. Phase 2D calls that action only from the signed-in owner's saved Public Preview with opaque snapshot/candidate IDs, bounded alt text, and required consent. The processor-only destination has no public or browser read rule. Verification, processing, and normal text publishing do not make an image publicly deliverable; public rendering remains unavailable.
 
 See [PUBLIC_IMAGE_BACKEND_DESIGN.md](PUBLIC_IMAGE_BACKEND_DESIGN.md) for the detailed Amplify/Lambda implementation contract, identity-boundary analysis, failure handling, and phased backend work.
 
@@ -233,10 +233,12 @@ No destructive moderation action is part of the current app. The image release m
 ### Phase 2D: owner consent UI
 
 - Follow the detailed consent, state, invocation, privacy, and rollout contract in [PUBLIC_IMAGE_PHASE_2D_CONSENT_UI_PLAN.md](PUBLIC_IMAGE_PHASE_2D_CONSENT_UI_PLAN.md).
-- Add Public Preview selection, the safety checklist, public alt text, explicit consent, processing status, **Publish without images**, and **Remove public image**.
+- Implemented owner-only Public Preview selection, a private source preview, the safety checklist, required bounded alt text, explicit consent, processing status, and **Publish without images** default.
+- The client offers only the current verified, processor-compatible `equipment_cover` candidate and invokes the processor through a narrow user-pool wrapper. Target photos remain excluded.
+- Direct Unpublish and replacement are disabled after a derivative is prepared. Backend-controlled replace, remove, and derivative-aware unpublish cleanup remain unimplemented.
 - Keep normal private upload screens and their keys owner-only.
 - Block account-private publishing server-side and communicate the reason clearly.
-- Start this slice only after processor success/failure, concurrency, rollback, metadata-removal, and IAM boundary tests pass.
+- Complete processor success/failure, concurrency, rollback, metadata-removal, IAM-boundary, and hosted consent-UI tests before release approval.
 
 ### Phase 4: public display and moderation
 

@@ -73,10 +73,10 @@ export function EquipmentPassportPrivatePhotoPanel({
       try {
         const candidate = await registerPrivateImageCandidate(client, registration);
         setCandidateId(candidate.id);
-        setRegistrationNotice("Private image source registered. Verify it below; verification does not publish it.");
+        setRegistrationNotice("Private image source registered. Verify it below; verification alone does not process or publish it.");
       } catch (registrationError) {
         console.error("Unable to register private equipment image source", registrationError);
-        setRegistrationNotice("The image is saved and private, but its source registration is pending. Public image publishing remains unavailable.");
+        setRegistrationNotice("The image is saved and private, but its source registration is pending. It cannot be selected for optional processing yet.");
       }
     } catch (updateError) {
       setError(getAuthErrorMessage(updateError));

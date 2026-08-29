@@ -14,6 +14,8 @@ export type PrivateImageAssetSourceType = "equipment_cover" | "range_session_tar
 
 const generatedPrivateImageFileNamePattern = /^\d{10,15}-[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.(?:jpe?g|png|webp)$/i;
 const knownNonPersistentSourceIdPattern = /^(?:(?:demo|sample)(?:[-_]|$)|(?:passport|session|target-photo)-\d+$)/i;
+const publicEquipmentCoverContentTypes = new Set(["image/jpeg", "image/png"]);
+const publicEquipmentCoverMaxBytes = 6 * 1024 * 1024;
 
 export interface PrivateImageSourceBindingInput {
   ownerId: string;
@@ -24,6 +26,15 @@ export interface PrivateImageSourceBindingInput {
   sourceRecordId: string;
   upload: PrivateImageUploadResult;
 }
+
+export type EligibleEquipmentCoverCandidate = {
+  id: string;
+  verifiedAt?: string;
+};
+
+export type EquipmentCoverCandidateLookup =
+  | { status: "available"; candidate: EligibleEquipmentCoverCandidate }
+  | { status: "source_changed" | "unavailable" };
 
 export function isEligiblePrivateImageSourceRecordId(sourceRecordId: string) {
   const value = sourceRecordId.trim();
@@ -196,4 +207,78 @@ export async function registerPrivateImageCandidate(
   }
 
   return created.data;
+}
+
+export async function loadEligibleEquipmentCoverCandidate(
+  client: AmplifyDataClient,
+  {
+    ownerId,
+    ownerSub,
+    ownerAliases,
+    sourceOwnerId,
+    sourceRecordId,
+    currentStorageKey
+  }: {
+    ownerId: string;
+    ownerSub: string;
+    ownerAliases: string[];
+    sourceOwnerId: string;
+    sourceRecordId: string;
+    currentStorageKey?: string | null;
+  }
+): Promise<EquipmentCoverCandidateLookup> {
+  const aliases = [...new Set([ownerId, ...ownerAliases])].filter(Boolean);
+
+  if (
+    !ownerId ||
+    !ownerSub ||
+    !aliases.includes(ownerId) ||
+    !aliases.includes(ownerSub) ||
+    !aliases.includes(sourceOwnerId) ||
+    !isEligiblePrivateImageSourceRecordId(sourceRecordId) ||
+    !currentStorageKey
+  ) {
+    return { status: "unavailable" };
+  }
+
+  const result = await client.models.PrivateImageAsset.list({
+    filter: {
+      ownerId: { eq: ownerId },
+      sourceType: { eq: "equipment_cover" },
+      sourceRecordId: { eq: sourceRecordId },
+      bindingStatus: { eq: "verified" }
+    }
+  });
+
+  if (result.errors?.length) {
+    throw new Error("Verified private equipment image candidates could not be checked.");
+  }
+
+  const ownedVerifiedCandidates = result.data.filter(
+    (asset) =>
+      asset.ownerId === ownerId &&
+      asset.ownerSub === ownerSub &&
+      asset.sourceType === "equipment_cover" &&
+      asset.sourceRecordId === sourceRecordId &&
+      asset.bindingStatus === "verified" &&
+      publicEquipmentCoverContentTypes.has(asset.contentType.trim().toLowerCase()) &&
+      asset.sizeBytes > 0 &&
+      asset.sizeBytes <= publicEquipmentCoverMaxBytes
+  );
+  const currentCandidates = ownedVerifiedCandidates
+    .filter((asset) => asset.storageKey === currentStorageKey)
+    .sort((left, right) => (right.verifiedAt ?? right.createdAt ?? "").localeCompare(left.verifiedAt ?? left.createdAt ?? ""));
+  const currentCandidate = currentCandidates[0];
+
+  if (!currentCandidate) {
+    return { status: ownedVerifiedCandidates.length ? "source_changed" : "unavailable" };
+  }
+
+  return {
+    status: "available",
+    candidate: {
+      id: currentCandidate.id,
+      verifiedAt: currentCandidate.verifiedAt ?? undefined
+    }
+  };
 }

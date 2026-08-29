@@ -2,13 +2,13 @@
 
 ## Status
 
-Phase 1 data guardrails were added on August 5, 2026. Phase 2A private source registration, Phase 2B trusted private source verification, and the Phase 2C backend derivative foundation were added on August 9, 2026. The schema now contains a non-public, client-read-only `PublicImageAsset` workflow ledger, backend-reserved public image projection fields, an owner-only `PrivateImageAsset` candidate registry, an IAM-authorized verification operation, and an authenticated processing operation. These backend changes require an Amplify redeploy.
+Phase 1 data guardrails were added on August 5, 2026. Phase 2A private source registration, Phase 2B trusted private source verification, and the Phase 2C backend derivative foundation were added on August 9, 2026. Phase 2D owner consent UI was added on August 18, 2026 without a backend/schema change. The schema contains a non-public, client-read-only `PublicImageAsset` workflow ledger, backend-reserved public snapshot projection fields, an owner-only `PrivateImageAsset` candidate registry, an IAM-authorized verification operation, and an authenticated processing operation. The Phase 2C backend changes require an Amplify redeploy; the Phase 2D frontend does not add another backend redeploy requirement.
 
-Public image publishing is still not available. Phase 2C adds a backend-only action that can turn an explicitly consented, verified Equipment Passport cover candidate into a bounded metadata-free JPEG derivative and guarded public snapshot projection. There is no app selection/consent UI, client invocation, public delivery/read rule, public URL, rendering, target-photo processing, removal flow, or automatic publishing. The processor-only `public/passports/{snapshotId}/cover/` namespace is deliberately not readable by browser or guest identities.
+Public image delivery/rendering is still not available. Phase 2D adds an owner-only Public Preview selection and consent control that may invoke Phase 2C for the current verified, processor-compatible Equipment Passport cover. There is no public delivery/read rule, public URL, rendering, target-photo processing, removal flow, or automatic publishing. The processor-only `public/passports/{snapshotId}/cover/` namespace is deliberately not readable by browser or guest identities.
 
 The browser may create and read its own immutable `PrivateImageAsset` candidate records after a successful private upload. Those rows remain private registration hints until `verifyPrivateImageAsset` independently marks them `verified`. Normal clients cannot write `bindingStatus`, `bindingFailureCode`, or `verifiedAt`. The Phase 2C processor rejects every candidate that is missing `verified` status and repeats the current source/object checks because verification proves source binding only and does not prove decoded image safety or metadata removal.
 
-UnifiedRange's current app flows publish sanitized text/setup snapshots only. Equipment Passport setup photos and Range Session target photos remain owner-private. Public pages must continue to render no image until the later selection, delivery, rendering, removal, and moderation phases are implemented and tested.
+UnifiedRange's normal **Publish without images** flow publishes sanitized text/setup snapshots only. Equipment Passport setup-photo originals and Range Session target photos remain owner-private. Public pages must continue to render no image until later delivery, rendering, removal, and moderation phases are implemented and tested.
 
 This design refines the product boundary in [PUBLIC_IMAGE_PUBLISHING_PLAN.md](PUBLIC_IMAGE_PUBLISHING_PLAN.md) into an implementable AWS Amplify Gen 2 backend contract.
 
@@ -34,7 +34,7 @@ This design refines the product boundary in [PUBLIC_IMAGE_PUBLISHING_PLAN.md](PU
 - Failure bookkeeping is conditioned on the exact active processing attempt, and snapshot finalization compares the previously observed asset id, derivative key, and alt text. A failed or stale invocation cannot overwrite a newer ledger/projection state.
 - Missing and inaccessible S3 objects share the bounded `object_not_found` result because S3 can return `403` for a missing key when least-privilege roles intentionally lack bucket-list permission. This avoids a key-existence oracle while allowing an unavailable cached derivative to follow the normal rewrite/rollback path.
 - Structured Lambda logs contain only fixed event names, bounded failure codes, and non-sensitive output type/size. They omit workflow IDs, owner identity, private/public keys, filenames, record content, tokens, URLs, and image bytes.
-- Current Public Preview payloads and all public UI continue to ignore image projection fields, so normal app publishing remains text/setup only.
+- Current Public Preview create/update payloads and all public UI continue to ignore image projection fields, so normal publishing remains text/setup only. Only the separate Phase 2D owner action invokes the processor.
 - The explicit-confirmation developer harness in [PHASE_2C_PROCESSOR_TESTING.md](PHASE_2C_PROCESSOR_TESTING.md) invokes the deployed mutation with only the two opaque IDs and optional alt text. It validates the configured AppSync/Cognito target and never accepts or prints a Storage key.
 
 ## Recommended decisions
@@ -630,13 +630,15 @@ Alarms should cover sustained processing failures, metadata-verification failure
 ### Phase 2D: owner Public Preview consent workflow
 
 - Detailed design: [PUBLIC_IMAGE_PHASE_2D_CONSENT_UI_PLAN.md](PUBLIC_IMAGE_PHASE_2D_CONSENT_UI_PLAN.md)
-- [ ] Keep **Publish without images** as the default.
-- [ ] Show only backend-verified eligible private sources to the owner.
-- [ ] Add a safety checklist, public alt text, and explicit consent acknowledgement. The current action records confirmation and time, not a policy version.
-- [ ] Show pending/processing/approved/failed owner states without exposing keys.
-- [ ] Add image-specific publish, replace, and remove commands.
-- [ ] Route unpublish through backend cleanup instead of direct snapshot deletion.
-- [ ] Do not begin this UI slice until the Phase 2C positive, negative, concurrency, metadata-removal, IAM, rollback, and hosted tests pass.
+- [x] Keep **Publish without images** as the default.
+- [x] Show only the current backend-verified, JPEG/PNG, size-compatible `equipment_cover` source to the owner.
+- [x] Add an owner-only private preview, safety checklist, bounded public alt text, and explicit consent acknowledgement. The current action records confirmation and time, not a policy version.
+- [x] Show loading/available/selected/processing/ready/failed/source-changed states without exposing keys or raw backend errors.
+- [x] Add an image-specific process command whose wrapper accepts only snapshot id, candidate id, and bounded alt text, then supplies required consent internally.
+- [ ] Add backend-controlled replace and remove commands.
+- [x] Disable direct Unpublish for a snapshot with a prepared derivative until backend cleanup exists.
+- [ ] Route derivative-aware unpublish through backend cleanup instead of direct snapshot deletion.
+- [ ] Do not approve the hosted UI release until the Phase 2C positive, negative, concurrency, metadata-removal, IAM, rollback, and hosted tests pass.
 
 ### Phase 4: public rendering and moderation
 

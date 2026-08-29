@@ -1,5 +1,11 @@
 # Phase 2D Public Image Consent UI Plan
 
+## Implementation status
+
+Phase 2D owner consent UI was implemented on August 18, 2026 without a schema or backend authorization change. Saved Equipment Passport Public Preview now defaults to **Publish without images**, privately loads only the current verified and processor-compatible `equipment_cover` candidate, requires a private source preview, all safety acknowledgements, and alt text up to 140 characters, then calls the deployed Phase 2C processor through a constrained user-pool wrapper.
+
+Public delivery and rendering remain disabled. Target photos, automatic processing, direct public Storage writes, replacement, removal, and derivative-aware backend unpublish cleanup remain unavailable.
+
 ## Purpose and current boundary
 
 Phase 2D adds an owner-only consent experience for selecting one verified Equipment Passport cover image in Public Preview. It does not make derivatives publicly deliverable and does not render images in Discover, public profiles, or public passport pages.
@@ -35,9 +41,9 @@ Phase 2D must not add:
 
 ## Release prerequisite
 
-Do not enable the Phase 2D processor control until the Phase 2C positive, negative, concurrency, rollback, metadata-removal, IAM, and hosted tests in [PHASE_2C_PROCESSOR_TESTING.md](PHASE_2C_PROCESSOR_TESTING.md) pass.
+Do not approve the Phase 2D hosted release until the Phase 2C positive, negative, concurrency, rollback, metadata-removal, IAM, and hosted tests in [PHASE_2C_PROCESSOR_TESTING.md](PHASE_2C_PROCESSOR_TESTING.md) pass.
 
-The UI may be developed behind a disabled development flag while those tests run, but it must not be exposed in the hosted product before the gate passes.
+The implementation may be exercised with disposable development fixtures while those tests run, but it must not be approved for general hosted use before the gate passes.
 
 ## Existing contracts that Phase 2D must preserve
 
@@ -191,7 +197,7 @@ The backend accepts optional bounded alt text, but the Phase 2D UI should requir
 Recommended client rules:
 
 - trim surrounding whitespace;
-- require 1–200 characters when an image is selected;
+- require 1–140 characters when an image is selected;
 - describe the visible setup plainly;
 - discourage serial numbers, precise locations, personal names, or other sensitive data; and
 - send `undefined`, not an empty string, if an optional-empty policy is later approved.
@@ -283,7 +289,7 @@ There are two different meanings of “remove,” and the UI must distinguish th
 
 ### After processing
 
-Do not expose an enabled **Remove public image** or **Replace public image** action until a backend lifecycle command exists. Normal clients cannot safely clear guarded snapshot fields or delete processor-owned derivatives.
+Do not expose an enabled **Remove public image** or **Replace public image** action until a backend lifecycle command exists. Normal clients cannot safely clear guarded snapshot fields or delete processor-owned derivatives. The implemented UI disables direct Unpublish and replacement when the snapshot already has a prepared derivative.
 
 A later backend action should:
 
@@ -302,7 +308,7 @@ The current direct client deletion used by **Unpublish** must also move behind b
 
 The exact filenames can change during implementation, but responsibilities should remain separated.
 
-### `PublicPassportPreview.tsx`
+### `PublicPassportPreview.tsx` — implemented
 
 - Continue owning sanitized text snapshot create/update.
 - Render the consent panel only for a signed-in owner and a saved record.
@@ -310,7 +316,7 @@ The exact filenames can change during implementation, but responsibilities shoul
 - Keep `buildPublicPassportSnapshotInput` unchanged.
 - Keep demo and signed-out preview paths text-only.
 
-### Private candidate helper
+### Private candidate helper — implemented
 
 Add an owner-authenticated helper in `privateImageAssetData.ts` or a dedicated private module that:
 
@@ -320,7 +326,7 @@ Add an owner-authenticated helper in `privateImageAssetData.ts` or a dedicated p
 - returns a narrow safe candidate view; and
 - never logs or exposes the private binding data it inspects.
 
-### Consent panel
+### Consent panel — implemented
 
 Add a component such as `PublicPassportImageConsentPanel.tsx` that owns:
 
@@ -333,7 +339,7 @@ Add a component such as `PublicPassportImageConsentPanel.tsx` that owns:
 
 It should receive only the current passport ID, a safe candidate view, the sanitized snapshot ID when available, and callbacks needed to save the text snapshot. Avoid passing `privateCoverPhotoKey` through component layers when the private helper/preview component can encapsulate it.
 
-### Processor client wrapper
+### Processor client wrapper — implemented
 
 Add a narrow wrapper such as `processPublicPassportImageSelection` that accepts only:
 
@@ -363,34 +369,34 @@ The wrapper should set `consentConfirmed: true` internally only after the consen
 
 ## Implementation phases
 
-### Phase 2D.0: release-gate confirmation
+### Phase 2D.0: release-gate confirmation — manual validation pending
 
 - Complete and record Phase 2C hosted success/adversarial tests.
 - Confirm processor IAM, rollback, metadata stripping, and no-public-delivery boundaries.
 - Decide whether Phase 2D remains development-gated until removal/unpublish cleanup exists.
 
-### Phase 2D.1: private candidate presentation
+### Phase 2D.1: private candidate presentation — implemented
 
 - Add the narrow eligible-candidate helper.
 - Add the owner-only card with **Publish without images** default.
 - Add the private source preview and no-candidate/source-changed states.
 - Do not invoke the processor yet.
 
-### Phase 2D.2: consent and accessibility
+### Phase 2D.2: consent and accessibility — implemented
 
 - Add required safety acknowledgements.
 - Add bounded public alt-text validation.
 - Add keyboard, screen-reader, error-summary, mobile, and state-reset behavior.
 - Confirm no sensitive values enter UI telemetry or browser-persisted state.
 
-### Phase 2D.3: gated processor invocation
+### Phase 2D.3: gated processor invocation — implemented
 
 - Add the narrow user-pool mutation wrapper.
 - Sequence text snapshot save before image processing.
 - Add double-submit protection and bounded success/failure messages.
 - Keep public rendering and public Storage delivery disabled.
 
-### Phase 2D.4: lifecycle commands before general release
+### Phase 2D.4: lifecycle commands before general release — not implemented
 
 - Add backend-controlled remove, replace, and unpublish cleanup.
 - Test races between source replacement, visibility changes, processing, removal, and unpublish.
@@ -402,7 +408,7 @@ The wrapper should set `consentConfirmed: true` internally only after the consen
 - Render only backend-ready projected derivatives, never private fallbacks.
 - Add public-image reporting, moderator removal, caching, and signed-out privacy tests.
 
-## Manual acceptance checklist for a future implementation
+## Hosted manual acceptance checklist
 
 ### Default and empty states
 
@@ -449,4 +455,4 @@ The first consent UI slice can use the current `processPublicPassportImage` acti
 
 Backend lifecycle work for removal/replacement/unpublish is intentionally separate and may require new custom actions and a backend redeploy. Public delivery and rendering also require a later Storage/backend change and separate release review.
 
-Phase 2D planning does not change runtime behavior, schema, Storage authorization, or public availability.
+The Phase 2D implementation changes owner-only frontend behavior and documentation. It does not change the schema, Lambda, IAM, Storage authorization, or public availability, so the backend does not require redeployment for this phase. Hosted Amplify must deploy the frontend before the consent UI can be tested there.

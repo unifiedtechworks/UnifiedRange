@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Schema } from "../../amplify/data/resource";
 import { DetailRow } from "@/components/DetailRow";
 import { PageHeader } from "@/components/PageHeader";
+import { PublicPassportImageConsentPanel } from "@/components/PublicPassportImageConsentPanel";
 import { PublicPhotoPlaceholderList, PublicRangeSessionList } from "@/components/PublicPassportSections";
 import { PublicPreviewActions } from "@/components/PublicPreviewActions";
 import { Tag } from "@/components/Tag";
@@ -36,6 +37,7 @@ export function PublicPassportPreview({ passportId }: { passportId?: string }) {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [isPublishing, setIsPublishing] = useState(false);
+  const [hasPreparedPublicImage, setHasPreparedPublicImage] = useState(false);
 
   const loadPreview = useCallback(async () => {
     setError("");
@@ -44,6 +46,7 @@ export function PublicPassportPreview({ passportId }: { passportId?: string }) {
     if (!passportId) {
       setRecord(null);
       setSnapshot(null);
+      setHasPreparedPublicImage(false);
       setError("Missing record ID.");
       setState("missing");
       return;
@@ -54,6 +57,7 @@ export function PublicPassportPreview({ passportId }: { passportId?: string }) {
     if (demoPassport) {
       setRecord(null);
       setSnapshot(null);
+      setHasPreparedPublicImage(false);
       setState("demo");
       return;
     }
@@ -66,6 +70,7 @@ export function PublicPassportPreview({ passportId }: { passportId?: string }) {
     if (authState.status !== "signed-in") {
       setRecord(null);
       setSnapshot(null);
+      setHasPreparedPublicImage(false);
       setError("Sign in to preview and publish saved Equipment Passports.");
       setState("missing");
       return;
@@ -89,7 +94,9 @@ export function PublicPassportPreview({ passportId }: { passportId?: string }) {
 
       if (passportResult.data) {
         setRecord(passportResult.data);
-        setSnapshot(snapshotResult.data[0] ?? null);
+        const loadedSnapshot = snapshotResult.data[0] ?? null;
+        setSnapshot(loadedSnapshot);
+        setHasPreparedPublicImage(Boolean(loadedSnapshot?.publicImageAssetId || loadedSnapshot?.publicImageKey));
         setState("saved");
         return;
       }
@@ -100,6 +107,7 @@ export function PublicPassportPreview({ passportId }: { passportId?: string }) {
 
     setRecord(null);
     setSnapshot(null);
+    setHasPreparedPublicImage(false);
     setState("missing");
   }, [authState, client, passportId]);
 
@@ -116,10 +124,10 @@ export function PublicPassportPreview({ passportId }: { passportId?: string }) {
     };
   }, [loadPreview]);
 
-  async function handlePublish(passport: EquipmentPassport) {
+  async function handlePublish(passport: EquipmentPassport, { forImageProcessing = false }: { forImageProcessing?: boolean } = {}) {
     if (authState.status !== "signed-in") {
       setError("Sign in to publish a public snapshot.");
-      return;
+      return null;
     }
 
     setError("");
@@ -144,10 +152,12 @@ export function PublicPassportPreview({ passportId }: { passportId?: string }) {
       }
 
       setSnapshot(result.data);
-      setMessage(snapshot ? "Public snapshot updated." : "Public snapshot published.");
+      setMessage(forImageProcessing ? "Sanitized text/setup snapshot saved before image processing." : snapshot ? "Public snapshot updated." : "Public snapshot published.");
+      return result.data.id;
     } catch (publishError) {
       console.error("Unable to publish sanitized public passport snapshot", publishError);
       setError("The public snapshot could not be published. Check the saved passport fields and try again.");
+      return null;
     } finally {
       setIsPublishing(false);
     }
@@ -155,6 +165,11 @@ export function PublicPassportPreview({ passportId }: { passportId?: string }) {
 
   async function handleUnpublish() {
     if (!snapshot) {
+      return;
+    }
+
+    if (hasPreparedPublicImage) {
+      setError("This snapshot has a prepared image derivative. Safe image cleanup and unpublishing are not available yet.");
       return;
     }
 
@@ -236,7 +251,10 @@ export function PublicPassportPreview({ passportId }: { passportId?: string }) {
       error={error}
       message={message}
       isPublishing={isPublishing}
+      hasPreparedPublicImage={hasPreparedPublicImage}
       onPublish={() => void handlePublish(passport)}
+      onPrepareImageSnapshot={() => handlePublish(passport, { forImageProcessing: true })}
+      onImageProcessed={() => setHasPreparedPublicImage(true)}
       onUnpublish={snapshot ? () => void handleUnpublish() : undefined}
     />
   );
@@ -250,7 +268,10 @@ function PublicPreviewContent({
   error,
   message,
   isPublishing,
+  hasPreparedPublicImage,
   onPublish,
+  onPrepareImageSnapshot,
+  onImageProcessed,
   onUnpublish
 }: {
   passport: EquipmentPassport;
@@ -260,7 +281,10 @@ function PublicPreviewContent({
   error?: string;
   message?: string;
   isPublishing?: boolean;
+  hasPreparedPublicImage?: boolean;
   onPublish?: () => void;
+  onPrepareImageSnapshot?: () => Promise<string | null>;
+  onImageProcessed?: () => void;
   onUnpublish?: () => void;
 }) {
   return (
@@ -279,7 +303,7 @@ function PublicPreviewContent({
       <div className="mb-6 rounded-md border border-clay/25 bg-clay/10 p-4">
         <h3 className="text-base font-bold text-ink">Public Sharing Warning</h3>
         <p className="mt-2 text-sm leading-6 text-ink/70">
-          Publishing creates a sanitized copy. Private passport data remains private, and private images are not published in this version. Do not share serial numbers, exact locations, purchase records, private notes, image metadata, or sensitive personal information.
+          Publishing creates a sanitized copy. Private passport data and original images remain private. An owner may explicitly prepare one verified equipment-cover derivative, but public image rendering is not enabled yet. Do not share serial numbers, exact locations, purchase records, private notes, image metadata, or sensitive personal information.
         </p>
       </div>
 
@@ -295,7 +319,7 @@ function PublicPreviewContent({
             <DetailRow label="Optic / sight" value={passport.opticSightSummary} />
             <DetailRow label="Projectile / ammo" value={passport.projectileAmmoSummary} />
             <DetailRow label="Private notes" value={passport.privateNotes ? "Private notes exist and will be hidden" : "Not recorded"} />
-            <DetailRow label="Private setup photo" value={passport.privateCoverPhotoKey ? "Private image exists and will not be published" : "Not uploaded"} />
+            <DetailRow label="Private setup photo" value={passport.privateCoverPhotoKey ? "Private original exists; an optional processed derivative requires separate consent" : "Not uploaded"} />
             <DetailRow label="Maintenance notes" value={passport.maintenanceNotes ? "Private maintenance notes exist and will be hidden" : "Not recorded"} />
           </dl>
         </article>
@@ -355,11 +379,22 @@ function PublicPreviewContent({
       <section className="mt-6 rounded-md border border-ink/10 bg-white p-5 shadow-soft">
         <h3 className="text-xl font-bold text-ink">{source === "saved" ? "Publish controls" : "Sample publish controls"}</h3>
         <p className="mt-2 text-sm leading-6 text-ink/65">
-          {source === "saved" ? "Publish or update the sanitized text/setup snapshot in Discover. Private images remain private." : "These buttons only show local confirmation messages. No backend write occurs."}
+          {source === "saved" ? "Publish or update the sanitized text/setup snapshot in Discover. Private originals remain private, and public pages still render no images." : "These buttons only show local confirmation messages. No backend write occurs."}
         </p>
         {source === "saved" ? (
           <div className="mt-4">
-            <div className="flex flex-col gap-3 sm:flex-row">
+            {onPrepareImageSnapshot ? (
+              <PublicPassportImageConsentPanel
+                passportId={passport.id}
+                passportOwnerId={passport.ownerId}
+                privateCoverPhotoKey={passport.privateCoverPhotoKey}
+                hasPreparedPublicImage={hasPreparedPublicImage}
+                isSnapshotSaving={isPublishing}
+                onPrepareSnapshot={onPrepareImageSnapshot}
+                onProcessed={onImageProcessed}
+              />
+            ) : null}
+            <div className="mt-5 flex flex-col gap-3 sm:flex-row">
               <button type="button" onClick={onPublish} disabled={isPublishing} className="inline-flex justify-center rounded-md bg-ink px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60">
                 {isPublishing ? "Saving..." : existingSnapshotId ? "Update public snapshot" : "Publish public snapshot"}
               </button>
@@ -368,12 +403,19 @@ function PublicPreviewContent({
                   <Link href={`/discover/passports/${existingSnapshotId}`} className="inline-flex justify-center rounded-md border border-ink/15 bg-white px-4 py-2 text-sm font-semibold text-ink">
                     View in Discover
                   </Link>
-                  <button type="button" onClick={onUnpublish} disabled={isPublishing} className="inline-flex justify-center rounded-md border border-clay/30 bg-white px-4 py-2 text-sm font-semibold text-clay disabled:cursor-not-allowed disabled:opacity-60">
+                  <button
+                    type="button"
+                    onClick={onUnpublish}
+                    disabled={isPublishing || hasPreparedPublicImage}
+                    title={hasPreparedPublicImage ? "Safe processed-image cleanup is required before unpublishing." : undefined}
+                    className="inline-flex justify-center rounded-md border border-clay/30 bg-white px-4 py-2 text-sm font-semibold text-clay disabled:cursor-not-allowed disabled:opacity-60"
+                  >
                     Unpublish
                   </button>
                 </>
               ) : null}
             </div>
+            {hasPreparedPublicImage ? <p className="mt-3 text-xs leading-5 text-ink/55">Unpublish is disabled for snapshots with a prepared derivative until backend cleanup is implemented. Public image rendering remains disabled.</p> : null}
             {error ? <p className="mt-3 rounded-md border border-clay/30 bg-clay/10 px-4 py-3 text-sm font-semibold text-clay">{error}</p> : null}
             {message ? <p className="mt-3 rounded-md border border-moss/25 bg-field px-4 py-3 text-sm font-semibold text-moss">{message}</p> : null}
           </div>

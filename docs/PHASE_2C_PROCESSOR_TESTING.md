@@ -101,4 +101,4 @@ Use separate disposable fixtures to exercise `candidate_not_verified`, `unsuppor
 
 ## Next phase
 
-Phase 2D may add an owner-facing safety checklist, image selection, explicit consent, alt text, and **Publish without images** default only after the positive, negative, concurrency, metadata-removal, IAM, rollback, and hosted tests in this document pass. The current processor records confirmation and time, not a consent-policy version. Phase 2D must not enable public delivery/rendering until its separate release gates are complete.
+Phase 2D now adds the owner-facing safety checklist, current verified Equipment Passport cover selection, explicit consent, bounded alt text, and **Publish without images** default. Use the developer harness in this document to complete the positive, negative, concurrency, metadata-removal, IAM, rollback, and hosted processor tests before approving the consent UI release. The current processor records confirmation and time, not a consent-policy version. Phase 2D does not enable public delivery/rendering.

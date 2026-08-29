@@ -1,8 +1,8 @@
 # UnifiedRange Manual QA Checklist
 
-Last updated: August 9, 2026
+Last updated: August 18, 2026
 
-Use this checklist for a complete hosted-development release review. It starts from the current MVP, including Phase 2A owner-only `PrivateImageAsset` candidate registration, Phase 2B trusted private source verification, and the Phase 2C backend-only derivative foundation. It does not assume that public image publishing UI/delivery, account deletion/export, username sign-in, notifications, or destructive moderation actions exist.
+Use this checklist for a complete hosted-development release review. It starts from the current MVP, including Phase 2A owner-only `PrivateImageAsset` candidate registration, Phase 2B trusted private source verification, the Phase 2C derivative processor, and the Phase 2D owner-only equipment-cover consent UI. It does not assume that public image delivery/rendering, account deletion/export, username sign-in, notifications, or destructive moderation actions exist.
 
 ## Test session record
 
@@ -415,7 +415,7 @@ User B, a second standard account, Visitor, and optionally Backend inspector.
 - [ ] Confirm the derivative decodes, is no larger than 1600 pixels on its long edge or 2 MB, and contains no EXIF/GPS, ICC/application metadata, Photoshop/application metadata, JPEG comments, original filename, private key, or owner identifier.
 - [ ] Exercise private-account, wrong-owner, unverified, target-photo, WebP, missing-object, source-mismatch, malformed, animated PNG, oversized-byte, and oversized-pixel fixtures; confirm bounded failure codes and no snapshot projection/object creation. Use isolated synthetic fixtures only.
 - [ ] Exercise two controlled concurrent requests against the same prior projection. Confirm only the valid state transition wins, stale failure bookkeeping does not overwrite a newer attempt, and an unsuccessful newly written object is rolled back.
-- [ ] Confirm the normal app has no control or network request that invokes `processPublicPassportImage`.
+- [ ] Confirm only the signed-in saved Equipment Passport Public Preview exposes the explicit Phase 2D consent control; ordinary text publishing, private upload, verification, demo, signed-out, target-photo, and public routes never invoke `processPublicPassportImage`.
 
 ### Expected results
 
@@ -426,13 +426,13 @@ User B, a second standard account, Visitor, and optionally Backend inspector.
 - [ ] A registration failure, if deliberately simulated in a sandbox, leaves the saved image private and shows that registration is pending; it does not publish anything.
 - [ ] Other owners, moderators acting only through their group role, API-key clients, and visitors cannot read private registry rows.
 - [ ] Verification does not download image bytes to the UI, copy the object, create a public workflow record, or populate a public snapshot image field.
-- [ ] A valid direct Phase 2C backend test may create a derivative and guarded projection, but the object remains processor-only and no app/public page can resolve or render it.
+- [ ] A valid Phase 2C harness or Phase 2D owner-consent action may create a derivative and guarded projection, but the object remains processor-only and no public page can resolve or render it.
 
 ### Privacy and safety checks
 
 - [ ] UI copy distinguishes verified private source binding from public eligibility and never claims that verification publishes or sanitizes the image.
 - [ ] Private keys, signed URLs, original filenames, Identity Pool IDs, and image contents are not displayed on public pages or copied into public records.
-- [ ] The processor-only derivative prefix, copy, and metadata-free re-encode exist only behind the Phase 2C backend action. No client selection control, public delivery/read authorization, public URL, or rendering exists.
+- [ ] The owner-only Phase 2D control calls the Phase 2C backend action with only opaque snapshot/candidate IDs, bounded alt text, and required consent. No public delivery/read authorization, public URL, direct client Storage write, or rendering exists.
 - [ ] Target photos are never automatically selected or published.
 
 ## 13. Public Passport publishing and unpublishing
@@ -445,25 +445,37 @@ User B and Visitor.
 
 - [ ] Open a saved passport at `/passports/[passportId]/public-preview`.
 - [ ] Confirm the preview distinguishes included public-safe fields from excluded private fields.
-- [ ] Confirm an existing private setup photo is described as private and not included.
-- [ ] Publish the sanitized snapshot.
+- [ ] Confirm an existing private setup photo is described as a private original and is not included in the normal snapshot payload.
+- [ ] Confirm **Publish without images** is selected by default and publish the sanitized snapshot.
+- [ ] With no current verified equipment cover, confirm the owner sees “No verified equipment image is available for public publishing yet” and can continue with text-only publishing.
+- [ ] Upload and verify a disposable JPEG or PNG Equipment Passport cover under 6 MB, return to Public Preview, and confirm one current verified candidate becomes available.
+- [ ] Confirm unverified, failed, missing, stale/replaced, WebP, demo/sample, mismatched-source, other-owner, and `range_session_target` candidates are not offered.
+- [ ] Select the verified equipment image and confirm its owner-only private source preview loads. Confirm no raw private key, storage identity, filename, owner ID, source ID, candidate ID, or signed URL text is displayed.
+- [ ] Confirm the process action remains disabled until the source preview loads and every safety acknowledgement is checked.
+- [ ] Confirm the checklist covers serial numbers, exact locations, license plates, bystander faces, private documents, sensitive personal information, and later public availability.
+- [ ] Enter alt text and confirm whitespace is normalized; blank text, more than 140 characters, URLs, and recognizable private/public storage paths show friendly validation.
+- [ ] Select **Save snapshot and prepare image** and inspect the request. Confirm snapshot create/update still omits every image field and the processor variables contain only `publicPassportSnapshotId`, `privateImageAssetId`, bounded `altText`, and `consentConfirmed: true`.
+- [ ] Confirm processing, ready, bounded failure, and source-changed states never display raw GraphQL/Lambda/S3 errors or identifiers.
+- [ ] On a forced processor failure after snapshot save, confirm the UI accurately says the text/setup snapshot is saved without an image and does not automatically retry or unpublish.
+- [ ] On success, confirm the UI says a public-safe derivative is prepared and public image rendering is not enabled.
 - [ ] Open the resulting Discover detail route signed in and signed out.
 - [ ] Edit safe source fields, return to Public Preview, update the snapshot, and confirm the public page changes only after the explicit update.
-- [ ] Inspect the normal Public Preview request and confirm it omits all image projection fields. They remain empty unless the optional direct Phase 2C integration fixture has deliberately populated the backend-managed fields.
-- [ ] Unpublish the snapshot and confirm it disappears from Discover, its prior public detail route becomes unavailable, and the private Equipment Passport remains intact.
+- [ ] Inspect normal Public Preview create/update requests and confirm they omit all image projection fields. Only the backend processor may populate the guarded projection.
+- [ ] With a snapshot that has no prepared derivative, unpublish it and confirm it disappears from Discover, its prior public detail route becomes unavailable, and the private Equipment Passport remains intact.
+- [ ] With a snapshot that has a prepared derivative, confirm direct Unpublish and replacement are disabled until backend lifecycle cleanup exists.
 - [ ] Republish only if needed for later checklist sections.
 
 ### Expected results
 
 - [ ] Publishing creates a sanitized text/setup snapshot, not a live read of the private passport.
-- [ ] Updating and unpublishing behave consistently after refresh and in a signed-out session.
+- [ ] Updating and unpublishing a text-only snapshot behave consistently after refresh and in a signed-out session.
 - [ ] Unpublishing does not delete or modify the private source record or private image.
-- [ ] No public image controls or rendering appear.
+- [ ] The image consent control is owner-only. No public image rendering appears anywhere.
 
 ### Privacy and safety checks
 
 - [ ] Public snapshots exclude private notes, private image keys/URLs, target photos, image metadata, lot numbers, purchase details, exact locations, maintenance/readiness data, and private profile fields.
-- [ ] Normal Public Preview publishing never treats `PrivateImageAsset` candidates as eligible images or invokes the processor.
+- [ ] Normal **Publish without images** never invokes the processor; only the separate, fully confirmed owner action may use the current verified `equipment_cover` candidate.
 - [ ] Public setup content remains documentation-only and provides no aiming or adjustment guidance.
 
 ## 14. Public profiles
