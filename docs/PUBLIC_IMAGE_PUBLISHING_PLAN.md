@@ -240,11 +240,19 @@ No destructive moderation action is part of the current app. The image release m
 - Block account-private publishing server-side and communicate the reason clearly.
 - Complete processor success/failure, concurrency, rollback, metadata-removal, IAM-boundary, and hosted consent-UI tests before release approval.
 
-### Phase 4: public display and moderation
+### Phase 2E: public detail rendering and delivery
 
-- Render only ready public derivatives in Discover, public passport pages, and eligible public profiles.
+- Follow the delivery, rendering, lifecycle, privacy, and rollout contract in [PUBLIC_IMAGE_PHASE_2E_RENDERING_PLAN.md](PUBLIC_IMAGE_PHASE_2E_RENDERING_PLAN.md).
+- Add a snapshot-ID-only backend resolver that revalidates current snapshot, ready asset, source eligibility, account visibility, and derivative existence before issuing a short-lived URL.
+- Render only ready public derivatives on saved Public Passport detail pages first, with no private fallback.
+- Keep Discover cards and public profile cards image-free until the detail-only release is proven.
+- Implement backend-controlled removal, derivative-aware unpublish, and visibility revocation before enabling delivery.
+
+### Later public image moderation and surface expansion
+
 - Add public-image reports and an audited moderator removal action that preserves the private original.
 - Test unpublish, replacement, account-visibility changes, account lifecycle behavior, cache invalidation, and orphan cleanup.
+- Consider Discover/public profile rendering only after detail delivery, lifecycle, accessibility, and moderation tests pass.
 
 ### Phase 5: release gates
 

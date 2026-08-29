@@ -480,6 +480,25 @@ User B and Visitor.
 - [ ] Normal **Publish without images** never invokes the processor; only the separate, fully confirmed owner action may use the current verified `equipment_cover` candidate.
 - [ ] Public setup content remains documentation-only and provides no aiming or adjustment guidance.
 
+### Future Phase 2E public-detail rendering cases — not runnable yet
+
+Run these only after the Phase 2E backend delivery resolver, lifecycle commands, and detail-only image component are implemented and deployed:
+
+- [ ] Use a public account with one published text snapshot and no prepared derivative. Confirm the saved public detail page remains text-only with a neutral missing-image state.
+- [ ] Process one current verified JPEG/PNG `equipment_cover`, then open `/discover/passports/[publicPassportId]` signed in and signed out. Confirm only the processed derivative appears.
+- [ ] Confirm the browser requests the delivery resolver with only `publicPassportSnapshotId` and receives only availability, a short-lived processed-derivative URL, safe alt text, and expiry.
+- [ ] Confirm the detail route never requests `private/equipment/`, `private/targets/`, `privateCoverPhotoKey`, a private signed URL, or a private image registry record.
+- [ ] Confirm Discover cards and `/u/[username]` setup cards still render no images in the first Phase 2E slice.
+- [ ] Confirm sample/demo Public Passport details and every Range Session target-photo surface remain image-free.
+- [ ] Remove the public image through the future owner lifecycle action. Confirm the detail page immediately returns to text-only, the private original remains available to its owner, and an earlier short-lived URL expires within the approved revocation window.
+- [ ] Unpublish a snapshot with a processed derivative through the future backend action. Confirm the public route and new image delivery both become unavailable before derivative cleanup completes.
+- [ ] Change the account to private. Confirm no new delivery URL is issued and the image/public content follows the account-visibility policy without a private fallback.
+- [ ] Delete or make a disposable derivative unavailable in an isolated environment. Confirm the public detail page hides the image without displaying an S3 key, URL, object error, asset status, or technical failure.
+- [ ] Simulate a future moderation-hidden state. Confirm the resolver returns unavailable, the derivative disappears, report status remains independent, and the private original is untouched.
+- [ ] Verify safe alt text with keyboard and screen-reader testing. Missing, blank, unsafe, URL-like, path-like, or oversized alt text must cause no image to render.
+- [ ] Throttle the resolver and change routes between two public snapshots. Confirm a stale response never renders the prior snapshot's image.
+- [ ] Inspect page source, DOM text, GraphQL variables/responses, Storage requests, console, analytics, and accessible logs. Confirm no private key, private URL, owner/source ID, original filename, EXIF/GPS, image bytes, token, or target photo is exposed.
+
 ## 14. Public profiles
 
 ### Account type
@@ -683,7 +702,7 @@ Visitor, User B, Conflict account if available, and Moderator.
 - [ ] Confirm sign-out produces no unhandled auth errors and clears private data after refresh.
 - [ ] Review GraphQL variables/responses and storage requests for fields that should not cross the current route boundary.
 - [ ] Review console messages and any accessible backend logs for secrets or private-data leakage.
-- [ ] Confirm no frontend request attempts a public S3 write, public image copy/processing action, or image projection update. The owner-only Phase 2B verification mutation is expected; Phase 2C is exercised only through an explicit backend integration harness.
+- [ ] Confirm no frontend request attempts a public S3 write or direct image projection update. The owner-only Phase 2B verification mutation and the explicitly confirmed Phase 2D processor invocation are expected only on their private owner surfaces; public routes must invoke neither.
 
 ### Expected results
 
@@ -705,4 +724,4 @@ Visitor, User B, Conflict account if available, and Moderator.
 - [ ] Re-run Sections 12, 13, 14, 17, and 19 after any data authorization, storage, public snapshot, or moderation change.
 - [ ] Re-run Sections 1, 18, and 20 after any framework, navigation, layout, or deployment change.
 - [ ] Do not approve a hosted release if another owner or signed-out/API-key client can access private records, private images, `PrivateImageAsset`, or private keys.
-- [ ] Do not approve public image publishing based on the Phase 2C backend foundation. Explicit safety/selection consent UI, public delivery/read authorization, rendering, removal/unpublish lifecycle, superseded/orphan cleanup, image reporting/moderation, accessibility, and hosted adversarial tests are still required.
+- [ ] Do not approve public image rendering based on the Phase 2C/2D processing and consent foundation. Public delivery authorization, derivative-aware removal/unpublish, visibility revocation, superseded/orphan cleanup, public-detail rendering, image reporting/moderation, accessibility, caching, and hosted adversarial tests are still required.

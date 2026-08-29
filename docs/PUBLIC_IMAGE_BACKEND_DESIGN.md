@@ -164,7 +164,7 @@ The backend design contains or still needs:
 
 1. `processPublicPassportImage` Lambda for explicit owner-requested processing. **Implemented as the backend-only Phase 2C foundation.**
 2. `removePublicPassportImage` Lambda action, or a removal command handled by the same function. **Not implemented.**
-3. An authenticated AppSync custom action that invokes the processor. **Implemented, but no client calls it.**
+3. An authenticated AppSync custom action that invokes the processor. **Implemented and called only by the owner-facing Phase 2D consent flow.**
 4. A non-public `PublicImageAsset` workflow ledger. **Implemented.**
 5. Server-managed projection fields on `PublicPassportSnapshot`. **Implemented and guarded from normal client writes.**
 6. Least-privilege access from the function to the specific data models and S3 prefixes. **Implemented for Phase 2C; hosted policy and cross-account testing remain release gates.**
@@ -640,10 +640,17 @@ Alarms should cover sustained processing failures, metadata-verification failure
 - [ ] Route derivative-aware unpublish through backend cleanup instead of direct snapshot deletion.
 - [ ] Do not approve the hosted UI release until the Phase 2C positive, negative, concurrency, metadata-removal, IAM, rollback, and hosted tests pass.
 
-### Phase 4: public rendering and moderation
+### Phase 2E: public rendering and delivery
 
-- [ ] Enable narrowly scoped public derivative delivery only after processing tests pass.
-- [ ] Render approved projection fields in public details/Discover with no private fallback.
+- Detailed design: [PUBLIC_IMAGE_PHASE_2E_RENDERING_PLAN.md](PUBLIC_IMAGE_PHASE_2E_RENDERING_PLAN.md)
+
+- [ ] Implement derivative-aware remove/unpublish and visibility revocation before public delivery.
+- [ ] Add a snapshot-ID-only backend resolver that returns a short-lived ready-derivative URL and safe alt text.
+- [ ] Render the first approved derivative on Public Passport detail only, with no private fallback.
+- [ ] Keep Discover and public profile cards image-free until the detail-only release is proven.
+
+### Later public image moderation and expansion
+
 - [ ] Add `public_image` reports against stable public asset IDs.
 - [ ] Add audited admin/moderator hide/remove action that preserves private originals.
 - [ ] Test caches and signed-out visibility after remove/unpublish.
