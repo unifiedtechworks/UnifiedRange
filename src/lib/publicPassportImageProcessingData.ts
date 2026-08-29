@@ -7,8 +7,8 @@ export const publicImageAltTextMaxLength = 140;
 
 const persistentIdPattern = /^[a-z0-9][a-z0-9_-]{0,127}$/i;
 const nonPersistentIdPattern = /^(?:(?:demo|sample)(?:[-_]|$)|(?:passport|session|target-photo)-\d+$)/i;
-const urlPattern = /(?:https?:\/\/|s3:\/\/|www\.)/i;
-const storagePathPattern = /(?:^|\s)(?:private\/(?:equipment|targets)|public\/passports)\//i;
+const urlPattern = /(?:\b[a-z][a-z0-9+.-]*:\/\/|\bwww\.|\b(?:data|blob):)/i;
+const storagePathPattern = /\b(?:private[\\/](?:equipment|targets)|public[\\/]passports)[\\/]/i;
 
 const processingFailureCodes = [
   "unauthorized",

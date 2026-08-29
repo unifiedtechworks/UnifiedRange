@@ -1,6 +1,6 @@
 # UnifiedRange Manual QA Checklist
 
-Last updated: August 18, 2026
+Last updated: August 29, 2026
 
 Use this checklist for a complete hosted-development release review. It starts from the current MVP, including Phase 2A owner-only `PrivateImageAsset` candidate registration, Phase 2B trusted private source verification, the Phase 2C derivative processor, and the Phase 2D owner-only equipment-cover consent UI. It does not assume that public image delivery/rendering, account deletion/export, username sign-in, notifications, or destructive moderation actions exist.
 
@@ -453,8 +453,10 @@ User B and Visitor.
 - [ ] Select the verified equipment image and confirm its owner-only private source preview loads. Confirm no raw private key, storage identity, filename, owner ID, source ID, candidate ID, or signed URL text is displayed.
 - [ ] Confirm the process action remains disabled until the source preview loads and every safety acknowledgement is checked.
 - [ ] Confirm the checklist covers serial numbers, exact locations, license plates, bystander faces, private documents, sensitive personal information, and later public availability.
-- [ ] Enter alt text and confirm whitespace is normalized; blank text, more than 140 characters, URLs, and recognizable private/public storage paths show friendly validation.
+- [ ] Enter alt text and confirm whitespace is normalized; blank text, more than 140 characters, HTTP/S3/other URI schemes, and recognizable slash or backslash private/public storage paths show friendly validation.
 - [ ] Select **Save snapshot and prepare image** and inspect the request. Confirm snapshot create/update still omits every image field and the processor variables contain only `publicPassportSnapshotId`, `privateImageAssetId`, bounded `altText`, and `consentConfirmed: true`.
+- [ ] Rapidly activate the image action more than once and attempt a normal publish/unpublish action while it is saving. Confirm only one snapshot mutation and one processor request run.
+- [ ] With network throttling enabled, start candidate/Public Preview loading and then sign out, change accounts, change routes, or replace the private cover. Confirm an older response never repopulates private record or candidate state.
 - [ ] Confirm processing, ready, bounded failure, and source-changed states never display raw GraphQL/Lambda/S3 errors or identifiers.
 - [ ] On a forced processor failure after snapshot save, confirm the UI accurately says the text/setup snapshot is saved without an image and does not automatically retry or unpublish.
 - [ ] On success, confirm the UI says a public-safe derivative is prepared and public image rendering is not enabled.

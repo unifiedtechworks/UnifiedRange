@@ -2,7 +2,7 @@
 
 import { generateClient } from "aws-amplify/data";
 import Link from "next/link";
-import { useCallback, useEffect, useId, useMemo, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import type { Schema } from "../../amplify/data/resource";
 import { useAuthUser } from "@/hooks/useAuthUser";
 import { configureAmplifyClient } from "@/lib/amplifyClient";
@@ -76,6 +76,8 @@ export function PublicPassportImageConsentPanel({
   const [formError, setFormError] = useState("");
   const [processingState, setProcessingState] = useState<ProcessingState>("idle");
   const [processingMessage, setProcessingMessage] = useState("");
+  const candidateRequestIdRef = useRef(0);
+  const processingRequestInFlightRef = useRef(false);
 
   const resetConsent = useCallback(() => {
     setSafetyConfirmations(emptySafetyConfirmations());
@@ -87,6 +89,8 @@ export function PublicPassportImageConsentPanel({
   }, []);
 
   const loadCandidate = useCallback(async () => {
+    const requestId = candidateRequestIdRef.current + 1;
+    candidateRequestIdRef.current = requestId;
     setCandidate(null);
     setCandidateState("loading");
     setChoice("without_image");
@@ -111,9 +115,17 @@ export function PublicPassportImageConsentPanel({
         currentStorageKey: privateCoverPhotoKey
       });
 
+      if (candidateRequestIdRef.current !== requestId) {
+        return;
+      }
+
       setCandidateState(lookup.status);
       setCandidate(lookup.status === "available" ? lookup.candidate : null);
     } catch {
+      if (candidateRequestIdRef.current !== requestId) {
+        return;
+      }
+
       setCandidateState("error");
       setCandidate(null);
     }
@@ -126,6 +138,7 @@ export function PublicPassportImageConsentPanel({
 
     return () => {
       window.clearTimeout(loadInitialCandidate);
+      candidateRequestIdRef.current += 1;
     };
   }, [loadCandidate]);
 
@@ -176,6 +189,10 @@ export function PublicPassportImageConsentPanel({
   }
 
   async function handleProcessImage() {
+    if (processingRequestInFlightRef.current) {
+      return;
+    }
+
     setFormError("");
     setProcessingMessage("");
 
@@ -207,41 +224,49 @@ export function PublicPassportImageConsentPanel({
     }
 
     setAltText(normalizedAltText.value);
+    processingRequestInFlightRef.current = true;
     setProcessingState("processing");
 
-    const publicPassportSnapshotId = await onPrepareSnapshot();
+    try {
+      const publicPassportSnapshotId = await onPrepareSnapshot();
 
-    if (!publicPassportSnapshotId) {
+      if (!publicPassportSnapshotId) {
+        setProcessingState("failed");
+        setProcessingMessage("The sanitized text/setup snapshot could not be saved, so the image was not processed.");
+        return;
+      }
+
+      const result = await processPublicPassportImageSelection(client, {
+        publicPassportSnapshotId,
+        privateImageAssetId: candidate.id,
+        altText: normalizedAltText.value
+      });
+
+      if (result.status === "ready") {
+        setProcessingState("ready");
+        setProcessingMessage("The public-safe derivative is prepared. Public image rendering is not enabled yet.");
+        onProcessed?.();
+        return;
+      }
+
+      const sourceChanged = ["candidate_not_verified", "source_not_found", "source_mismatch", "invalid_storage_key", "metadata_mismatch", "object_not_found"].includes(
+        result.failureCode
+      );
       setProcessingState("failed");
-      setProcessingMessage("The sanitized text/setup snapshot could not be saved, so the image was not processed.");
-      return;
-    }
+      setProcessingMessage(
+        `Your text/setup snapshot is saved without a public image. ${getPublicImageProcessingFailureMessage(result.failureCode)}`
+      );
 
-    const result = await processPublicPassportImageSelection(client, {
-      publicPassportSnapshotId,
-      privateImageAssetId: candidate.id,
-      altText: normalizedAltText.value
-    });
-
-    if (result.status === "ready") {
-      setProcessingState("ready");
-      setProcessingMessage("The public-safe derivative is prepared. Public image rendering is not enabled yet.");
-      onProcessed?.();
-      return;
-    }
-
-    const sourceChanged = ["candidate_not_verified", "source_not_found", "source_mismatch", "invalid_storage_key", "metadata_mismatch", "object_not_found"].includes(
-      result.failureCode
-    );
-    setProcessingState("failed");
-    setProcessingMessage(
-      `Your text/setup snapshot is saved without a public image. ${getPublicImageProcessingFailureMessage(result.failureCode)}`
-    );
-
-    if (sourceChanged) {
-      setCandidate(null);
-      setCandidateState("source_changed");
-      setChoice("without_image");
+      if (sourceChanged) {
+        setCandidate(null);
+        setCandidateState("source_changed");
+        setChoice("without_image");
+      }
+    } catch {
+      setProcessingState("failed");
+      setProcessingMessage("The public-safe image could not be completed. Your private original was not changed. Try again later.");
+    } finally {
+      processingRequestInFlightRef.current = false;
     }
   }
 

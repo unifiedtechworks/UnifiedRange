@@ -2,7 +2,7 @@
 
 import { generateClient } from "aws-amplify/data";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Schema } from "../../amplify/data/resource";
 import { DetailRow } from "@/components/DetailRow";
 import { PageHeader } from "@/components/PageHeader";
@@ -38,8 +38,12 @@ export function PublicPassportPreview({ passportId }: { passportId?: string }) {
   const [message, setMessage] = useState("");
   const [isPublishing, setIsPublishing] = useState(false);
   const [hasPreparedPublicImage, setHasPreparedPublicImage] = useState(false);
+  const previewRequestIdRef = useRef(0);
+  const snapshotMutationInFlightRef = useRef(false);
 
   const loadPreview = useCallback(async () => {
+    const requestId = previewRequestIdRef.current + 1;
+    previewRequestIdRef.current = requestId;
     setError("");
     setMessage("");
 
@@ -87,6 +91,10 @@ export function PublicPassportPreview({ passportId }: { passportId?: string }) {
         })
       ]);
 
+      if (previewRequestIdRef.current !== requestId) {
+        return;
+      }
+
       const errors = [...(passportResult.errors ?? []), ...(snapshotResult.errors ?? [])];
       if (errors.length) {
         throw new Error(errors.map((item) => item.message).join(" "));
@@ -101,8 +109,16 @@ export function PublicPassportPreview({ passportId }: { passportId?: string }) {
         return;
       }
     } catch (loadError) {
+      if (previewRequestIdRef.current !== requestId) {
+        return;
+      }
+
       console.error("Unable to load public preview", loadError);
       setError("This saved passport could not be loaded for public preview.");
+    }
+
+    if (previewRequestIdRef.current !== requestId) {
+      return;
     }
 
     setRecord(null);
@@ -121,10 +137,15 @@ export function PublicPassportPreview({ passportId }: { passportId?: string }) {
     return () => {
       window.clearTimeout(loadInitialState);
       window.removeEventListener("unifiedrange-auth-change", loadPreview);
+      previewRequestIdRef.current += 1;
     };
   }, [loadPreview]);
 
   async function handlePublish(passport: EquipmentPassport, { forImageProcessing = false }: { forImageProcessing?: boolean } = {}) {
+    if (snapshotMutationInFlightRef.current) {
+      return null;
+    }
+
     if (authState.status !== "signed-in") {
       setError("Sign in to publish a public snapshot.");
       return null;
@@ -132,6 +153,7 @@ export function PublicPassportPreview({ passportId }: { passportId?: string }) {
 
     setError("");
     setMessage("");
+    snapshotMutationInFlightRef.current = true;
     setIsPublishing(true);
 
     try {
@@ -159,12 +181,13 @@ export function PublicPassportPreview({ passportId }: { passportId?: string }) {
       setError("The public snapshot could not be published. Check the saved passport fields and try again.");
       return null;
     } finally {
+      snapshotMutationInFlightRef.current = false;
       setIsPublishing(false);
     }
   }
 
   async function handleUnpublish() {
-    if (!snapshot) {
+    if (!snapshot || snapshotMutationInFlightRef.current) {
       return;
     }
 
@@ -180,6 +203,7 @@ export function PublicPassportPreview({ passportId }: { passportId?: string }) {
 
     setError("");
     setMessage("");
+    snapshotMutationInFlightRef.current = true;
     setIsPublishing(true);
 
     try {
@@ -195,6 +219,7 @@ export function PublicPassportPreview({ passportId }: { passportId?: string }) {
       console.error("Unable to unpublish public passport snapshot", unpublishError);
       setError(getAuthErrorMessage(unpublishError));
     } finally {
+      snapshotMutationInFlightRef.current = false;
       setIsPublishing(false);
     }
   }

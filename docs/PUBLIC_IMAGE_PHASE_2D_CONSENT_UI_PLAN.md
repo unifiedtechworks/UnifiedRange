@@ -6,6 +6,8 @@ Phase 2D owner consent UI was implemented on August 18, 2026 without a schema or
 
 Public delivery and rendering remain disabled. Target photos, automatic processing, direct public Storage writes, replacement, removal, and derivative-aware backend unpublish cleanup remain unavailable.
 
+The August 29, 2026 hardening pass added request-generation checks so stale Public Preview or candidate responses cannot win after an auth/route/source change, synchronous in-flight locks for snapshot and processor mutations, and broader rejection of URI schemes and slash/backslash private/public storage-path forms in alt text. It did not change schema, backend logic, Storage access, or public rendering.
+
 ## Purpose and current boundary
 
 Phase 2D adds an owner-only consent experience for selecting one verified Equipment Passport cover image in Public Preview. It does not make derivatives publicly deliverable and does not render images in Discover, public profiles, or public passport pages.
@@ -366,6 +368,9 @@ The wrapper should set `consentConfirmed: true` internally only after the consen
 - The private preview requires private-safe descriptive text; its temporary URL must not be copied into alt text automatically.
 - Long alt text and messages must wrap on mobile without horizontal scrolling.
 - No consent checkbox may be prechecked, inferred from earlier text publication, or persisted across source changes.
+- Older Public Preview and candidate requests must be ignored after auth, route, owner, or private-source dependencies change.
+- Snapshot publish/unpublish and processor actions must use synchronous in-flight guards in addition to disabled button state so rapid repeated input cannot create concurrent mutations.
+- Alt text must reject URI schemes and recognizable private/public storage paths using either slash style; none may be forwarded to the processor.
 
 ## Implementation phases
 
@@ -423,6 +428,7 @@ The wrapper should set `consentConfirmed: true` internally only after the consen
 - Older cover candidates are not offered after replacement.
 - `range_session_target` is never queried into the choice list or accepted by the wrapper.
 - Modified candidate/snapshot IDs fail without revealing whether another owner's record exists.
+- Changing routes, private sources, or auth accounts while candidate lookup is pending never allows an older response to populate the current owner UI.
 
 ### Consent
 
@@ -438,6 +444,7 @@ The wrapper should set `consentConfirmed: true` internally only after the consen
 - A text-save failure prevents processor invocation.
 - An image failure after text success clearly says the setup is public without an image.
 - Duplicate clicks create no concurrent client requests.
+- A concurrent text publish/unpublish click cannot race the snapshot save performed for image processing.
 - Bounded backend failures render only friendly messages.
 - Success says the derivative is ready but not publicly displayed in Phase 2D.
 
