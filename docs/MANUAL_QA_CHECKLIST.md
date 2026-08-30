@@ -2,7 +2,7 @@
 
 Last updated: August 29, 2026
 
-Use this checklist for a complete hosted-development release review. It starts from the current MVP, including Phase 2A owner-only `PrivateImageAsset` candidate registration, Phase 2B trusted private source verification, the Phase 2C derivative processor, and the Phase 2D owner-only equipment-cover consent UI. It does not assume that public image delivery/rendering, account deletion/export, username sign-in, notifications, or destructive moderation actions exist.
+Use this checklist for a complete hosted-development release review. It starts from the current MVP, including Phase 2A owner-only `PrivateImageAsset` candidate registration, Phase 2B trusted private source verification, the Phase 2C derivative processor, the Phase 2D owner-only equipment-cover consent UI, and the Phase 2E.1 backend delivery resolver foundation. It does not assume that public image rendering, account deletion/export, username sign-in, notifications, or destructive moderation actions exist.
 
 ## Test session record
 
@@ -432,7 +432,7 @@ User B, a second standard account, Visitor, and optionally Backend inspector.
 
 - [ ] UI copy distinguishes verified private source binding from public eligibility and never claims that verification publishes or sanitizes the image.
 - [ ] Private keys, signed URLs, original filenames, Identity Pool IDs, and image contents are not displayed on public pages or copied into public records.
-- [ ] The owner-only Phase 2D control calls the Phase 2C backend action with only opaque snapshot/candidate IDs, bounded alt text, and required consent. No public delivery/read authorization, public URL, direct client Storage write, or rendering exists.
+- [ ] The owner-only Phase 2D control calls the Phase 2C backend action with only opaque snapshot/candidate IDs, bounded alt text, and required consent. The Phase 2E.1 resolver may issue a short-lived processed-derivative URL by snapshot ID, but no direct client Storage write/read rule or rendering exists.
 - [ ] Target photos are never automatically selected or published.
 
 ## 13. Public Passport publishing and unpublishing
@@ -480,9 +480,27 @@ User B and Visitor.
 - [ ] Normal **Publish without images** never invokes the processor; only the separate, fully confirmed owner action may use the current verified `equipment_cover` candidate.
 - [ ] Public setup content remains documentation-only and provides no aiming or adjustment guidance.
 
-### Future Phase 2E public-detail rendering cases — not runnable yet
+### Phase 2E.1 backend delivery resolver — run after backend redeploy
 
-Run these only after the Phase 2E backend delivery resolver, lifecycle commands, and detail-only image component are implemented and deployed:
+Account type: Visitor/API-key caller, User B with a disposable eligible derivative, and optionally Backend inspector.
+
+- [ ] Confirm `resolvePublicPassportImage` can be invoked through public/API-key authorization with only `publicPassportSnapshotId`.
+- [ ] Inspect the query variables. Confirm there is no S3 key, public asset ID, owner ID, source record ID, path, URL, filename, image bytes, or target-photo value.
+- [ ] Use an eligible published snapshot with a `ready` processed `equipment_cover`. Confirm the response contains only `status=available`, a short-lived `imageUrl`, safe `altText`, `expiresAt`, and `cacheSeconds=0`.
+- [ ] Confirm the URL signature lifetime is 60 seconds and the delivered response is `image/jpeg` with the signed `private, no-store, max-age=0` cache override.
+- [ ] Confirm the URL path contains only `public/passports/{snapshotId}/cover/{publicImageAssetId}.jpg` and never contains `private/equipment`, `private/targets`, a Storage identity, username, original filename, or private source record path.
+- [ ] Wait beyond the URL lifetime and confirm the old URL can no longer be used. Requesting the resolver again should succeed only while every eligibility condition still passes.
+- [ ] Test a nonexistent/demo-shaped snapshot ID, a snapshot without projection fields, a non-ready/removed asset, a private account, a non-public Equipment Passport, mismatched projection/ledger fields, unsafe/missing alt text, a wrong-prefix key, and a missing/invalid S3 object using disposable sandbox fixtures.
+- [ ] Confirm every rejected case returns the same `status=unavailable`, `failureCode=unavailable`, and `cacheSeconds=0`, with no URL, alt text, expiry, technical error, identifier, or existence detail.
+- [ ] Confirm a `range_session_target` or any asset whose source type is not exactly `equipment_cover` is unavailable before signing.
+- [ ] Confirm public clients still cannot use Amplify Storage directly to list, read, write, copy, or delete the derivative prefix; only the resolver URL permits the exact short-lived GET.
+- [ ] Confirm the resolver role cannot read either private prefix and has no derivative write/delete permission.
+- [ ] Review resolver logs. They may contain only fixed event names, bounded internal failure categories, URL lifetime, and cache seconds—not snapshot/asset/owner/source IDs, keys, URLs, alt text, filenames, tokens, or image bytes.
+- [ ] Open Discover, a public profile, and a Public Passport detail signed in and signed out. Confirm none calls the resolver or renders an image in Phase 2E.1.
+
+### Future Phase 2E.2 public-detail rendering cases — not runnable yet
+
+Run these only after the lifecycle commands and detail-only image component are implemented and deployed:
 
 - [ ] Use a public account with one published text snapshot and no prepared derivative. Confirm the saved public detail page remains text-only with a neutral missing-image state.
 - [ ] Process one current verified JPEG/PNG `equipment_cover`, then open `/discover/passports/[publicPassportId]` signed in and signed out. Confirm only the processed derivative appears.

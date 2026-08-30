@@ -58,7 +58,7 @@ Public read exceptions remain intentionally narrow:
 
 Private records remain owner-scoped and should not expose private notes, private image keys, lot numbers, purchase details, exact locations, maintenance records, readiness records, or owner private profile details through public flows.
 
-## Phase 1 through Phase 2C Public Image Foundation
+## Phase 1 through Phase 2E.1 Public Image Foundation
 
 `PublicImageAsset` is a non-public workflow ledger for the backend image processor. It contains the public snapshot relationship, source type and record id, processed public derivative fields, bounded processing status/error data, and consent timestamp. It deliberately contains no private S3 key and has no API-key authorization.
 
@@ -98,7 +98,9 @@ The verification Lambda has attribute-limited exact-table read permission, attri
 
 Phase 2C adds `processPublicPassportImage`, a user-pool-authenticated mutation with snapshot id, private candidate id, optional bounded alt text, and required consent acknowledgement. The function accepts only verified `equipment_cover` candidates, resolves the complete ownership graph server-side, uses the `userProfilesByOwnerId` index instead of scanning private profiles, and fails closed when the profile is private or immutable username ownership is unresolved. It accepts bounded JPEG/PNG input, creates a fresh metadata-free JPEG derivative, and conditionally/transactionally updates only the ledger and public snapshot image projection. Failure responses and logs are bounded and omit owner ids, private keys, filenames, private records, and image bytes.
 
-The processor-only Storage namespace is `public/passports/{snapshot_id}/cover/*`. The processor has private-equipment get plus derivative get/write/delete access. No browser, guest, API-key, moderator, or admin Storage read/write rule exists for that namespace. Current clients do not call the processing mutation, `buildPublicPassportSnapshotInput` still omits image fields, and public mapping/rendering still ignores them. Public image publishing therefore remains unavailable even though the backend derivative foundation exists. Backend removal, replacement cleanup, public delivery, selection/consent UI, target-photo support, image reporting/moderation, and lifecycle reconciliation remain future work.
+The derivative Storage namespace is `public/passports/{snapshot_id}/cover/*`. The processor has private-equipment get plus derivative get/write/delete access. The Phase 2E.1 resolver has derivative get access only; no browser, guest, API-key, moderator, or admin identity can read the prefix directly. Phase 2D may call the processor after explicit consent, while `buildPublicPassportSnapshotInput` still omits image fields and public mapping/rendering still ignores them.
+
+`resolvePublicPassportImage` is an API-key-authorized query with one input: `publicPassportSnapshotId`. Its Lambda re-reads attribute-limited public snapshot, public asset, Equipment Passport public flag, and profile visibility data, then checks the exact derivative with S3 `HeadObject`. The owner index locates the profile, and a consistent primary-key read confirms current visibility before signing. It never reads `PrivateImageAsset`, a private image key, target-photo data, or a private Storage prefix. An eligible `ready` `equipment_cover` returns a 60-second signed URL, safe alt text, expiry, and zero cache seconds. All missing, mismatched, private, removed, failed, or unavailable cases return the same generic unavailable response. Public rendering, removal/replacement cleanup, target-photo support, image reporting/moderation, and lifecycle reconciliation remain future work.
 
 ## Public Discovery Models
 

@@ -2,9 +2,9 @@
 
 ## Status
 
-Phase 1 data guardrails were added on August 5, 2026. Phase 2A private source registration, Phase 2B trusted private source verification, and the Phase 2C backend derivative foundation were added on August 9, 2026. Phase 2D owner consent UI was added on August 18, 2026 without a backend/schema change. The schema contains a non-public, client-read-only `PublicImageAsset` workflow ledger, backend-reserved public snapshot projection fields, an owner-only `PrivateImageAsset` candidate registry, an IAM-authorized verification operation, and an authenticated processing operation. The Phase 2C backend changes require an Amplify redeploy; the Phase 2D frontend does not add another backend redeploy requirement.
+Phase 1 data guardrails were added on August 5, 2026. Phase 2A private source registration, Phase 2B trusted private source verification, and the Phase 2C backend derivative foundation were added on August 9, 2026. Phase 2D owner consent UI was added on August 18, 2026. Phase 2E.1 now adds the backend-only `resolvePublicPassportImage` delivery query. The schema contains a non-public, client-read-only `PublicImageAsset` workflow ledger, backend-reserved public snapshot projection fields, an owner-only `PrivateImageAsset` candidate registry, verification/processing operations, and a public-safe delivery resolver.
 
-Public image delivery/rendering is still not available. Phase 2D adds an owner-only Public Preview selection and consent control that may invoke Phase 2C for the current verified, processor-compatible Equipment Passport cover. There is no public delivery/read rule, public URL, rendering, target-photo processing, removal flow, or automatic publishing. The processor-only `public/passports/{snapshotId}/cover/` namespace is deliberately not readable by browser or guest identities.
+Product rendering is still unavailable. Phase 2E.1 can issue a manually requested 60-second non-cacheable URL only after the public snapshot, ready asset, Equipment Passport public flag, account visibility, safe alt text, exact derivative path, and S3 object all agree. The derivative namespace remains unreadable directly by browser or guest identities; only the processor and resolver Lambdas can read it. There is no public-page resolver call, image component, target-photo processing, removal flow, or automatic publishing.
 
 The browser may create and read its own immutable `PrivateImageAsset` candidate records after a successful private upload. Those rows remain private registration hints until `verifyPrivateImageAsset` independently marks them `verified`. Normal clients cannot write `bindingStatus`, `bindingFailureCode`, or `verifiedAt`. The Phase 2C processor rejects every candidate that is missing `verified` status and repeats the current source/object checks because verification proves source binding only and does not prove decoded image safety or metadata removal.
 
@@ -36,6 +36,8 @@ This design refines the product boundary in [PUBLIC_IMAGE_PUBLISHING_PLAN.md](PU
 - Structured Lambda logs contain only fixed event names, bounded failure codes, and non-sensitive output type/size. They omit workflow IDs, owner identity, private/public keys, filenames, record content, tokens, URLs, and image bytes.
 - Current Public Preview create/update payloads and all public UI continue to ignore image projection fields, so normal publishing remains text/setup only. Only the separate Phase 2D owner action invokes the processor.
 - The explicit-confirmation developer harness in [PHASE_2C_PROCESSOR_TESTING.md](PHASE_2C_PROCESSOR_TESTING.md) invokes the deployed mutation with only the two opaque IDs and optional alt text. It validates the configured AppSync/Cognito target and never accepts or prints a Storage key.
+- `resolvePublicPassportImage` accepts only a persistent public snapshot id through API-key authorization. It resolves the profile through the owner index and then consistently re-reads the profile record so recent visibility changes fail closed. It returns either a 60-second presigned processed-derivative URL with safe alt text/expiry and `cacheSeconds=0`, or one generic unavailable response.
+- The resolver never reads `PrivateImageAsset`, `privateCoverPhotoKey`, target-photo records, private Storage prefixes, original filenames, owner-private notes, or image bytes. Its DynamoDB permissions are attribute-limited and its S3 permission is read/head only on `public/passports/{snapshot_id}/cover/*`.
 
 ## Recommended decisions
 
@@ -457,14 +459,14 @@ The Phase 2C processor role receives only:
 
 If the private key contains a dynamic identity segment that IAM cannot safely constrain per invocation, application-level trusted registration and owner checks are mandatory and should be reinforced with separate access points/buckets where practical.
 
-Phase 2C grants public/guest principals no derivative access. A later delivery phase may grant narrowly scoped ready-derivative reads only after release testing; those principals must never receive list, write, copy, tag, or delete permission.
+Public/guest principals still have no direct derivative Storage access. Phase 2E.1 grants only the delivery Lambda `get` access on the derivative prefix so it can validate `HeadObject` and sign an exact `GetObject`; that role receives no list, write, copy, tag, delete, or private-prefix permission.
 
 ## Public rendering contract
 
-`PublicPassportDetail`, Discover cards, and public profiles should eventually use one helper that:
+Phase 2E.2 should add a detail-only helper that:
 
-1. accepts `publicImageKey` only from a sanitized public snapshot;
-2. resolves a public delivery URL through the chosen Storage/CloudFront configuration;
+1. accepts only `publicPassportSnapshotId` from the saved public route;
+2. calls `resolvePublicPassportImage` with API-key authorization;
 3. uses `publicImageAltText` as plain text;
 4. renders no image when either field is absent;
 5. never accepts `privateCoverPhotoKey`, `TargetPhoto.storageKey`, `imageUrl`, or `coverPhotoUrl` from private records;
@@ -625,7 +627,7 @@ Alarms should cover sustained processing failures, metadata-verification failure
 - [x] Add a developer-only, explicit-confirmation authenticated test script with no product UI, committed token, S3-key input, or arbitrary endpoint.
 - [ ] Add superseded-asset removal and scheduled orphan cleanup.
 - [ ] Add hosted integration fixtures for same-owner success, another-owner/private-account/source-race attempts, malformed/animated/oversized inputs, and metadata leakage.
-- [x] Keep the destination processor-only: no public delivery rule, selection UI, client invocation, target-photo processing, or rendering.
+- [x] Phase 2C itself added no public delivery rule, selection UI, client invocation, target-photo processing, or rendering. Later phases now add the consent caller and backend-only resolver while keeping public pages image-free.
 
 ### Phase 2D: owner Public Preview consent workflow
 
@@ -645,7 +647,7 @@ Alarms should cover sustained processing failures, metadata-verification failure
 - Detailed design: [PUBLIC_IMAGE_PHASE_2E_RENDERING_PLAN.md](PUBLIC_IMAGE_PHASE_2E_RENDERING_PLAN.md)
 
 - [ ] Implement derivative-aware remove/unpublish and visibility revocation before public delivery.
-- [ ] Add a snapshot-ID-only backend resolver that returns a short-lived ready-derivative URL and safe alt text.
+- [x] Add a snapshot-ID-only backend resolver that returns a short-lived ready-derivative URL and safe alt text.
 - [ ] Render the first approved derivative on Public Passport detail only, with no private fallback.
 - [ ] Keep Discover and public profile cards image-free until the detail-only release is proven.
 

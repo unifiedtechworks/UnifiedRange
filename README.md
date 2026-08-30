@@ -39,7 +39,7 @@ The app may store user-entered logs, setup details, target photos, range notes, 
 - AWS AppSync GraphQL for the API layer
 - DynamoDB for app data
 - S3 for target photos and setup images
-- Lambda processing for verified equipment-cover derivatives and metadata stripping; public delivery/rendering remains planned
+- Lambda processing for verified equipment-cover derivatives and a backend-only short-lived delivery resolver; public rendering remains planned
 - Amplify Hosting for deployment
 
 A mobile app can come later using Expo/React Native against the same AWS backend.
@@ -100,7 +100,7 @@ Current backend capabilities:
 - A Phase 2C processor plus Phase 2D owner-only Public Preview consent UI for one verified Equipment Passport cover; the processor validates and re-encodes a bounded JPEG/PNG source into a metadata-free JPEG derivative
 - A derived signed-in onboarding checklist on Dashboard and Profile; it adds no onboarding model
 
-Public image delivery and rendering are not available. Phase 1 reserves a client-read-only workflow ledger and guarded public snapshot projection fields. Phase 2A registers successful private uploads as owner-only candidates, Phase 2B adds trusted private source verification, and Phase 2C adds the authenticated derivative processor. Phase 2D now adds an owner-only Public Preview choice that defaults to **Publish without images** and can explicitly prepare one current verified JPEG/PNG Equipment Passport cover after a private preview, safety checklist, and alt text. The constrained client call sends only the two opaque record IDs, bounded alt text, and required consent acknowledgement. There is still no public delivery/read rule, public URL, rendering, target-photo processing, automatic processing, or automatic publishing. Normal publishing remains sanitized text/setup data only unless the owner separately activates the image processor, and private originals stay private. See [Phase 2D Public Image Consent UI](docs/PUBLIC_IMAGE_PHASE_2D_CONSENT_UI_PLAN.md) and [Public Image Backend Design](docs/PUBLIC_IMAGE_BACKEND_DESIGN.md).
+Public image rendering is not available. Phase 1 reserves a client-read-only workflow ledger and guarded public snapshot projection fields. Phase 2A registers successful private uploads as owner-only candidates, Phase 2B adds trusted private source verification, and Phase 2C adds the authenticated derivative processor. Phase 2D adds an owner-only Public Preview choice that defaults to **Publish without images** and can explicitly prepare one current verified JPEG/PNG Equipment Passport cover after a private preview, safety checklist, and alt text. Phase 2E.1 adds the backend-only `resolvePublicPassportImage` query for manual delivery testing. It accepts only a public snapshot id and returns either a 60-second non-cacheable derivative URL with safe alt text or one generic unavailable result. Public pages do not call it, browsers have no direct Storage read rule, and private originals stay private. See [Phase 2D Public Image Consent UI](docs/PUBLIC_IMAGE_PHASE_2D_CONSENT_UI_PLAN.md), [Phase 2E Rendering Plan](docs/PUBLIC_IMAGE_PHASE_2E_RENDERING_PLAN.md), and [Public Image Backend Design](docs/PUBLIC_IMAGE_BACKEND_DESIGN.md).
 
 Developers can test the deployed processor without adding product UI by following [Phase 2C Processor Manual Testing](docs/PHASE_2C_PROCESSOR_TESTING.md) and running `npm run test:public-image-processor`. The script requires a short-lived matching Cognito ID token, the two opaque owner-record IDs, and an exact confirmation phrase. It accepts no S3 key, owner ID, source record ID, destination path, URL, or image bytes. Use disposable synthetic hosted-development data because public-image removal lifecycle support is not implemented.
 
@@ -334,7 +334,7 @@ With the Amplify sandbox and dev server running:
 8. Sign out and confirm Discover and the public detail page still work.
 9. If testing unpublish, use a snapshot that has no prepared derivative. Return to the signed-in preview page, unpublish, and confirm it disappears from Discover.
 
-Public rendering remains sanitized text/setup data only. An explicitly prepared derivative stays in processor-only storage and private S3 originals are never exposed publicly.
+Public pages remain sanitized text/setup data only. An explicitly prepared derivative stays in backend-only Storage accessible to the processor and short-lived delivery resolver; private S3 originals are never exposed publicly.
 
 ### Manual Public User Profile Test
 

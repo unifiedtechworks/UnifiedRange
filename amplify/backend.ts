@@ -3,6 +3,7 @@ import { PolicyStatement } from "aws-cdk-lib/aws-iam";
 import { auth } from "./auth/resource.ts";
 import { data } from "./data/resource.ts";
 import { processPublicPassportImage } from "./functions/process-public-passport-image/resource.ts";
+import { resolvePublicPassportImage } from "./functions/resolve-public-passport-image/resource.ts";
 import { verifyPrivateImage } from "./functions/verify-private-image/resource.ts";
 import { storage } from "./storage/resource.ts";
 
@@ -10,6 +11,7 @@ const backend = defineBackend({
   auth,
   data,
   processPublicPassportImage,
+  resolvePublicPassportImage,
   verifyPrivateImage,
   storage
 });
@@ -22,6 +24,7 @@ const publicPassportSnapshotTable = backend.data.resources.tables.PublicPassport
 const publicImageAssetTable = backend.data.resources.tables.PublicImageAsset;
 const userProfileTable = backend.data.resources.tables.UserProfile;
 const usernameReservationTable = backend.data.resources.tables.UsernameReservation;
+const imageDeliveryLambda = backend.resolvePublicPassportImage.resources.lambda;
 
 function restrictDynamoAttributes(attributes: string[]) {
   return {
@@ -39,6 +42,68 @@ function restrictDynamoTransactionAttributes(attributes: string[]) {
     }
   };
 }
+
+backend.resolvePublicPassportImage.addEnvironment("PUBLIC_PASSPORT_SNAPSHOT_TABLE_NAME", publicPassportSnapshotTable.tableName);
+backend.resolvePublicPassportImage.addEnvironment("PUBLIC_IMAGE_ASSET_TABLE_NAME", publicImageAssetTable.tableName);
+backend.resolvePublicPassportImage.addEnvironment("EQUIPMENT_PASSPORT_TABLE_NAME", equipmentPassportTable.tableName);
+backend.resolvePublicPassportImage.addEnvironment("USER_PROFILE_TABLE_NAME", userProfileTable.tableName);
+backend.resolvePublicPassportImage.addEnvironment("USER_PROFILE_OWNER_INDEX_NAME", "userProfilesByOwnerId");
+
+imageDeliveryLambda.addToRolePolicy(
+  new PolicyStatement({
+    actions: ["dynamodb:GetItem"],
+    resources: [publicPassportSnapshotTable.tableArn],
+    conditions: restrictDynamoAttributes([
+      "id",
+      "ownerId",
+      "equipmentPassportId",
+      "publicImageAssetId",
+      "publicImageKey",
+      "publicImageAltText"
+    ])
+  })
+);
+
+imageDeliveryLambda.addToRolePolicy(
+  new PolicyStatement({
+    actions: ["dynamodb:GetItem"],
+    resources: [publicImageAssetTable.tableArn],
+    conditions: restrictDynamoAttributes([
+      "id",
+      "ownerId",
+      "publicPassportSnapshotId",
+      "sourceType",
+      "sourceRecordId",
+      "publicImageKey",
+      "publicImageAltText",
+      "status"
+    ])
+  })
+);
+
+imageDeliveryLambda.addToRolePolicy(
+  new PolicyStatement({
+    actions: ["dynamodb:GetItem"],
+    resources: [equipmentPassportTable.tableArn],
+    conditions: restrictDynamoAttributes(["id", "ownerId", "isPublic"])
+  })
+);
+
+imageDeliveryLambda.addToRolePolicy(
+  new PolicyStatement({
+    actions: ["dynamodb:Query"],
+    resources: [`${userProfileTable.tableArn}/index/userProfilesByOwnerId`],
+    conditions: restrictDynamoAttributes(["id", "ownerId", "username", "accountVisibility"])
+  })
+);
+
+imageDeliveryLambda.addToRolePolicy(
+  new PolicyStatement({
+    actions: ["dynamodb:GetItem"],
+    resources: [userProfileTable.tableArn],
+    conditions: restrictDynamoAttributes(["id", "ownerId", "username", "accountVisibility"])
+  })
+);
 
 backend.verifyPrivateImage.addEnvironment("PRIVATE_IMAGE_ASSET_TABLE_NAME", privateImageAssetTable.tableName);
 backend.verifyPrivateImage.addEnvironment("EQUIPMENT_PASSPORT_TABLE_NAME", equipmentPassportTable.tableName);

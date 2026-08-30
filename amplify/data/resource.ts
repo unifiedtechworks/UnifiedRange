@@ -1,5 +1,6 @@
 import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
 import { processPublicPassportImage } from "../functions/process-public-passport-image/resource.ts";
+import { resolvePublicPassportImage } from "../functions/resolve-public-passport-image/resource.ts";
 import { verifyPrivateImage } from "../functions/verify-private-image/resource.ts";
 
 // TODO: Wire mock-data screens to generated AppSync clients after the sandbox
@@ -9,6 +10,7 @@ const schema = a.schema({
   ReportStatus: a.enum(["open", "reviewed", "dismissed", "action_needed"]),
   PublicImageAssetSourceType: a.enum(["equipment_cover"]),
   PublicImageAssetStatus: a.enum(["draft", "processing", "ready", "failed", "removed"]),
+  PublicImageDeliveryStatus: a.enum(["available", "unavailable"]),
   PrivateImageAssetSourceType: a.enum(["equipment_cover", "range_session_target"]),
   PrivateImageAssetBindingStatus: a.enum(["unverified", "verifying", "verified", "failed", "rejected", "removed"]),
 
@@ -22,6 +24,15 @@ const schema = a.schema({
   ProcessPublicPassportImageResult: a.customType({
     publicImageAssetId: a.id(),
     processingStatus: a.ref("PublicImageAssetStatus").required(),
+    failureCode: a.string()
+  }),
+
+  PublicPassportImageDeliveryResult: a.customType({
+    status: a.ref("PublicImageDeliveryStatus").required(),
+    imageUrl: a.string(),
+    altText: a.string(),
+    expiresAt: a.datetime(),
+    cacheSeconds: a.integer().required(),
     failureCode: a.string()
   }),
 
@@ -43,6 +54,13 @@ const schema = a.schema({
     .returns(a.ref("ProcessPublicPassportImageResult"))
     .authorization((allow) => [allow.authenticated()])
     .handler(a.handler.function(processPublicPassportImage)),
+
+  resolvePublicPassportImage: a
+    .query()
+    .arguments({ publicPassportSnapshotId: a.id().required() })
+    .returns(a.ref("PublicPassportImageDeliveryResult"))
+    .authorization((allow) => [allow.publicApiKey()])
+    .handler(a.handler.function(resolvePublicPassportImage)),
 
   UsernameReservation: a
     .model({

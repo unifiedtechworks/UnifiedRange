@@ -17,7 +17,7 @@ The Phase 2C backend-only derivative namespace is:
 public/passports/{publicPassportSnapshotId}/cover/{contentAddressedAssetId}.jpg
 ```
 
-Phase 2C grants only `process-public-passport-image` get/write/delete access to this namespace. There is no guest, API-key, authenticated-browser, moderator, or admin Storage rule for it. Despite the `public/` name, the derivative is not publicly readable or renderable until a later delivery release establishes and tests that boundary. Normal clients must never receive public-prefix write access.
+Phase 2C grants `process-public-passport-image` get/write/delete access to this namespace. Phase 2E.1 grants `resolve-public-passport-image` get access only, which supports `HeadObject` and signing an exact `GetObject`. There is still no guest, API-key, authenticated-browser, moderator, or admin direct Storage rule for the namespace. Normal clients never receive public-prefix write access.
 
 ## Private User Images
 
@@ -38,7 +38,7 @@ A `verified` result records a point-in-time source binding. It does not freeze t
 
 ## Public Sanitized Images
 
-The Phase 2C Lambda may create a public-safe derivative only after its authenticated request includes explicit consent and all current ownership, public-account, username-reservation, source, and object checks pass. Public image delivery access is not enabled.
+The Phase 2C Lambda may create a public-safe derivative only after its authenticated request includes explicit consent and all current ownership, public-account, username-reservation, source, and object checks pass. Phase 2E.1 adds a backend-only public resolver that can return a 60-second non-cacheable signed URL after rechecking the snapshot, ready asset, source public flag, account visibility, safe alt text, exact derivative path, and S3 object. Public pages do not invoke it yet.
 
 The current Public Passport publishing flow writes sanitized text/setup data only and does not expose private S3 keys or public images.
 
@@ -53,6 +53,7 @@ The Phase 2C processor decodes an eligible JPEG/PNG, applies orientation in pixe
 3. The Phase 2B verifier binds the protected Cognito identity, source owner, trusted IAM/Identity Pool identity, key path, and actual object metadata, then marks the candidate verified.
 4. User previews the Public Passport and explicitly selects a backend-verified eligible source. **Publish without images** remains the default.
 5. A Lambda decodes and re-encodes a sanitized derivative into the processor-only namespace. The Phase 2C backend foundation implements this step when its action is invoked directly with explicit consent.
-6. The public snapshot references only the approved sanitized derivative. Phase 2C can set this guarded projection, but current clients do not invoke the action and current public pages do not read or render it.
+6. The public snapshot references only the approved sanitized derivative. Phase 2C can set this guarded projection, and Phase 2D may invoke it after explicit consent.
+7. Phase 2E.1 can resolve an eligible projection to a short-lived URL without granting clients direct Storage access. Public pages still do not call or render it.
 
-Steps 1-3 and the backend-only processing foundation in steps 5-6 are implemented. Step 4's owner selection/safety UI, public delivery authorization, public URLs/rendering, target-photo support, removal/unpublish coordination, moderation actions, and lifecycle reconciliation are not implemented. The processor-only destination is not a public delivery path.
+Steps 1-7 are implemented through the backend delivery foundation. Public image rendering, target-photo support, removal/unpublish coordination, moderation actions, and lifecycle reconciliation are not implemented. The derivative namespace is not directly public; only the resolver Lambda can issue a short-lived eligible-object URL.

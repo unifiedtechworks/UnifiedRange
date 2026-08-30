@@ -2364,6 +2364,13 @@
             "removed"
           ]
         },
+        "PublicImageDeliveryStatus": {
+          "name": "PublicImageDeliveryStatus",
+          "values": [
+            "available",
+            "unavailable"
+          ]
+        },
         "PrivateImageAssetSourceType": {
           "name": "PrivateImageAssetSourceType",
           "values": [
@@ -2557,6 +2564,73 @@
               "type": "String",
               "isRequired": false,
               "attributes": []
+            }
+          }
+        },
+        "PublicPassportImageDeliveryResult": {
+          "name": "PublicPassportImageDeliveryResult",
+          "fields": {
+            "status": {
+              "name": "status",
+              "isArray": false,
+              "type": {
+                "enum": "PublicImageDeliveryStatus"
+              },
+              "isRequired": true,
+              "attributes": []
+            },
+            "imageUrl": {
+              "name": "imageUrl",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "altText": {
+              "name": "altText",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "expiresAt": {
+              "name": "expiresAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": []
+            },
+            "cacheSeconds": {
+              "name": "cacheSeconds",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": true,
+              "attributes": []
+            },
+            "failureCode": {
+              "name": "failureCode",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            }
+          }
+        }
+      },
+      "queries": {
+        "resolvePublicPassportImage": {
+          "name": "resolvePublicPassportImage",
+          "isArray": false,
+          "type": {
+            "nonModel": "PublicPassportImageDeliveryResult"
+          },
+          "isRequired": false,
+          "arguments": {
+            "publicPassportSnapshotId": {
+              "name": "publicPassportSnapshotId",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true
             }
           }
         }

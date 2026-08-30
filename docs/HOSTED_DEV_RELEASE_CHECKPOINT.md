@@ -83,7 +83,7 @@ Use the role-based [Manual QA Checklist](MANUAL_QA_CHECKLIST.md) for the compreh
 ## Known Limitations
 
 - Account deletion and account data export are planned but not implemented.
-- Public image delivery/rendering is not available; uploaded originals remain private. Phase 2D provides owner-only selection and consent for one verified Equipment Passport cover, but the derivative remains processor-only. There is no public delivery/read rule, rendering, target-photo support, replacement/removal/unpublish cleanup, or image-moderation lifecycle. See the [Public Image Publishing Plan](PUBLIC_IMAGE_PUBLISHING_PLAN.md).
+- Public image rendering is not available; uploaded originals remain private. Phase 2D provides owner-only selection and consent for one verified Equipment Passport cover, and Phase 2E.1 adds a backend-only resolver that may return a 60-second eligible-derivative URL for manual testing. Public pages do not call it. There is no direct public Storage rule, rendering, target-photo support, replacement/removal/unpublish cleanup, or image-moderation lifecycle. See the [Public Image Publishing Plan](PUBLIC_IMAGE_PUBLISHING_PLAN.md).
 - Feeds and follows are not implemented.
 - A notification center is not implemented.
 - Moderation has report metadata review and status workflow only. It has no destructive content removal, hiding, suspension, or account actions.

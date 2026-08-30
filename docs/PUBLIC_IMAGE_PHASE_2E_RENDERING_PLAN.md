@@ -2,13 +2,13 @@
 
 ## Status and scope
 
-This document is a planning artifact for the first public delivery and rendering slice. No public Storage read rule, delivery resolver, public URL, image component, schema change, or runtime behavior is added by this planning task.
+Phase 2E.1 adds the backend-only delivery resolver foundation. `resolvePublicPassportImage` is an API-key-authorized public query that accepts only `publicPassportSnapshotId`, revalidates the current public snapshot/asset/source/profile/object graph, and returns a 60-second processed-derivative URL plus safe alt text only when every check passes. Every rejected condition returns the same bounded unavailable response.
 
 Phase 2C can create a bounded, metadata-stripped JPEG derivative under the processor-only `public/passports/{snapshotId}/cover/{publicImageAssetId}.jpg` namespace. Phase 2D lets the signed-in owner explicitly select the current verified Equipment Passport cover, complete the safety checklist, provide bounded alt text, and invoke processing from Public Preview. Normal publishing still defaults to **Publish without images**.
 
-The derivative namespace currently grants access only to the processor. Signed-out visitors, API-key clients, normal signed-in users, moderators, and admins cannot read it through Amplify Storage. Public pages intentionally ignore the snapshot image projection fields.
+The derivative namespace grants write/delete access only to the processor and read access only to the processor and delivery Lambda. Signed-out visitors, API-key clients, normal signed-in users, moderators, and admins still cannot read it directly through Amplify Storage. Public pages intentionally ignore the snapshot image projection fields and do not call the resolver yet.
 
-Phase 2E must preserve these boundaries while adding a narrow, revocable delivery path for one processed Equipment Passport cover. Target photos remain out of scope.
+Phase 2E.1 provides a manually testable delivery primitive, not product rendering or broad public image release. Phase 2E.2 must preserve these boundaries when it adds the first detail-only rendering surface. Target photos remain out of scope.
 
 ## Decision summary
 
@@ -17,7 +17,7 @@ Phase 2E must preserve these boundaries while adding a narrow, revocable deliver
 | First rendering surface | Saved Public Passport detail at `/discover/passports/[publicPassportId]` only |
 | Deferred surfaces | Discover cards, `/u/[username]` setup cards, feeds, profile images, galleries, and every target-photo surface |
 | Browser input | `publicPassportSnapshotId` only |
-| Delivery | A backend resolver validates current public eligibility and returns a short-lived presigned GET URL plus safe alt text |
+| Delivery | Implemented foundation: `resolvePublicPassportImage` validates current public eligibility and returns a 60-second presigned GET URL plus safe alt text |
 | Storage posture | Keep S3 Block Public Access and the processor-only derivative prefix; do not add broad guest read |
 | Public mapper | Keep `recordToSanitizedPublicPassport` free of image keys; use a detail-only delivery helper keyed by snapshot ID |
 | Missing or denied image | Render no image and no technical error; never fall back to a private source |
@@ -49,7 +49,7 @@ public/passports/{snapshotId}/cover/{publicImageAssetId}.jpg
 
 The path is backend-generated and content-addressed. It contains no private source filename, username, Cognito identity, private Storage identity, private source key, or target-photo path.
 
-The processor has `get`, `write`, and `delete` access to this derivative namespace. Browsers and guest identities have no access. Phase 2E should retain that Storage rule and add a separate delivery function with read-only access to the derivative prefix.
+The processor has `get`, `write`, and `delete` access to this derivative namespace. The Phase 2E.1 delivery Lambda has `get` access only. Browsers and guest identities have no direct Storage access, and the resolver has no private-prefix, list, write, or delete permission.
 
 ### Public snapshot projection
 
@@ -81,9 +81,9 @@ CloudFront with Origin Access Control and a private S3 origin is a strong long-t
 
 Defer this until lifecycle commands, cache invalidation, and operational monitoring are proven. Never make the S3 bucket or entire `public/` prefix anonymously public.
 
-### Option 3: backend-generated short-lived URL — recommended
+### Option 3: backend-generated short-lived URL — implemented foundation
 
-Add a narrowly scoped public AppSync query backed by a Lambda such as:
+Phase 2E.1 adds this narrowly scoped public AppSync query backed by Lambda:
 
 ```text
 resolvePublicPassportImage({ publicPassportSnapshotId })
@@ -110,16 +110,16 @@ Every missing, denied, removed, inconsistent, or unavailable condition should re
 
 Do not return a public failure code, S3 key, asset ID, owner identifier, or raw AWS error. Use bounded internal metrics without sensitive identifiers.
 
-Recommended initial delivery controls:
+Implemented initial delivery controls:
 
-- URL lifetime of approximately 60 seconds, with a hard maximum of five minutes during early testing;
-- response cache headers overridden to prevent durable browser/shared-cache retention;
+- URL lifetime of 60 seconds;
+- signed response cache headers overridden with `private, no-store, max-age=0`;
 - `Content-Type: image/jpeg` and no content disposition or original filename;
 - no bucket listing, writes, copies, deletes, ACL changes, tagging, or private-prefix access for the resolver;
-- input length validation and rate/abuse controls for the public query; and
+- strict persistent snapshot-ID validation; and
 - no URL logging, analytics capture, local storage, or persistent client cache.
 
-The existing derivative objects were written with long-lived immutable cache metadata. The delivery implementation must override the response cache policy on signed GET responses or rewrite/migrate existing objects before release. Do not rely on URL expiration alone if a browser or intermediary can retain a cached response.
+The existing derivative objects were written with long-lived immutable cache metadata. The signed GET overrides that metadata with a non-cacheable response policy. Hosted testing must confirm S3 honors the override and that browser/intermediary behavior stays inside the accepted revocation window; do not rely on URL expiration alone.
 
 ### Option 4: proxy image bytes through the application backend
 
@@ -135,7 +135,7 @@ The resolver should fail closed unless all checks succeed in one current request
 4. The derivative key exactly matches `public/passports/{snapshotId}/cover/{publicImageAssetId}.jpg` after strict segment validation.
 5. The referenced `PublicImageAsset` exists, belongs to that snapshot owner, references that snapshot, uses `equipment_cover`, has status `ready`, and matches the projected key and alt text.
 6. The source Equipment Passport still exists, belongs to the snapshot owner, and remains eligible for public sharing.
-7. The authoritative owner profile currently has `accountVisibility=public`; any sanitized public-profile projection used by public pages must agree.
+7. The authoritative owner profile currently has `accountVisibility=public`. Because the owner index is eventually consistent, resolve the profile through the index and then perform a consistent primary-key read before signing; any sanitized public-profile projection used by public pages must agree.
 8. Username ownership is resolved if the product continues to require a valid public identity for publishing.
 9. A metadata-only S3 check confirms the derivative exists, is `image/jpeg`, and remains within the processor's output byte limit.
 10. No current owner-removal, unpublish, account-privacy, moderation-hidden, or cleanup state blocks delivery.
@@ -146,9 +146,9 @@ For current data, `ready` is the only deliverable `PublicImageAssetStatus`. `dra
 
 ## Public API shape and field exposure
 
-The recommended resolver means public clients do not need direct API-key reads of `publicImageKey` or `publicImageAssetId`. During implementation, review tightening their field authorization so only owners and backend resources can read them. The resolver can return the temporary URL and alt text after validating the private workflow ledger.
+The resolver means public clients do not need direct API-key reads of `publicImageKey` or `publicImageAssetId`. Phase 2E.1 keeps the current field authorization unchanged because existing generated public snapshot operations still select those fields; changing field authorization without narrowing those selection sets could break the current public text pages. Public UI mapping continues to omit them. Tighten this authorization only with a coordinated public-query selection review.
 
-This authorization tightening and the new custom query are future schema/backend changes. They are not part of this planning task. If direct public projection reads are retained temporarily, public UI code must still ignore the key and must never pass it to a generic Storage helper.
+The new custom query is a schema/backend change. If direct public projection reads are retained temporarily, public UI code must continue to ignore the key and must never pass it to a generic Storage helper.
 
 The public response may reveal the processed derivative URL because the image is intentionally public for the URL lifetime. Its path must reveal only the public snapshot/asset namespace, never the private source structure.
 
@@ -279,12 +279,13 @@ The browser receives only a temporary URL for the processed public JPEG and safe
 
 ### Phase 2E.1: backend delivery resolver
 
-- Add the snapshot-ID-only public query and Lambda.
-- Give the resolver read-only, attribute-limited access to the public snapshot, public image ledger, authoritative visibility/source records, and exact public derivative objects.
-- Add strict projection/ledger/key/status/visibility/object checks.
-- Return only availability, short-lived URL, safe alt text, and expiry.
-- Review removal of API-key access from raw public image key/asset projection fields.
-- Add bounded metrics, rate controls, and no-sensitive-log tests.
+- [x] Add the snapshot-ID-only public query and Lambda.
+- [x] Give the resolver read-only, attribute-limited access to the public snapshot, public image ledger, authoritative visibility/source records, and exact public derivative objects.
+- [x] Add strict projection/ledger/key/status/visibility/object checks.
+- [x] Return only availability, a 60-second URL, safe alt text, expiry, zero cache seconds, or one generic unavailable result.
+- [x] Review removal of API-key access from raw public image key/asset projection fields; retain it temporarily until generated public snapshot selection sets are narrowed safely.
+- [x] Add bounded no-sensitive-value logs.
+- [ ] Add deployment-level rate/abuse monitoring after the public query is exercised in sandbox/hosted development.
 
 This phase changes the Amplify backend/schema/IAM and requires sandbox plus hosted backend redeployment.
 
@@ -329,6 +330,6 @@ Do not enable public rendering until all of the following pass:
 
 ## Deployment expectation
 
-This planning task changes documentation only and requires no backend deployment.
+Phase 2E.1 changes the Amplify schema, adds `resolve-public-passport-image`, and changes IAM/Storage resource access for that Lambda. Run `npm run amplify:sandbox`, then allow hosted Amplify to redeploy before testing the resolver.
 
-The future Phase 2E implementation will require a custom public delivery query/function, least-privilege IAM, lifecycle commands, and likely field-authorization tightening. Those are backend/schema changes and will require `npm run amplify:sandbox` plus a hosted Amplify backend redeploy before public rendering can be tested.
+Public rendering remains disabled after that deployment. Phase 2E.2 still requires a separately reviewed detail-only component, and general release still requires backend lifecycle commands for removal, derivative-aware unpublish, and visibility cleanup.
