@@ -484,6 +484,9 @@ User B and Visitor.
 
 Account type: Visitor/API-key caller, User B with a disposable eligible derivative, and optionally Backend inspector.
 
+- [ ] Follow [Phase 2E.1 Delivery Resolver Testing](PHASE_2E_1_DELIVERY_RESOLVER_TESTING.md). Set only `UNIFIEDRANGE_PUBLIC_PASSPORT_SNAPSHOT_ID` and run `npm run test:public-image-resolver`; do not provide a Cognito token, key, owner/source ID, path, URL, or image bytes.
+- [ ] Confirm the harness prints only its bounded available/unavailable summary. It must not print the snapshot ID, API key, delivery URL, public/private key, alt text, GraphQL error message, filename, owner/source identity, token, response body, or image bytes.
+- [ ] For an eligible result, confirm the harness validates the exact public derivative path, 60-second signature, bounded JPEG response, and `private, no-store, max-age=0` response headers internally.
 - [ ] Confirm `resolvePublicPassportImage` can be invoked through public/API-key authorization with only `publicPassportSnapshotId`.
 - [ ] Inspect the query variables. Confirm there is no S3 key, public asset ID, owner ID, source record ID, path, URL, filename, image bytes, or target-photo value.
 - [ ] Use an eligible published snapshot with a `ready` processed `equipment_cover`. Confirm the response contains only `status=available`, a short-lived `imageUrl`, safe `altText`, `expiresAt`, and `cacheSeconds=0`.

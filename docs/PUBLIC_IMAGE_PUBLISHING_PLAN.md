@@ -244,6 +244,7 @@ No destructive moderation action is part of the current app. The image release m
 
 - Follow the delivery, rendering, lifecycle, privacy, and rollout contract in [PUBLIC_IMAGE_PHASE_2E_RENDERING_PLAN.md](PUBLIC_IMAGE_PHASE_2E_RENDERING_PLAN.md).
 - Implemented a snapshot-ID-only backend resolver that revalidates current snapshot, ready asset, source eligibility, account visibility, alt text, exact path, and derivative existence before issuing a 60-second URL.
+- Hardened generated-URL validation and added a developer-only API-key harness that requires only the public snapshot ID, exercises the non-cacheable JPEG delivery, and prints no URL, key, alt text, IDs, credentials, or image bytes.
 - Render only ready public derivatives on saved Public Passport detail pages first, with no private fallback.
 - Keep Discover cards and public profile cards image-free until the detail-only release is proven.
 - Implement backend-controlled removal, derivative-aware unpublish, and visibility revocation before enabling delivery.

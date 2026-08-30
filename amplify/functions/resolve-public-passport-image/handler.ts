@@ -4,6 +4,7 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import type { Schema } from "../../data/resource.ts";
 
 const urlExpiresInSeconds = 60;
+const signedUrlMaxLength = 4_096;
 const responseCacheSeconds = 0;
 const derivativeMaxBytes = 2 * 1024 * 1024;
 const publicAltTextMaxLength = 140;
@@ -66,22 +67,17 @@ class DeliveryUnavailable extends Error {
   }
 }
 
-function requiredEnvironment(name: string) {
-  const value = process.env[name];
-
-  if (!value) {
-    throw new Error(`Missing required environment configuration: ${name}`);
-  }
-
-  return value;
+function environmentValue(name: string) {
+  return process.env[name]?.trim() ?? "";
 }
 
-const publicPassportSnapshotTableName = requiredEnvironment("PUBLIC_PASSPORT_SNAPSHOT_TABLE_NAME");
-const publicImageAssetTableName = requiredEnvironment("PUBLIC_IMAGE_ASSET_TABLE_NAME");
-const equipmentPassportTableName = requiredEnvironment("EQUIPMENT_PASSPORT_TABLE_NAME");
-const userProfileTableName = requiredEnvironment("USER_PROFILE_TABLE_NAME");
-const userProfileOwnerIndexName = requiredEnvironment("USER_PROFILE_OWNER_INDEX_NAME");
-const imageBucketName = requiredEnvironment("unifiedRangePrivateImages_BUCKET_NAME");
+const publicPassportSnapshotTableName = environmentValue("PUBLIC_PASSPORT_SNAPSHOT_TABLE_NAME");
+const publicImageAssetTableName = environmentValue("PUBLIC_IMAGE_ASSET_TABLE_NAME");
+const equipmentPassportTableName = environmentValue("EQUIPMENT_PASSPORT_TABLE_NAME");
+const userProfileTableName = environmentValue("USER_PROFILE_TABLE_NAME");
+const userProfileOwnerIndexName = environmentValue("USER_PROFILE_OWNER_INDEX_NAME");
+const imageBucketName = environmentValue("unifiedRangePrivateImages_BUCKET_NAME");
+const awsRegion = environmentValue("AWS_REGION");
 
 const dynamoClient = new DynamoDBClient({});
 const s3Client = new S3Client({});
@@ -103,6 +99,20 @@ function normalizePersistentId(value: unknown) {
 
   const normalized = value.trim();
   return idPattern.test(normalized) && !nonPersistentIdPattern.test(normalized) ? normalized : "";
+}
+
+function validateRuntimeConfiguration() {
+  if (
+    !publicPassportSnapshotTableName ||
+    !publicImageAssetTableName ||
+    !equipmentPassportTableName ||
+    !userProfileTableName ||
+    !userProfileOwnerIndexName ||
+    !imageBucketName ||
+    !awsRegion
+  ) {
+    throw new DeliveryUnavailable("unknown_error");
+  }
 }
 
 function normalizePublicAltText(value: string) {
@@ -307,6 +317,47 @@ async function validateDerivativeObject(publicImageKey: string) {
   }
 }
 
+function caseInsensitiveSearchParameter(url: URL, expectedName: string) {
+  for (const [name, value] of url.searchParams) {
+    if (name.toLowerCase() === expectedName.toLowerCase()) {
+      return value;
+    }
+  }
+
+  return "";
+}
+
+function validateSignedDeliveryUrl(value: string, expectedPublicImageKey: string) {
+  if (!value || value.length > signedUrlMaxLength) {
+    throw new DeliveryUnavailable("signing_unavailable");
+  }
+
+  try {
+    const url = new URL(value);
+    const decodedPath = decodeURIComponent(url.pathname);
+    const expectedS3Hostname = `${imageBucketName}.s3.${awsRegion}.${awsRegion.startsWith("cn-") ? "amazonaws.com.cn" : "amazonaws.com"}`;
+
+    if (
+      url.protocol !== "https:" ||
+      url.hostname !== expectedS3Hostname ||
+      url.username ||
+      url.password ||
+      url.hash ||
+      decodedPath !== `/${expectedPublicImageKey}` ||
+      caseInsensitiveSearchParameter(url, "X-Amz-Expires") !== String(urlExpiresInSeconds)
+    ) {
+      throw new DeliveryUnavailable("signing_unavailable");
+    }
+
+    return value;
+  } catch (error) {
+    if (error instanceof DeliveryUnavailable) {
+      throw error;
+    }
+    throw new DeliveryUnavailable("signing_unavailable");
+  }
+}
+
 function unavailableResponse(): Schema["resolvePublicPassportImage"]["returnType"] {
   return {
     status: "unavailable",
@@ -317,6 +368,7 @@ function unavailableResponse(): Schema["resolvePublicPassportImage"]["returnType
 
 export const handler: Schema["resolvePublicPassportImage"]["functionHandler"] = async (event) => {
   try {
+    validateRuntimeConfiguration();
     const snapshotId = normalizePersistentId(event.arguments.publicPassportSnapshotId);
     if (!snapshotId) {
       throw new DeliveryUnavailable("invalid_request");
@@ -355,9 +407,9 @@ export const handler: Schema["resolvePublicPassportImage"]["functionHandler"] = 
     await validateDerivativeObject(snapshot.publicImageKey);
 
     const signedAt = Date.now();
-    let imageUrl: string;
+    let signedUrl: string;
     try {
-      imageUrl = await getSignedUrl(
+      signedUrl = await getSignedUrl(
         s3Client,
         new GetObjectCommand({
           Bucket: imageBucketName,
@@ -371,6 +423,7 @@ export const handler: Schema["resolvePublicPassportImage"]["functionHandler"] = 
     } catch {
       throw new DeliveryUnavailable("signing_unavailable");
     }
+    const imageUrl = validateSignedDeliveryUrl(signedUrl, snapshot.publicImageKey);
 
     const expiresAt = new Date(signedAt + urlExpiresInSeconds * 1_000).toISOString();
     console.info(

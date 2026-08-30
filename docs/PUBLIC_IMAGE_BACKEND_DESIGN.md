@@ -38,6 +38,8 @@ This design refines the product boundary in [PUBLIC_IMAGE_PUBLISHING_PLAN.md](PU
 - The explicit-confirmation developer harness in [PHASE_2C_PROCESSOR_TESTING.md](PHASE_2C_PROCESSOR_TESTING.md) invokes the deployed mutation with only the two opaque IDs and optional alt text. It validates the configured AppSync/Cognito target and never accepts or prints a Storage key.
 - `resolvePublicPassportImage` accepts only a persistent public snapshot id through API-key authorization. It resolves the profile through the owner index and then consistently re-reads the profile record so recent visibility changes fail closed. It returns either a 60-second presigned processed-derivative URL with safe alt text/expiry and `cacheSeconds=0`, or one generic unavailable response.
 - The resolver never reads `PrivateImageAsset`, `privateCoverPhotoKey`, target-photo records, private Storage prefixes, original filenames, owner-private notes, or image bytes. Its DynamoDB permissions are attribute-limited and its S3 permission is read/head only on `public/passports/{snapshot_id}/cover/*`.
+- The resolver validates required runtime configuration inside the bounded handler path, then validates the generated URL before release: HTTPS only, the exact configured S3 bucket/Region host, no embedded credentials or fragment, the exact validated derivative path, and the exact 60-second signing lifetime. Configuration/signing anomalies fail through the same public unavailable contract.
+- The developer-only [Phase 2E.1 delivery harness](PHASE_2E_1_DELIVERY_RESOLVER_TESTING.md) accepts only a snapshot ID, uses the normal generated AppSync API-key configuration, validates/fetches the short-lived derivative without product UI, and prints no URL, key, alt text, ID, credential, or image bytes.
 
 ## Recommended decisions
 
@@ -648,6 +650,7 @@ Alarms should cover sustained processing failures, metadata-verification failure
 
 - [ ] Implement derivative-aware remove/unpublish and visibility revocation before public delivery.
 - [x] Add a snapshot-ID-only backend resolver that returns a short-lived ready-derivative URL and safe alt text.
+- [x] Add a bounded developer harness and generated-URL defense-in-depth validation.
 - [ ] Render the first approved derivative on Public Passport detail only, with no private fallback.
 - [ ] Keep Discover and public profile cards image-free until the detail-only release is proven.
 

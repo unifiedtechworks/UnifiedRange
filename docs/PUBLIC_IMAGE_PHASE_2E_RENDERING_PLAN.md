@@ -119,6 +119,8 @@ Implemented initial delivery controls:
 - strict persistent snapshot-ID validation; and
 - no URL logging, analytics capture, local storage, or persistent client cache.
 
+The hardened resolver also rejects a generated URL unless it is HTTPS, targets the exact configured S3 bucket/Region host, has no embedded credentials or fragment, resolves to the exact validated public derivative key, and carries the expected 60-second `X-Amz-Expires` value. Required runtime configuration is validated inside the handler's bounded failure boundary so a missing setting does not bypass the generic unavailable contract. The developer-only harness documented in [PHASE_2E_1_DELIVERY_RESOLVER_TESTING.md](PHASE_2E_1_DELIVERY_RESOLVER_TESTING.md) independently checks the generated Storage host, invokes the API-key query with only a snapshot ID, validates and fetches the derivative internally, and prints only a bounded result without the URL, key, alt text, IDs, API key, or image bytes.
+
 The existing derivative objects were written with long-lived immutable cache metadata. The signed GET overrides that metadata with a non-cacheable response policy. Hosted testing must confirm S3 honors the override and that browser/intermediary behavior stays inside the accepted revocation window; do not rely on URL expiration alone.
 
 ### Option 4: proxy image bytes through the application backend
@@ -285,9 +287,10 @@ The browser receives only a temporary URL for the processed public JPEG and safe
 - [x] Return only availability, a 60-second URL, safe alt text, expiry, zero cache seconds, or one generic unavailable result.
 - [x] Review removal of API-key access from raw public image key/asset projection fields; retain it temporarily until generated public snapshot selection sets are narrowed safely.
 - [x] Add bounded no-sensitive-value logs.
+- [x] Add a snapshot-ID-only developer harness that validates the response allowlist, 60-second URL, bounded JPEG, and non-cacheable headers without printing sensitive or delivery values.
 - [ ] Add deployment-level rate/abuse monitoring after the public query is exercised in sandbox/hosted development.
 
-This phase changes the Amplify backend/schema/IAM and requires sandbox plus hosted backend redeployment.
+The original foundation phase changed the Amplify backend/schema/IAM and required sandbox plus hosted backend redeployment.
 
 ### Phase 2E.2: Public Passport detail rendering
 
@@ -330,6 +333,6 @@ Do not enable public rendering until all of the following pass:
 
 ## Deployment expectation
 
-Phase 2E.1 changes the Amplify schema, adds `resolve-public-passport-image`, and changes IAM/Storage resource access for that Lambda. Run `npm run amplify:sandbox`, then allow hosted Amplify to redeploy before testing the resolver.
+The original Phase 2E.1 foundation changed the Amplify schema, added `resolve-public-passport-image`, and changed IAM/Storage resource access. This hardening pass changes only the resolver Lambda code plus local test/docs; it does not change the schema, resolver contract, IAM, or Storage rules. Redeploy the backend Lambda through sandbox/hosted Amplify before using the hardened test path.
 
 Public rendering remains disabled after that deployment. Phase 2E.2 still requires a separately reviewed detail-only component, and general release still requires backend lifecycle commands for removal, derivative-aware unpublish, and visibility cleanup.
