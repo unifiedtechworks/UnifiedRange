@@ -328,7 +328,7 @@ function PublicPreviewContent({
       <div className="mb-6 rounded-md border border-clay/25 bg-clay/10 p-4">
         <h3 className="text-base font-bold text-ink">Public Sharing Warning</h3>
         <p className="mt-2 text-sm leading-6 text-ink/70">
-          Publishing creates a sanitized copy. Private passport data and original images remain private. An owner may explicitly prepare one verified equipment-cover derivative, but public image rendering is not enabled yet. Do not share serial numbers, exact locations, purchase records, private notes, image metadata, or sensitive personal information.
+          Publishing creates a sanitized copy. Private passport data and original images remain private. An owner may explicitly prepare one verified equipment-cover derivative for the saved Public Passport detail page. Do not share serial numbers, exact locations, purchase records, private notes, image metadata, or sensitive personal information.
         </p>
       </div>
 
@@ -440,7 +440,7 @@ function PublicPreviewContent({
                 </>
               ) : null}
             </div>
-            {hasPreparedPublicImage ? <p className="mt-3 text-xs leading-5 text-ink/55">Unpublish is disabled for snapshots with a prepared derivative until backend cleanup is implemented. Public image rendering remains disabled.</p> : null}
+            {hasPreparedPublicImage ? <p className="mt-3 text-xs leading-5 text-ink/55">This prepared derivative may appear on the saved Public Passport detail page. Unpublish is disabled until backend image cleanup is implemented.</p> : null}
             {error ? <p className="mt-3 rounded-md border border-clay/30 bg-clay/10 px-4 py-3 text-sm font-semibold text-clay">{error}</p> : null}
             {message ? <p className="mt-3 rounded-md border border-moss/25 bg-field px-4 py-3 text-sm font-semibold text-moss">{message}</p> : null}
           </div>

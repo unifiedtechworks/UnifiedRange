@@ -39,7 +39,7 @@ The app may store user-entered logs, setup details, target photos, range notes, 
 - AWS AppSync GraphQL for the API layer
 - DynamoDB for app data
 - S3 for target photos and setup images
-- Lambda processing for verified equipment-cover derivatives and a backend-only short-lived delivery resolver; public rendering remains planned
+- Lambda processing and short-lived delivery for verified equipment-cover derivatives, rendered on saved Public Passport detail only
 - Amplify Hosting for deployment
 
 A mobile app can come later using Expo/React Native against the same AWS backend.
@@ -98,9 +98,12 @@ Current backend capabilities:
 - Private S3 storage paths for signed-in user equipment/setup images and target photos
 - Owner-only `PrivateImageAsset` registration plus an IAM/Lambda verification action that binds a candidate to its saved private source and exact S3 object metadata
 - A Phase 2C processor plus Phase 2D owner-only Public Preview consent UI for one verified Equipment Passport cover; the processor validates and re-encodes a bounded JPEG/PNG source into a metadata-free JPEG derivative
+- Detail-only public rendering through a snapshot-ID-only resolver; Discover and public profile cards remain image-free
 - A derived signed-in onboarding checklist on Dashboard and Profile; it adds no onboarding model
 
-Public image rendering is not available. Phase 1 reserves a client-read-only workflow ledger and guarded public snapshot projection fields. Phase 2A registers successful private uploads as owner-only candidates, Phase 2B adds trusted private source verification, and Phase 2C adds the authenticated derivative processor. Phase 2D adds an owner-only Public Preview choice that defaults to **Publish without images** and can explicitly prepare one current verified JPEG/PNG Equipment Passport cover after a private preview, safety checklist, and alt text. Phase 2E.1 adds the backend-only `resolvePublicPassportImage` query for manual delivery testing. It accepts only a public snapshot id and returns either a 60-second non-cacheable derivative URL with safe alt text or one generic unavailable result. Public pages do not call it, browsers have no direct Storage read rule, and private originals stay private. See [Phase 2D Public Image Consent UI](docs/PUBLIC_IMAGE_PHASE_2D_CONSENT_UI_PLAN.md), [Phase 2E Rendering Plan](docs/PUBLIC_IMAGE_PHASE_2E_RENDERING_PLAN.md), [Phase 2E.1 Delivery Resolver Testing](docs/PHASE_2E_1_DELIVERY_RESOLVER_TESTING.md), and [Public Image Backend Design](docs/PUBLIC_IMAGE_BACKEND_DESIGN.md).
+Public image rendering is limited to saved Public Passport detail pages. Phase 1 reserves a client-read-only workflow ledger and guarded public snapshot projection fields. Phase 2A registers successful private uploads as owner-only candidates, Phase 2B adds trusted private source verification, and Phase 2C adds the authenticated derivative processor. Phase 2D adds an owner-only Public Preview choice that defaults to **Publish without images** and can explicitly prepare one current verified JPEG/PNG Equipment Passport cover after a private preview, safety checklist, and alt text. Phase 2E.1 adds the `resolvePublicPassportImage` query, which accepts only a public snapshot id and returns either a 60-second non-cacheable derivative URL with safe alt text or one generic unavailable result. Phase 2E.2 calls it only from saved public detail. Discover/profile cards remain image-free, browsers have no direct Storage read rule, target photos remain excluded, and private originals stay private. See [Phase 2D Public Image Consent UI](docs/PUBLIC_IMAGE_PHASE_2D_CONSENT_UI_PLAN.md), [Phase 2E Rendering Plan](docs/PUBLIC_IMAGE_PHASE_2E_RENDERING_PLAN.md), [Phase 2E.1 Delivery Resolver Testing](docs/PHASE_2E_1_DELIVERY_RESOLVER_TESTING.md), and [Public Image Backend Design](docs/PUBLIC_IMAGE_BACKEND_DESIGN.md).
+
+The detail renderer fails closed. It validates the current snapshot-specific HTTPS/S3 path, bounded SigV4 lifetime and expiry, signed non-cacheable JPEG response overrides, safe alt text, and decoded dimensions; bounds resolver/image waits; ignores route-stale events; and never falls back to a private source or displays a raw resolver error.
 
 Developers can test the deployed processor without adding product UI by following [Phase 2C Processor Manual Testing](docs/PHASE_2C_PROCESSOR_TESTING.md) and running `npm run test:public-image-processor`. The script requires a short-lived matching Cognito ID token, the two opaque owner-record IDs, and an exact confirmation phrase. It accepts no S3 key, owner ID, source record ID, destination path, URL, or image bytes. Use disposable synthetic hosted-development data because public-image removal lifecycle support is not implemented.
 
@@ -304,7 +307,7 @@ With the Amplify sandbox and dev server running:
 11. Sign out and confirm private upload and verification controls are not available.
 12. Confirm the normal **Publish without images** path still publishes text/setup data only and public pages contain no private key, image, or URL.
 
-Private originals stay private and are not included by the normal Public Preview payload. Do not upload or select images containing serial numbers, exact locations, license plates, bystander faces, private documents, or sensitive personal information. Phase 2D has an owner-only control that can call the Phase 2C processor for one current verified JPEG/PNG Equipment Passport cover after explicit consent. No public page can deliver or render its output, and target photos remain excluded. See [Public Image Publishing Plan](docs/PUBLIC_IMAGE_PUBLISHING_PLAN.md).
+Private originals stay private and are not included by the normal Public Preview payload. Do not upload or select images containing serial numbers, exact locations, license plates, bystander faces, private documents, or sensitive personal information. Phase 2D has an owner-only control that can call the Phase 2C processor for one current verified JPEG/PNG Equipment Passport cover after explicit consent. The saved Public Passport detail page may render only that processed derivative through the Phase 2E resolver; Discover/profile cards and all target photos remain excluded. See [Public Image Publishing Plan](docs/PUBLIC_IMAGE_PUBLISHING_PLAN.md).
 
 The developer-only processor test remains available in [Phase 2C Processor Manual Testing](docs/PHASE_2C_PROCESSOR_TESTING.md). Run both that harness and the owner-facing checks below with disposable synthetic `equipment_cover` fixtures before approving the hosted consent UI.
 
@@ -318,8 +321,8 @@ The developer-only processor test remains available in [Phase 2C Processor Manua
 6. Confirm processing remains disabled until every safety acknowledgement is checked and required alt text is valid, trimmed, no longer than 140 characters, and contains no URL/storage path.
 7. Select **Save snapshot and prepare image**. Confirm the sanitized snapshot saves first and the processor returns a friendly ready or bounded failure state without displaying a raw GraphQL/Lambda error.
 8. Inspect the mutation variables and confirm they contain only `publicPassportSnapshotId`, `privateImageAssetId`, bounded `altText`, and `consentConfirmed: true`.
-9. Confirm success says the derivative is prepared and that public rendering is not enabled.
-10. Open Discover, the public passport detail, and the public profile signed in and signed out. Confirm no image or private key is rendered or requested.
+9. Confirm success says the derivative is prepared for the saved Public Passport detail page while Discover/profile cards remain image-free.
+10. Open Discover, the public passport detail, and the public profile signed in and signed out. Confirm only the eligible processed derivative renders on saved public detail and no private key or original is rendered or requested.
 11. Confirm direct Unpublish and replacement are disabled after a derivative is prepared because backend lifecycle cleanup is not implemented yet.
 
 ### Manual Public Passport Publishing Test
@@ -332,11 +335,11 @@ With the Amplify sandbox and dev server running:
 4. Confirm the sanitized preview excludes private notes, private image keys, private setup photos, purchase details, exact locations, and sensitive personal info.
 5. Publish the public snapshot.
 6. Open `http://localhost:3000/discover` and confirm the public snapshot appears.
-7. Open the public detail page and confirm only sanitized setup fields display.
-8. Sign out and confirm Discover and the public detail page still work.
+7. Open the public detail page and confirm sanitized setup fields display; an image appears only when an explicitly prepared derivative is currently eligible.
+8. Sign out and confirm Discover and the public detail page still work, including eligible detail-only image delivery.
 9. If testing unpublish, use a snapshot that has no prepared derivative. Return to the signed-in preview page, unpublish, and confirm it disappears from Discover.
 
-Public pages remain sanitized text/setup data only. An explicitly prepared derivative stays in backend-only Storage accessible to the processor and short-lived delivery resolver; private S3 originals are never exposed publicly.
+Public pages remain based on sanitized text/setup snapshots. Only saved Public Passport detail may additionally request an explicitly prepared derivative through the short-lived delivery resolver; private S3 originals are never exposed publicly.
 
 ### Manual Public User Profile Test
 
@@ -449,7 +452,7 @@ For a comprehensive role-based release review covering every current feature, Ph
 7. Projectiles / Ammo, Optics / Sights, Range Sessions, Maintenance, and Hunting Readiness: create, view, edit, refresh, and confirm each saved record persists.
 8. Private images: upload a saved Equipment Passport setup photo and a saved Range Session target photo, verify their private source bindings, then sign out and confirm upload/verification controls are not available.
 9. Public publishing: open a saved passport Public Preview, publish or update a sanitized Public Passport snapshot, view it in Discover, and unpublish if needed.
-10. Discover: confirm filters work and public detail pages show sanitized fields only without exposing private notes, private S3 keys, private images, target photos, maintenance records, readiness records, ammo lot numbers, purchase details, exact locations, owner private details, or image metadata.
+10. Discover: confirm filters work, cards remain image-free, and saved public detail shows only sanitized fields plus an eligible processed equipment-cover derivative—never private notes, private S3 keys/originals, target photos, maintenance/readiness records, ammo lot numbers, purchase details, exact locations, owner-private details, or image metadata.
 11. Social actions: signed-in users can react, comment, and report; signed-out users can view public pages and see sign-in prompts for actions.
 12. Moderation report review: Cognito `admin` or `moderator` users can open `/moderation/reports`, see pending counts, and update report workflow status without changing reported content; normal signed-in users see an access-denied message and signed-out users see a sign-in prompt.
 13. Failure states: if public snapshots or reaction counts are unavailable, the page should remain usable with a quiet fallback message.

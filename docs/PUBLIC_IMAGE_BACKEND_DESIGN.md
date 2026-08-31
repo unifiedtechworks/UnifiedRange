@@ -2,13 +2,13 @@
 
 ## Status
 
-Phase 1 data guardrails were added on August 5, 2026. Phase 2A private source registration, Phase 2B trusted private source verification, and the Phase 2C backend derivative foundation were added on August 9, 2026. Phase 2D owner consent UI was added on August 18, 2026. Phase 2E.1 now adds the backend-only `resolvePublicPassportImage` delivery query. The schema contains a non-public, client-read-only `PublicImageAsset` workflow ledger, backend-reserved public snapshot projection fields, an owner-only `PrivateImageAsset` candidate registry, verification/processing operations, and a public-safe delivery resolver.
+Phase 1 data guardrails were added on August 5, 2026. Phase 2A private source registration, Phase 2B trusted private source verification, and the Phase 2C backend derivative foundation were added on August 9, 2026. Phase 2D owner consent UI was added on August 18, 2026. Phase 2E.1 adds the backend-only `resolvePublicPassportImage` delivery query, and Phase 2E.2 adds detail-only rendering through that resolver. The schema contains a non-public, client-read-only `PublicImageAsset` workflow ledger, backend-reserved public snapshot projection fields, an owner-only `PrivateImageAsset` candidate registry, verification/processing operations, and a public-safe delivery resolver.
 
-Product rendering is still unavailable. Phase 2E.1 can issue a manually requested 60-second non-cacheable URL only after the public snapshot, ready asset, Equipment Passport public flag, account visibility, safe alt text, exact derivative path, and S3 object all agree. The derivative namespace remains unreadable directly by browser or guest identities; only the processor and resolver Lambdas can read it. There is no public-page resolver call, image component, target-photo processing, removal flow, or automatic publishing.
+Phase 2E.2 renders one eligible processed equipment-cover derivative on a saved Public Passport detail page. The component supplies only the route's snapshot ID to Phase 2E.1 and receives a 60-second non-cacheable URL only after the public snapshot, ready asset, Equipment Passport public flag, account visibility, safe alt text, exact derivative path, and S3 object all agree. The derivative namespace remains unreadable directly through Amplify Storage; only the processor and resolver Lambdas can access it. Discover/profile rendering, target-photo processing, removal/replacement, and automatic publishing remain unavailable.
 
 The browser may create and read its own immutable `PrivateImageAsset` candidate records after a successful private upload. Those rows remain private registration hints until `verifyPrivateImageAsset` independently marks them `verified`. Normal clients cannot write `bindingStatus`, `bindingFailureCode`, or `verifiedAt`. The Phase 2C processor rejects every candidate that is missing `verified` status and repeats the current source/object checks because verification proves source binding only and does not prove decoded image safety or metadata removal.
 
-UnifiedRange's normal **Publish without images** flow publishes sanitized text/setup snapshots only. Equipment Passport setup-photo originals and Range Session target photos remain owner-private. Public pages must continue to render no image until later delivery, rendering, removal, and moderation phases are implemented and tested.
+UnifiedRange's normal **Publish without images** flow publishes sanitized text/setup snapshots only. Equipment Passport setup-photo originals and Range Session target photos remain owner-private. Only a separately consented, processed derivative may render, and only on the saved Public Passport detail page when the resolver confirms current eligibility.
 
 This design refines the product boundary in [PUBLIC_IMAGE_PUBLISHING_PLAN.md](PUBLIC_IMAGE_PUBLISHING_PLAN.md) into an implementable AWS Amplify Gen 2 backend contract.
 
@@ -465,7 +465,7 @@ Public/guest principals still have no direct derivative Storage access. Phase 2E
 
 ## Public rendering contract
 
-Phase 2E.2 should add a detail-only helper that:
+Phase 2E.2 implements a detail-only helper that:
 
 1. accepts only `publicPassportSnapshotId` from the saved public route;
 2. calls `resolvePublicPassportImage` with API-key authorization;
@@ -629,7 +629,7 @@ Alarms should cover sustained processing failures, metadata-verification failure
 - [x] Add a developer-only, explicit-confirmation authenticated test script with no product UI, committed token, S3-key input, or arbitrary endpoint.
 - [ ] Add superseded-asset removal and scheduled orphan cleanup.
 - [ ] Add hosted integration fixtures for same-owner success, another-owner/private-account/source-race attempts, malformed/animated/oversized inputs, and metadata leakage.
-- [x] Phase 2C itself added no public delivery rule, selection UI, client invocation, target-photo processing, or rendering. Later phases now add the consent caller and backend-only resolver while keeping public pages image-free.
+- [x] Phase 2C itself added no public delivery rule, selection UI, client invocation, target-photo processing, or rendering. Later phases add owner consent, the backend resolver, and detail-only delivery while keeping Discover/profile cards and target-photo surfaces image-free.
 
 ### Phase 2D: owner Public Preview consent workflow
 
@@ -651,8 +651,8 @@ Alarms should cover sustained processing failures, metadata-verification failure
 - [ ] Implement derivative-aware remove/unpublish and visibility revocation before public delivery.
 - [x] Add a snapshot-ID-only backend resolver that returns a short-lived ready-derivative URL and safe alt text.
 - [x] Add a bounded developer harness and generated-URL defense-in-depth validation.
-- [ ] Render the first approved derivative on Public Passport detail only, with no private fallback.
-- [ ] Keep Discover and public profile cards image-free until the detail-only release is proven.
+- [x] Render the first approved derivative on Public Passport detail only, with no private fallback.
+- [x] Keep Discover and public profile cards image-free during the detail-only release.
 
 ### Later public image moderation and expansion
 

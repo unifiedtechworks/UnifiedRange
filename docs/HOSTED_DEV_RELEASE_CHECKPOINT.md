@@ -30,7 +30,8 @@ UnifiedRange is deployed as an AWS Amplify Gen 2 hosted-development MVP. This ch
 - Public account visibility controls, safe missing/private states, public setup counts, and published setup lists.
 - Discover browsing with client-side search and filters.
 - Public setup detail pages use sanitized snapshot fields and safe owner fallbacks rather than raw Cognito identifiers.
-- Private images are not published through public profiles, Discover, or Public Passport snapshots.
+- Eligible processed Equipment Passport cover derivatives may render only on saved Public Passport detail through the short-lived resolver.
+- Private originals are not published through public profiles, Discover, or Public Passport snapshots; profile/Discover cards and all target-photo surfaces remain image-free.
 
 ### Community and moderation
 
@@ -70,7 +71,7 @@ Use the role-based [Manual QA Checklist](MANUAL_QA_CHECKLIST.md) for the compreh
 6. If a legacy username-conflict fixture is available, confirm `/profile/username-repair` permits only the conflicted owner to reserve an available replacement username and never changes the existing owner's reservation.
 7. Create, view, edit, and delete a test record in Equipment Passports, Projectiles / Ammo, Optics / Sights, Range Sessions, Maintenance, and Hunting Readiness. Confirm records remain scoped to the signed-in owner.
 8. Upload an Equipment Passport photo and Range Session target photo. Refresh, then sign out and confirm private images, image keys, and upload controls are not exposed publicly.
-9. Preview and publish a sanitized Equipment Passport snapshot. Confirm **Publish without images** is the default. With a disposable verified JPEG/PNG equipment cover, test the optional consent flow and confirm no public page renders the prepared derivative. Use a text-only snapshot for the current unpublish test.
+9. Preview and publish a sanitized Equipment Passport snapshot. Confirm **Publish without images** is the default. With a disposable verified JPEG/PNG equipment cover, test the optional consent flow and confirm only saved Public Passport detail renders the eligible processed derivative. Use a text-only snapshot for the current unpublish test.
 10. Open `/u/[username]` while signed out. Confirm the public profile respects account visibility and shows only sanitized identity and published setup activity.
 11. Test Discover search and filters on desktop and mobile. Open a public setup and confirm private notes, private images, lot numbers, purchase details, exact locations, and raw owner IDs are absent.
 12. While signed in, add and remove a reaction, submit a test comment, and submit a test report. While signed out, confirm public content remains readable and write actions show sign-in prompts.
@@ -83,7 +84,7 @@ Use the role-based [Manual QA Checklist](MANUAL_QA_CHECKLIST.md) for the compreh
 ## Known Limitations
 
 - Account deletion and account data export are planned but not implemented.
-- Public image rendering is not available; uploaded originals remain private. Phase 2D provides owner-only selection and consent for one verified Equipment Passport cover, and Phase 2E.1 adds a backend-only resolver that may return a 60-second eligible-derivative URL for manual testing. Public pages do not call it. There is no direct public Storage rule, rendering, target-photo support, replacement/removal/unpublish cleanup, or image-moderation lifecycle. See the [Public Image Publishing Plan](PUBLIC_IMAGE_PUBLISHING_PLAN.md).
+- Public image rendering is limited to eligible processed Equipment Passport covers on saved Public Passport detail. Uploaded originals remain private, and Discover/profile cards and target photos remain image-free. There is no direct public Storage rule, replacement/removal/unpublish cleanup, or image-moderation lifecycle. See the [Public Image Publishing Plan](PUBLIC_IMAGE_PUBLISHING_PLAN.md).
 - Feeds and follows are not implemented.
 - A notification center is not implemented.
 - Moderation has report metadata review and status workflow only. It has no destructive content removal, hiding, suspension, or account actions.

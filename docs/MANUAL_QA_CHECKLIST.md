@@ -426,13 +426,13 @@ User B, a second standard account, Visitor, and optionally Backend inspector.
 - [ ] A registration failure, if deliberately simulated in a sandbox, leaves the saved image private and shows that registration is pending; it does not publish anything.
 - [ ] Other owners, moderators acting only through their group role, API-key clients, and visitors cannot read private registry rows.
 - [ ] Verification does not download image bytes to the UI, copy the object, create a public workflow record, or populate a public snapshot image field.
-- [ ] A valid Phase 2C harness or Phase 2D owner-consent action may create a derivative and guarded projection, but the object remains processor-only and no public page can resolve or render it.
+- [ ] A valid Phase 2C harness or Phase 2D owner-consent action may create a derivative and guarded projection. Only the Phase 2E resolver can deliver it, and only saved Public Passport detail may render it.
 
 ### Privacy and safety checks
 
 - [ ] UI copy distinguishes verified private source binding from public eligibility and never claims that verification publishes or sanitizes the image.
 - [ ] Private keys, signed URLs, original filenames, Identity Pool IDs, and image contents are not displayed on public pages or copied into public records.
-- [ ] The owner-only Phase 2D control calls the Phase 2C backend action with only opaque snapshot/candidate IDs, bounded alt text, and required consent. The Phase 2E.1 resolver may issue a short-lived processed-derivative URL by snapshot ID, but no direct client Storage write/read rule or rendering exists.
+- [ ] The owner-only Phase 2D control calls the Phase 2C backend action with only opaque snapshot/candidate IDs, bounded alt text, and required consent. Phase 2E delivery uses only the public snapshot ID and a short-lived processed-derivative URL; no direct client Storage read/write rule exists.
 - [ ] Target photos are never automatically selected or published.
 
 ## 13. Public Passport publishing and unpublishing
@@ -459,7 +459,7 @@ User B and Visitor.
 - [ ] With network throttling enabled, start candidate/Public Preview loading and then sign out, change accounts, change routes, or replace the private cover. Confirm an older response never repopulates private record or candidate state.
 - [ ] Confirm processing, ready, bounded failure, and source-changed states never display raw GraphQL/Lambda/S3 errors or identifiers.
 - [ ] On a forced processor failure after snapshot save, confirm the UI accurately says the text/setup snapshot is saved without an image and does not automatically retry or unpublish.
-- [ ] On success, confirm the UI says a public-safe derivative is prepared and public image rendering is not enabled.
+- [ ] On success, confirm the UI says the public-safe derivative may appear on saved Public Passport detail while Discover/profile cards remain image-free.
 - [ ] Open the resulting Discover detail route signed in and signed out.
 - [ ] Edit safe source fields, return to Public Preview, update the snapshot, and confirm the public page changes only after the explicit update.
 - [ ] Inspect normal Public Preview create/update requests and confirm they omit all image projection fields. Only the backend processor may populate the guarded projection.
@@ -499,26 +499,32 @@ Account type: Visitor/API-key caller, User B with a disposable eligible derivati
 - [ ] Confirm public clients still cannot use Amplify Storage directly to list, read, write, copy, or delete the derivative prefix; only the resolver URL permits the exact short-lived GET.
 - [ ] Confirm the resolver role cannot read either private prefix and has no derivative write/delete permission.
 - [ ] Review resolver logs. They may contain only fixed event names, bounded internal failure categories, URL lifetime, and cache seconds—not snapshot/asset/owner/source IDs, keys, URLs, alt text, filenames, tokens, or image bytes.
-- [ ] Open Discover, a public profile, and a Public Passport detail signed in and signed out. Confirm none calls the resolver or renders an image in Phase 2E.1.
+- [ ] Open Discover, a public profile, and a saved Public Passport detail signed in and signed out. Confirm only the saved detail calls the resolver; Discover and public profile cards remain image-free.
 
-### Future Phase 2E.2 public-detail rendering cases — not runnable yet
+### Phase 2E.2 public-detail rendering
 
-Run these only after the lifecycle commands and detail-only image component are implemented and deployed:
+Account type: User B with disposable prepared public-image data, Visitor, and optionally Backend inspector. Run after the hardened resolver backend and Phase 2E.2 frontend are deployed.
 
 - [ ] Use a public account with one published text snapshot and no prepared derivative. Confirm the saved public detail page remains text-only with a neutral missing-image state.
 - [ ] Process one current verified JPEG/PNG `equipment_cover`, then open `/discover/passports/[publicPassportId]` signed in and signed out. Confirm only the processed derivative appears.
 - [ ] Confirm the browser requests the delivery resolver with only `publicPassportSnapshotId` and receives only availability, a short-lived processed-derivative URL, safe alt text, and expiry.
+- [ ] Confirm missing, duplicate, malformed, or mismatched SigV4 parameters; a non-HTTPS URL; alternate host/port/path; wrong snapshot path; signing/expiry mismatch; nonzero cache seconds; or missing signed no-store/JPEG/inline overrides all produce no image and no technical message.
+- [ ] Confirm the page does not retain the URL in local/session storage, route data, a shared cache, analytics, or console output. Reloading the page must request a new resolver result.
 - [ ] Confirm the detail route never requests `private/equipment/`, `private/targets/`, `privateCoverPhotoKey`, a private signed URL, or a private image registry record.
 - [ ] Confirm Discover cards and `/u/[username]` setup cards still render no images in the first Phase 2E slice.
 - [ ] Confirm sample/demo Public Passport details and every Range Session target-photo surface remain image-free.
-- [ ] Remove the public image through the future owner lifecycle action. Confirm the detail page immediately returns to text-only, the private original remains available to its owner, and an earlier short-lived URL expires within the approved revocation window.
-- [ ] Unpublish a snapshot with a processed derivative through the future backend action. Confirm the public route and new image delivery both become unavailable before derivative cleanup completes.
 - [ ] Change the account to private. Confirm no new delivery URL is issued and the image/public content follows the account-visibility policy without a private fallback.
 - [ ] Delete or make a disposable derivative unavailable in an isolated environment. Confirm the public detail page hides the image without displaying an S3 key, URL, object error, asset status, or technical failure.
-- [ ] Simulate a future moderation-hidden state. Confirm the resolver returns unavailable, the derivative disappears, report status remains independent, and the private original is untouched.
 - [ ] Verify safe alt text with keyboard and screen-reader testing. Missing, blank, unsafe, URL-like, path-like, or oversized alt text must cause no image to render.
 - [ ] Throttle the resolver and change routes between two public snapshots. Confirm a stale response never renders the prior snapshot's image.
+- [ ] Delay the public snapshot/profile response as well as the image resolver. Navigate to another detail during each delay and confirm neither the prior detail record nor its image reappears.
+- [ ] Hold the resolver beyond 10 seconds or the image response beyond 15 seconds. Confirm the loading area disappears safely and the sanitized detail remains usable without retries or raw errors.
+- [ ] In an isolated fixture, return an empty decoded image or dimensions above 1600 pixels. Confirm the component hides it even if the resolver response otherwise passes validation.
 - [ ] Inspect page source, DOM text, GraphQL variables/responses, Storage requests, console, analytics, and accessible logs. Confirm no private key, private URL, owner/source ID, original filename, EXIF/GPS, image bytes, token, or target photo is exposed.
+- [ ] Confirm image-load failure or URL expiry removes the image quietly while the complete sanitized text detail remains usable and no technical error is shown.
+- [ ] Test narrow mobile widths and long safe alt text. Confirm the loading/image card never causes horizontal scrolling, and the caption remains readable.
+
+Future lifecycle cases remain blocked until their backend actions exist: owner removal, derivative-aware unpublish, replacement, and moderator hide/remove. When implemented, each must detach delivery before cleanup and must preserve the private original unless the owner separately deletes it.
 
 ## 14. Public profiles
 

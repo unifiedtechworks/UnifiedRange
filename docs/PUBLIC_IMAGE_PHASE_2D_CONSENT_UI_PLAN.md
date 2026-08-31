@@ -258,7 +258,7 @@ Do not report the overall action as rolled back. Do not automatically unpublish 
 | Verified image available | Offer one current verified equipment cover; do not preselect it | Select it or continue without image |
 | Selected | Show private source preview, checklist, and alt text; no backend action yet | Confirm checklist, edit alt text, clear selection |
 | Processing | Show “Creating a public-safe derivative…” and disable duplicate image actions | Wait for the bounded result; text-only navigation may remain available after save |
-| Processed successfully | Say the protected derivative is ready and explicitly state that public rendering is not enabled yet | Return to text-only view; replacement/removal deferred as described below |
+| Processed successfully | Say the protected derivative is ready for saved Public Passport detail while Discover/profile cards remain image-free | Return to text-only view; replacement/removal deferred as described below |
 | Failed | Show a friendly bounded message; retain no sensitive technical data | Retry after correction, choose no image, or return to the private source page |
 | Source changed | Clear consent and selection because the previous verification no longer matches the current cover | Re-verify the current private cover or continue without image |
 

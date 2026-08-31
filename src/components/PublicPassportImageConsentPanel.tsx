@@ -27,8 +27,8 @@ const safetyChecks = [
   { id: "private_documents", label: "I checked that the image does not show private documents." },
   { id: "personal_information", label: "I checked that the image does not show sensitive personal information." },
   {
-    id: "later_public_release",
-    label: "I understand this processed derivative may become public in a later publishing or rendering step."
+    id: "public_detail_rendering",
+    label: "I understand this processed derivative may appear publicly on the saved Public Passport detail page."
   }
 ] as const;
 
@@ -244,7 +244,7 @@ export function PublicPassportImageConsentPanel({
 
       if (result.status === "ready") {
         setProcessingState("ready");
-        setProcessingMessage("The public-safe derivative is prepared. Public image rendering is not enabled yet.");
+        setProcessingMessage("The public-safe derivative is prepared and can appear on the saved Public Passport detail while it remains eligible.");
         onProcessed?.();
         return;
       }
@@ -280,11 +280,11 @@ export function PublicPassportImageConsentPanel({
         <p className="text-xs font-semibold uppercase tracking-[0.12em] text-ink/50">Owner-only image consent</p>
         <h4 className="mt-1 text-lg font-bold text-ink">Optional public image</h4>
         <p id={choiceDescriptionId} className="mt-2 text-sm leading-6 text-ink/70">
-          Images are optional. Your private original stays private. Selecting an image creates a separate processed derivative for a later public-rendering release.
+          Images are optional. Your private original stays private. Selecting an image creates a separate processed derivative that may appear only on the saved Public Passport detail page.
         </p>
         {hasPreparedPublicImage ? (
           <p className="mt-3 rounded-md border border-moss/25 bg-white px-3 py-2 text-sm leading-6 text-ink/70">
-            A public-safe derivative is already prepared, but public rendering is still disabled. Publishing text without images does not remove that protected derivative. Safe replacement and removal will require a later backend lifecycle action.
+            A public-safe derivative is already prepared and may appear on the saved Public Passport detail page while it remains eligible. Discover and public profile cards remain image-free. Safe replacement and removal require a later backend lifecycle action.
           </p>
         ) : null}
       </div>
@@ -358,7 +358,7 @@ export function PublicPassportImageConsentPanel({
 
           <fieldset className="rounded-md border border-clay/20 bg-white p-4">
             <legend className="px-1 text-sm font-bold text-ink">Image-safety checklist</legend>
-            <p className="mb-3 text-xs leading-5 text-ink/60">Metadata stripping cannot remove sensitive details visible in the pixels. Public images may be copied or shared later.</p>
+            <p className="mb-3 text-xs leading-5 text-ink/60">Metadata stripping cannot remove sensitive details visible in the pixels. Public images may be copied or shared by visitors.</p>
             <div className="space-y-3">
               {safetyChecks.map((item) => (
                 <label key={item.id} className="flex cursor-pointer items-start gap-3 text-sm leading-6 text-ink/75">
@@ -426,8 +426,8 @@ export function PublicPassportImageConsentPanel({
       ) : null}
 
       <div className="mt-4 rounded-md border border-ink/10 bg-white px-4 py-3 text-xs leading-5 text-ink/60">
-        <p className="font-semibold text-ink/70">Public image rendering is not enabled yet.</p>
-        <p className="mt-1">This step only prepares a processed public-safe derivative for a later release. The private original remains private, and no target photo is eligible.</p>
+        <p className="font-semibold text-ink/70">Public image rendering is limited to saved Public Passport detail pages.</p>
+        <p className="mt-1">Discover and public profile cards remain image-free. The private original remains private, and no target photo is eligible.</p>
       </div>
     </section>
   );

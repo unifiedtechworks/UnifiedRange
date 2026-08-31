@@ -2,10 +2,11 @@
 
 import { generateClient } from "aws-amplify/data";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Schema } from "../../amplify/data/resource";
 import { DetailRow } from "@/components/DetailRow";
 import { PageHeader } from "@/components/PageHeader";
+import { PublicPassportImage } from "@/components/PublicPassportImage";
 import { PublicPhotoPlaceholderList, PublicRangeSessionList, ReactionBar } from "@/components/PublicPassportSections";
 import { PublicSocialPanel } from "@/components/PublicSocialPanel";
 import { ReportContentButton } from "@/components/ReportContentButton";
@@ -27,8 +28,14 @@ export function PublicPassportDetail({ publicPassportId }: { publicPassportId?: 
   const [record, setRecord] = useState<PublicPassportSnapshotRecord | null>(null);
   const [owner, setOwner] = useState<PublicUserIdentity | undefined>();
   const [error, setError] = useState("");
+  const loadRequestIdRef = useRef(0);
 
   const loadPublicPassport = useCallback(async () => {
+    const requestId = loadRequestIdRef.current + 1;
+    loadRequestIdRef.current = requestId;
+    setState("loading");
+    setRecord(null);
+    setOwner(undefined);
     setError("");
 
     if (!publicPassportId) {
@@ -51,24 +58,40 @@ export function PublicPassportDetail({ publicPassportId }: { publicPassportId?: 
     try {
       const result = await client.models.PublicPassportSnapshot.get({ id: publicPassportId }, { authMode: "apiKey" });
 
+      if (loadRequestIdRef.current !== requestId) {
+        return;
+      }
+
       if (result.errors?.length) {
-        throw new Error(result.errors.map((item) => item.message).join(" "));
+        throw new Error("public_snapshot_unavailable");
       }
 
       if (result.data) {
-        setRecord(result.data);
+        if (result.data.id !== publicPassportId) {
+          throw new Error("public_snapshot_mismatch");
+        }
+
         const profileResult = await client.models.PublicUserProfileSnapshot.list({
           filter: { ownerId: { eq: result.data.ownerId } },
           authMode: "apiKey"
         });
+
+        if (loadRequestIdRef.current !== requestId) {
+          return;
+        }
+
+        setRecord(result.data);
         if (!profileResult.errors?.length) {
           setOwner(publicIdentityByOwner(profileResult.data)[result.data.ownerId]);
         }
         setState("saved");
         return;
       }
-    } catch (loadError) {
-      console.error("Unable to load public passport snapshot", loadError);
+    } catch {
+      if (loadRequestIdRef.current !== requestId) {
+        return;
+      }
+
       setError("This public snapshot could not be loaded.");
     }
 
@@ -84,10 +107,13 @@ export function PublicPassportDetail({ publicPassportId }: { publicPassportId?: 
 
     return () => {
       window.clearTimeout(loadInitialState);
+      loadRequestIdRef.current += 1;
     };
   }, [loadPublicPassport]);
 
-  if (state === "loading") {
+  const hasCurrentSavedRecord = state === "saved" && record?.id === publicPassportId;
+
+  if (state === "loading" || (state === "saved" && !hasCurrentSavedRecord)) {
     return <p className="rounded-md border border-ink/10 bg-white p-4 text-sm text-ink/65 shadow-soft">Loading public setup...</p>;
   }
 
@@ -103,16 +129,30 @@ export function PublicPassportDetail({ publicPassportId }: { publicPassportId?: 
     );
   }
 
-  const passport = state === "saved" && record ? recordToSanitizedPublicPassport(record, owner) : getSanitizedPublicPassportById(publicPassportId);
+  const passport = hasCurrentSavedRecord && record ? recordToSanitizedPublicPassport(record, owner) : getSanitizedPublicPassportById(publicPassportId);
 
   if (!passport) {
     return null;
   }
 
-  return <PublicPassportDetailContent passport={passport} source={state === "saved" ? "Public snapshot" : "Sample data"} />;
+  return (
+    <PublicPassportDetailContent
+      passport={passport}
+      source={hasCurrentSavedRecord ? "Public snapshot" : "Sample data"}
+      publicPassportSnapshotId={hasCurrentSavedRecord ? record?.id : undefined}
+    />
+  );
 }
 
-function PublicPassportDetailContent({ passport, source }: { passport: SanitizedPublicPassport; source: string }) {
+function PublicPassportDetailContent({
+  passport,
+  source,
+  publicPassportSnapshotId
+}: {
+  passport: SanitizedPublicPassport;
+  source: string;
+  publicPassportSnapshotId?: string;
+}) {
   const isDemo = source === "Sample data";
 
   return (
@@ -130,9 +170,11 @@ function PublicPassportDetailContent({ passport, source }: { passport: Sanitized
 
       <div className="mb-6 rounded-md border border-moss/20 bg-field p-4">
         <p className="text-sm leading-6 text-ink/70">
-          {source}. This page shows only sanitized setup overview fields. Private notes, private images, owner details, purchase records, exact locations, and image metadata are excluded.
+          {source}. This page shows sanitized setup overview fields and, when explicitly approved, one processed public equipment-cover image. Private notes, private originals, owner details, purchase records, exact locations, and image metadata are excluded.
         </p>
       </div>
+
+      {publicPassportSnapshotId ? <PublicPassportImage publicPassportSnapshotId={publicPassportSnapshotId} /> : null}
 
       <div className="mb-6 rounded-md border border-ink/10 bg-white p-4 shadow-soft">
         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-ink/45">Published by</p>

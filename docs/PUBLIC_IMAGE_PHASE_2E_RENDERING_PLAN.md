@@ -2,13 +2,13 @@
 
 ## Status and scope
 
-Phase 2E.1 adds the backend-only delivery resolver foundation. `resolvePublicPassportImage` is an API-key-authorized public query that accepts only `publicPassportSnapshotId`, revalidates the current public snapshot/asset/source/profile/object graph, and returns a 60-second processed-derivative URL plus safe alt text only when every check passes. Every rejected condition returns the same bounded unavailable response.
+Phase 2E.1 adds the backend-only delivery resolver foundation. `resolvePublicPassportImage` is an API-key-authorized public query that accepts only `publicPassportSnapshotId`, revalidates the current public snapshot/asset/source/profile/object graph, and returns a 60-second processed-derivative URL plus safe alt text only when every check passes. Every rejected condition returns the same bounded unavailable response. Phase 2E.2 adds the first rendering surface on saved Public Passport detail pages only.
 
 Phase 2C can create a bounded, metadata-stripped JPEG derivative under the processor-only `public/passports/{snapshotId}/cover/{publicImageAssetId}.jpg` namespace. Phase 2D lets the signed-in owner explicitly select the current verified Equipment Passport cover, complete the safety checklist, provide bounded alt text, and invoke processing from Public Preview. Normal publishing still defaults to **Publish without images**.
 
-The derivative namespace grants write/delete access only to the processor and read access only to the processor and delivery Lambda. Signed-out visitors, API-key clients, normal signed-in users, moderators, and admins still cannot read it directly through Amplify Storage. Public pages intentionally ignore the snapshot image projection fields and do not call the resolver yet.
+The derivative namespace grants write/delete access only to the processor and read access only to the processor and delivery Lambda. Signed-out visitors, API-key clients, normal signed-in users, moderators, and admins still cannot read it directly through Amplify Storage. The saved Public Passport detail component calls only the resolver with the route's snapshot ID; it never reads projection fields or Storage directly. Discover cards and public profile cards remain image-free.
 
-Phase 2E.1 provides a manually testable delivery primitive, not product rendering or broad public image release. Phase 2E.2 must preserve these boundaries when it adds the first detail-only rendering surface. Target photos remain out of scope.
+Phase 2E.2 is a narrow detail-only rendering slice, not broad public image release. Missing, expired, ineligible, inconsistent, or failed delivery silently degrades to the complete text-only detail. Target photos remain out of scope.
 
 ## Decision summary
 
@@ -158,7 +158,7 @@ The public response may reveal the processed derivative URL because the image is
 
 ### Component boundary
 
-Add a detail-only component in Phase 2E, for example `PublicPassportCoverImage`, that receives only `publicPassportSnapshotId`.
+Phase 2E.2 adds `PublicPassportImage`, a detail-only component that receives only `publicPassportSnapshotId`, plus a narrow public resolver helper.
 
 - `PublicPassportDetail` renders it only for a saved public snapshot, never for sample/demo data.
 - The component calls the public delivery resolver using the public API authorization mode.
@@ -166,8 +166,10 @@ Add a detail-only component in Phase 2E, for example `PublicPassportCoverImage`,
 - It ignores stale responses after route or snapshot changes.
 - It clears the URL from state on unmount and never persists it.
 - It makes no processor, upload, verification, or Storage-write request.
+- The parent detail loader and image component use independent request generations so an older snapshot/profile/resolver/image event cannot win after navigation.
+- Resolver checks stop after 10 seconds and image-byte loading stops after 15 seconds; both degrade to the same quiet text-only state.
 
-Keep `PublicPassportCard`, `DiscoverPublicPassportList`, `PublicUserProfile`, and `recordToSanitizedPublicPassport` image-free in the first release.
+`PublicPassportCard`, `DiscoverPublicPassportList`, `PublicUserProfile`, and `recordToSanitizedPublicPassport` remain image-free in this release.
 
 ### UI states
 
@@ -184,6 +186,8 @@ Use a bounded cover area above the sanitized setup details:
 | Route changes while loading | Ignore the stale result and never display the prior snapshot's image |
 
 Because Phase 2C already bounds dimensions and output size, the first release may load the short-lived URL directly with a standard image element or an unoptimized framework image component. Do not route the URL through an optimizer or CDN cache until its cache and revocation behavior has been tested. Set explicit width/aspect-ratio constraints to prevent layout shift and mobile overflow.
+
+The client repeats the public delivery contract before assigning `src`: one non-duplicated set of SigV4 parameters, HTTPS, the configured S3 bucket/Region host, no alternate port/credentials/fragment, the exact snapshot-specific cover path and lowercase content-addressed JPEG filename, a 60-second signing window consistent with `expiresAt`, `cacheSeconds=0`, and the signed `private, no-store, max-age=0`/JPEG/inline response overrides. It also rejects a decoded image with empty or greater-than-1600-pixel dimensions. These are defense-in-depth checks; backend authorization remains authoritative.
 
 Optional copy such as “User-approved processed public image” may appear near the image if it helps users understand the boundary. It must not imply moderator approval or safety certification.
 
@@ -294,11 +298,14 @@ The original foundation phase changed the Amplify backend/schema/IAM and require
 
 ### Phase 2E.2: Public Passport detail rendering
 
-- Add a detail-only component that accepts only the snapshot ID.
-- Add loading, loaded, unavailable, expired, and stale-request states.
-- Render saved public snapshots only; keep sample data text-only.
-- Use direct short-lived delivery without framework/CDN caching until revocation tests pass.
-- Keep Discover cards and public profile cards unchanged.
+- [x] Add a detail-only component that accepts only the snapshot ID.
+- [x] Add loading, loaded, unavailable, expired, and stale-request states.
+- [x] Render saved public snapshots only; keep sample data text-only.
+- [x] Use direct short-lived delivery without framework/CDN caching until revocation tests pass.
+- [x] Keep Discover cards and public profile cards unchanged.
+- [x] Revalidate the resolver response host, path, expiry, cache seconds, and alt text before rendering.
+- [x] Bind detail, resolver, and image events to the current route/request; bound resolver/image loading; and discard stale events.
+- [x] Validate non-duplicated SigV4 fields, signed response overrides, and decoded image dimensions before showing the derivative.
 
 ### Phase 2E.3: lifecycle and privacy validation
 
@@ -316,7 +323,7 @@ The original foundation phase changed the Amplify backend/schema/IAM and require
 
 ## Release acceptance gates
 
-Do not enable public rendering until all of the following pass:
+Do not expand beyond the detail-only hosted-development slice or approve a broader public-image release until all of the following pass:
 
 - only `ready` processed `equipment_cover` derivatives can receive a URL;
 - the public resolver accepts only a public snapshot ID;
@@ -333,6 +340,6 @@ Do not enable public rendering until all of the following pass:
 
 ## Deployment expectation
 
-The original Phase 2E.1 foundation changed the Amplify schema, added `resolve-public-passport-image`, and changed IAM/Storage resource access. This hardening pass changes only the resolver Lambda code plus local test/docs; it does not change the schema, resolver contract, IAM, or Storage rules. Redeploy the backend Lambda through sandbox/hosted Amplify before using the hardened test path.
+The original Phase 2E.1 foundation changed the Amplify schema, added `resolve-public-passport-image`, and changed IAM/Storage resource access. Its later hardening changed the resolver Lambda and requires that backend version to be deployed before Phase 2E.2 can succeed.
 
-Public rendering remains disabled after that deployment. Phase 2E.2 still requires a separately reviewed detail-only component, and general release still requires backend lifecycle commands for removal, derivative-aware unpublish, and visibility cleanup.
+Phase 2E.2 itself is frontend-only plus documentation: it adds no schema, resolver-contract, IAM, or Storage change and needs no additional backend redeploy once the hardened Phase 2E.1 backend is active. General release and surface expansion still require backend lifecycle commands for removal, derivative-aware unpublish, visibility cleanup, and the remaining hosted acceptance tests.
