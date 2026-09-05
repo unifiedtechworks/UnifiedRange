@@ -74,6 +74,7 @@ type PublicPassportSnapshot = {
   publicImageAssetId?: string;
   publicImageKey?: string;
   publicImageAltText?: string;
+  updatedAt?: string;
 };
 
 type EquipmentPassport = {
@@ -272,7 +273,8 @@ function readSnapshot(item: DynamoItem | undefined, expectedId: string) {
     equipmentPassportId: stringValue(item, "equipmentPassportId") ?? "",
     publicImageAssetId: stringValue(item, "publicImageAssetId"),
     publicImageKey: stringValue(item, "publicImageKey"),
-    publicImageAltText: stringValue(item, "publicImageAltText")
+    publicImageAltText: stringValue(item, "publicImageAltText"),
+    updatedAt: stringValue(item, "updatedAt")
   };
 
   if (snapshot.id !== expectedId) {
@@ -793,7 +795,7 @@ async function startProcessingLedger({
       TableName: publicImageAssetTableName,
       Key: { id: { S: publicImageAssetId } },
       ConditionExpression:
-        "attribute_not_exists(#id) OR (#ownerId = :ownerId AND #snapshotId = :snapshotId AND #privateAssetId = :privateAssetId AND #sourceType = :sourceType AND #sourceRecordId = :sourceRecordId AND (#status <> :processing OR #updatedAt < :leaseCutoff))",
+        "attribute_not_exists(#id) OR (#ownerId = :ownerId AND #snapshotId = :snapshotId AND #privateAssetId = :privateAssetId AND #sourceType = :sourceType AND #sourceRecordId = :sourceRecordId AND #status <> :removed AND (#status <> :processing OR #updatedAt < :leaseCutoff))",
       UpdateExpression:
         "SET #ownerId = :ownerId, #snapshotId = :snapshotId, #privateAssetId = :privateAssetId, #sourceType = :sourceType, #sourceRecordId = :sourceRecordId, #status = :processing, #consent = :consent, #createdAt = if_not_exists(#createdAt, :now), #updatedAt = :now REMOVE #failureCode, #publicKey, #altText",
       ExpressionAttributeNames: {
@@ -818,6 +820,7 @@ async function startProcessingLedger({
         ":sourceType": { S: "equipment_cover" },
         ":sourceRecordId": { S: sourceRecordId },
         ":processing": { S: "processing" },
+        ":removed": { S: "removed" },
         ":leaseCutoff": { S: leaseCutoff },
         ":consent": { S: consentConfirmedAt },
         ":now": { S: consentConfirmedAt }
@@ -934,6 +937,12 @@ async function finalizeProjection({
     ":now": { S: now }
   };
   let snapshotCondition = "#ownerId = :ownerId AND #sourceRecordId = :sourceRecordId";
+  if (snapshot.updatedAt) {
+    snapshotValues[":existingUpdatedAt"] = { S: snapshot.updatedAt };
+    snapshotCondition += " AND #updatedAt = :existingUpdatedAt";
+  } else {
+    snapshotCondition += " AND attribute_not_exists(#updatedAt)";
+  }
   if (snapshot.publicImageAssetId) {
     snapshotValues[":existingPublicAssetId"] = { S: snapshot.publicImageAssetId };
     snapshotCondition += " AND #publicAssetId = :existingPublicAssetId";
@@ -1107,7 +1116,8 @@ export const handler: Schema["processPublicPassportImage"]["functionHandler"] = 
         "equipmentPassportId",
         "publicImageAssetId",
         "publicImageKey",
-        "publicImageAltText"
+        "publicImageAltText",
+        "updatedAt"
       ])
     ]);
     const asset = readPrivateImageAsset(candidateItem, privateImageAssetId);

@@ -1,8 +1,8 @@
 # UnifiedRange Manual QA Checklist
 
-Last updated: August 29, 2026
+Last updated: August 30, 2026
 
-Use this checklist for a complete hosted-development release review. It starts from the current MVP, including Phase 2A owner-only `PrivateImageAsset` candidate registration, Phase 2B trusted private source verification, the Phase 2C derivative processor, the Phase 2D owner-only equipment-cover consent UI, and the Phase 2E.1 backend delivery resolver foundation. It does not assume that public image rendering, account deletion/export, username sign-in, notifications, or destructive moderation actions exist.
+Use this checklist for a complete hosted-development release review. It starts from the current MVP, including Phase 2A owner-only `PrivateImageAsset` candidate registration, Phase 2B trusted private source verification, the Phase 2C derivative processor, the Phase 2D owner-only equipment-cover consent UI, Phase 2E detail-only public derivative delivery/rendering, the Phase 2F.1 backend cleanup primitive, and the Phase 2F.2 owner-only Public Preview removal control. It does not assume that derivative-aware unpublish/replacement, Discover/profile image rendering, account deletion/export, username sign-in, notifications, or destructive moderation actions exist.
 
 ## Test session record
 
@@ -464,7 +464,7 @@ User B and Visitor.
 - [ ] Edit safe source fields, return to Public Preview, update the snapshot, and confirm the public page changes only after the explicit update.
 - [ ] Inspect normal Public Preview create/update requests and confirm they omit all image projection fields. Only the backend processor may populate the guarded projection.
 - [ ] With a snapshot that has no prepared derivative, unpublish it and confirm it disappears from Discover, its prior public detail route becomes unavailable, and the private Equipment Passport remains intact.
-- [ ] With a snapshot that has a prepared derivative, confirm direct Unpublish and replacement are disabled until backend lifecycle cleanup exists.
+- [ ] With a snapshot that has a prepared derivative, confirm direct Unpublish and replacement remain disabled while the owner-only **Remove public image** action is available.
 - [ ] Republish only if needed for later checklist sections.
 
 ### Expected results
@@ -472,7 +472,7 @@ User B and Visitor.
 - [ ] Publishing creates a sanitized text/setup snapshot, not a live read of the private passport.
 - [ ] Updating and unpublishing a text-only snapshot behave consistently after refresh and in a signed-out session.
 - [ ] Unpublishing does not delete or modify the private source record or private image.
-- [ ] The image consent control is owner-only. No public image rendering appears anywhere.
+- [ ] The image consent control is owner-only. Only an eligible processed derivative may render on saved Public Passport detail; Discover and public profile cards remain image-free.
 
 ### Privacy and safety checks
 
@@ -524,7 +524,43 @@ Account type: User B with disposable prepared public-image data, Visitor, and op
 - [ ] Confirm image-load failure or URL expiry removes the image quietly while the complete sanitized text detail remains usable and no technical error is shown.
 - [ ] Test narrow mobile widths and long safe alt text. Confirm the loading/image card never causes horizontal scrolling, and the caption remains readable.
 
-Future lifecycle cases remain blocked until their backend actions exist: owner removal, derivative-aware unpublish, replacement, and moderator hide/remove. When implemented, each must detach delivery before cleanup and must preserve the private original unless the owner separately deletes it.
+Phase 2F.1 provides the owner-authorized backend primitive and Phase 2F.2 wires its explicit owner-only Public Preview removal control. Derivative-aware unpublish, replacement, account/private-source cleanup, and moderator hide/remove remain blocked until their later backend/UI actions exist. Follow [Phase 2F Public Image Lifecycle Cleanup Plan](PUBLIC_IMAGE_PHASE_2F_LIFECYCLE_CLEANUP_PLAN.md).
+
+### Phase 2F.1 backend cleanup — run after backend redeploy
+
+- [ ] Follow [Phase 2F.1 Public Image Cleanup Testing](PHASE_2F_1_LIFECYCLE_CLEANUP_TESTING.md) with a disposable owner account, snapshot id, short-lived matching Cognito ID token, and exact confirmation phrase. Supply no key, URL, asset/owner/source id, filename, destination, or image bytes.
+- [ ] Confirm `removePublicPassportImage` detaches `publicImageAssetId`, `publicImageKey`, and `publicImageAltText` before derivative deletion and returns only a bounded status/failure code.
+- [ ] Confirm owner image removal keeps the sanitized text snapshot public, makes the resolver unavailable, and leaves the Equipment Passport, private original, private key, and `PrivateImageAsset` unchanged.
+- [ ] Run the same command again. Confirm `not_attached` or successful retry cleanup without a duplicate write, raw error, or recreated projection.
+- [ ] Remove an already-missing canonical derivative in an isolated fixture. Confirm idempotent success and a removed ledger row with no key/alt-text copy after completion.
+- [ ] Force S3 deletion failure in an isolated environment. Confirm the snapshot remains detached, the result is `cleanup_pending/storage_delete_failed`, and a later snapshot-id-only retry can finish through the removed ledger row.
+- [ ] Race processing and removal. Confirm snapshot `updatedAt` optimistic concurrency prevents an older processor finalization from reattaching, and a removed asset id cannot be reactivated.
+- [ ] Use a foreign-owner/nonexistent persistent snapshot id. Confirm both receive the same bounded unauthorized result and no record/object changes.
+- [ ] Inspect IAM and logs. Cleanup has attribute-limited snapshot/ledger access plus public derivative delete only; no private/list/public-write access or sensitive log values are present.
+
+### Phase 2F.2 owner removal UI — run after frontend deployment
+
+- [ ] Sign in as the snapshot owner, open Public Preview with a prepared derivative, and confirm **Remove public image** appears only while an image projection is attached.
+- [ ] Sign out or use another account and confirm no owner cleanup control is exposed. Direct mutation attempts by another owner must return only the bounded unauthorized result.
+- [ ] Confirm the removal dialog explains that the sanitized text/setup stays published and the private original stays private and unchanged.
+- [ ] Cancel the dialog and confirm no request or state change occurs.
+- [ ] Confirm the accepted request sends only `publicPassportSnapshotId`; no key, URL, asset/owner/source id, path, filename, alt text, token text, or image bytes are rendered or supplied by the UI.
+- [ ] While removal is running, confirm publish, image processing, Unpublish, and duplicate removal actions are disabled and the button shows a bounded removing state.
+- [ ] On `removed` or `not_attached`, confirm Public Preview refreshes to text-only state, the public detail resolver becomes unavailable, and the private Equipment Passport, private original, and `PrivateImageAsset` remain unchanged.
+- [ ] On `cleanup_pending`, confirm public delivery is already unavailable and the owner sees only a friendly bounded retry notice with no key, URL, ID, or raw backend error.
+- [ ] Refresh after `cleanup_pending` in the same browser tab and confirm the session-local retry control remains available. Confirm browser storage contains only the public snapshot-scoped pending marker and no image key, URL, owner/source ID, token, alt text, filename, or image data.
+- [ ] Confirm text-only Unpublish becomes available after the projection is detached. Replacement remains unavailable as a coordinated lifecycle workflow.
+- [ ] Test the action on a narrow mobile viewport and with long passport text. Confirm controls wrap without horizontal scrolling.
+
+### Future Phase 2F.3+ lifecycle cleanup — not runnable yet
+
+- [ ] Derivative-aware unpublish revokes the snapshot and image together, remains idempotent when the object is missing, and never deletes the private Equipment Passport.
+- [ ] Replacement detaches the old image, requires a new verified `equipment_cover`, checklist, consent, and alt text, and never restores the old derivative after failure.
+- [ ] Changing an account to private revokes new delivery and schedules every current derivative for cleanup; returning to public never republishes an image automatically.
+- [ ] Deleting/replacing a private original revokes its public derivative and requires fresh verification/consent for any later image.
+- [ ] A missing derivative or removed/hidden asset produces text-only public detail and a generic unavailable result, with no private fallback or technical error.
+- [ ] Moderator hide/remove preserves the private original, uses a separate group-authorized action, and records a protected audit event without granting private image access.
+- [ ] Duplicate, concurrent, and retried operations converge on one non-deliverable state and do not leave a stale projection or multiple live derivatives.
 
 ## 14. Public profiles
 
@@ -751,4 +787,4 @@ Visitor, User B, Conflict account if available, and Moderator.
 - [ ] Re-run Sections 12, 13, 14, 17, and 19 after any data authorization, storage, public snapshot, or moderation change.
 - [ ] Re-run Sections 1, 18, and 20 after any framework, navigation, layout, or deployment change.
 - [ ] Do not approve a hosted release if another owner or signed-out/API-key client can access private records, private images, `PrivateImageAsset`, or private keys.
-- [ ] Do not approve public image rendering based on the Phase 2C/2D processing and consent foundation. Public delivery authorization, derivative-aware removal/unpublish, visibility revocation, superseded/orphan cleanup, public-detail rendering, image reporting/moderation, accessibility, caching, and hosted adversarial tests are still required.
+- [ ] Do not expand public image rendering beyond saved Public Passport detail until derivative-aware removal/unpublish, visibility revocation, superseded/orphan cleanup, image reporting/moderation, and the Phase 2F hosted adversarial tests pass.

@@ -1,5 +1,6 @@
 import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
 import { processPublicPassportImage } from "../functions/process-public-passport-image/resource.ts";
+import { removePublicPassportImage } from "../functions/remove-public-passport-image/resource.ts";
 import { resolvePublicPassportImage } from "../functions/resolve-public-passport-image/resource.ts";
 import { verifyPrivateImage } from "../functions/verify-private-image/resource.ts";
 
@@ -10,6 +11,7 @@ const schema = a.schema({
   ReportStatus: a.enum(["open", "reviewed", "dismissed", "action_needed"]),
   PublicImageAssetSourceType: a.enum(["equipment_cover"]),
   PublicImageAssetStatus: a.enum(["draft", "processing", "ready", "failed", "removed"]),
+  PublicImageCleanupStatus: a.enum(["removed", "not_attached", "cleanup_pending", "failed"]),
   PublicImageDeliveryStatus: a.enum(["available", "unavailable"]),
   PrivateImageAssetSourceType: a.enum(["equipment_cover", "range_session_target"]),
   PrivateImageAssetBindingStatus: a.enum(["unverified", "verifying", "verified", "failed", "rejected", "removed"]),
@@ -36,6 +38,11 @@ const schema = a.schema({
     failureCode: a.string()
   }),
 
+  RemovePublicPassportImageResult: a.customType({
+    cleanupStatus: a.ref("PublicImageCleanupStatus").required(),
+    failureCode: a.string()
+  }),
+
   verifyPrivateImageAsset: a
     .mutation()
     .arguments({ privateImageAssetId: a.id().required() })
@@ -54,6 +61,13 @@ const schema = a.schema({
     .returns(a.ref("ProcessPublicPassportImageResult"))
     .authorization((allow) => [allow.authenticated()])
     .handler(a.handler.function(processPublicPassportImage)),
+
+  removePublicPassportImage: a
+    .mutation()
+    .arguments({ publicPassportSnapshotId: a.id().required() })
+    .returns(a.ref("RemovePublicPassportImageResult"))
+    .authorization((allow) => [allow.authenticated()])
+    .handler(a.handler.function(removePublicPassportImage)),
 
   resolvePublicPassportImage: a
     .query()
@@ -428,6 +442,11 @@ const schema = a.schema({
       createdAt: a.datetime(),
       updatedAt: a.datetime()
     })
+    .secondaryIndexes((index) => [
+      index("publicPassportSnapshotId")
+        .name("publicImageAssetsBySnapshotId")
+        .queryField("publicImageAssetsBySnapshotId")
+    ])
     .authorization((allow) => [allow.ownerDefinedIn("ownerId").to(["read"])]),
 
   Comment: a

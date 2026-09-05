@@ -3,6 +3,7 @@ import { PolicyStatement } from "aws-cdk-lib/aws-iam";
 import { auth } from "./auth/resource.ts";
 import { data } from "./data/resource.ts";
 import { processPublicPassportImage } from "./functions/process-public-passport-image/resource.ts";
+import { removePublicPassportImage } from "./functions/remove-public-passport-image/resource.ts";
 import { resolvePublicPassportImage } from "./functions/resolve-public-passport-image/resource.ts";
 import { verifyPrivateImage } from "./functions/verify-private-image/resource.ts";
 import { storage } from "./storage/resource.ts";
@@ -11,6 +12,7 @@ const backend = defineBackend({
   auth,
   data,
   processPublicPassportImage,
+  removePublicPassportImage,
   resolvePublicPassportImage,
   verifyPrivateImage,
   storage
@@ -25,6 +27,7 @@ const publicImageAssetTable = backend.data.resources.tables.PublicImageAsset;
 const userProfileTable = backend.data.resources.tables.UserProfile;
 const usernameReservationTable = backend.data.resources.tables.UsernameReservation;
 const imageDeliveryLambda = backend.resolvePublicPassportImage.resources.lambda;
+const imageCleanupLambda = backend.removePublicPassportImage.resources.lambda;
 
 function restrictDynamoAttributes(attributes: string[]) {
   return {
@@ -48,6 +51,105 @@ backend.resolvePublicPassportImage.addEnvironment("PUBLIC_IMAGE_ASSET_TABLE_NAME
 backend.resolvePublicPassportImage.addEnvironment("EQUIPMENT_PASSPORT_TABLE_NAME", equipmentPassportTable.tableName);
 backend.resolvePublicPassportImage.addEnvironment("USER_PROFILE_TABLE_NAME", userProfileTable.tableName);
 backend.resolvePublicPassportImage.addEnvironment("USER_PROFILE_OWNER_INDEX_NAME", "userProfilesByOwnerId");
+
+backend.removePublicPassportImage.addEnvironment("PUBLIC_PASSPORT_SNAPSHOT_TABLE_NAME", publicPassportSnapshotTable.tableName);
+backend.removePublicPassportImage.addEnvironment("PUBLIC_IMAGE_ASSET_TABLE_NAME", publicImageAssetTable.tableName);
+backend.removePublicPassportImage.addEnvironment("PUBLIC_IMAGE_ASSET_SNAPSHOT_INDEX_NAME", "publicImageAssetsBySnapshotId");
+
+imageCleanupLambda.addToRolePolicy(
+  new PolicyStatement({
+    actions: ["dynamodb:GetItem"],
+    resources: [publicPassportSnapshotTable.tableArn],
+    conditions: restrictDynamoAttributes([
+      "id",
+      "ownerId",
+      "equipmentPassportId",
+      "publicImageAssetId",
+      "publicImageKey",
+      "publicImageAltText",
+      "updatedAt"
+    ])
+  })
+);
+
+imageCleanupLambda.addToRolePolicy(
+  new PolicyStatement({
+    actions: ["dynamodb:GetItem"],
+    resources: [publicImageAssetTable.tableArn],
+    conditions: restrictDynamoAttributes([
+      "id",
+      "ownerId",
+      "publicPassportSnapshotId",
+      "sourceType",
+      "sourceRecordId",
+      "publicImageKey",
+      "status",
+      "updatedAt"
+    ])
+  })
+);
+
+imageCleanupLambda.addToRolePolicy(
+  new PolicyStatement({
+    actions: ["dynamodb:Query"],
+    resources: [`${publicImageAssetTable.tableArn}/index/publicImageAssetsBySnapshotId`],
+    conditions: restrictDynamoAttributes(["id", "publicPassportSnapshotId"])
+  })
+);
+
+imageCleanupLambda.addToRolePolicy(
+  new PolicyStatement({
+    actions: ["dynamodb:UpdateItem"],
+    resources: [publicPassportSnapshotTable.tableArn],
+    conditions: restrictDynamoTransactionAttributes([
+      "id",
+      "ownerId",
+      "equipmentPassportId",
+      "publicImageAssetId",
+      "publicImageKey",
+      "publicImageAltText",
+      "updatedAt"
+    ])
+  })
+);
+
+imageCleanupLambda.addToRolePolicy(
+  new PolicyStatement({
+    actions: ["dynamodb:UpdateItem"],
+    resources: [publicImageAssetTable.tableArn],
+    conditions: restrictDynamoTransactionAttributes([
+      "id",
+      "ownerId",
+      "publicPassportSnapshotId",
+      "sourceType",
+      "sourceRecordId",
+      "publicImageKey",
+      "publicImageAltText",
+      "status",
+      "processingErrorCode",
+      "updatedAt"
+    ])
+  })
+);
+
+imageCleanupLambda.addToRolePolicy(
+  new PolicyStatement({
+    actions: ["dynamodb:UpdateItem"],
+    resources: [publicImageAssetTable.tableArn],
+    conditions: restrictDynamoAttributes([
+      "id",
+      "ownerId",
+      "publicPassportSnapshotId",
+      "sourceType",
+      "sourceRecordId",
+      "publicImageKey",
+      "publicImageAltText",
+      "status",
+      "processingErrorCode",
+      "updatedAt"
+    ])
+  })
+);
 
 imageDeliveryLambda.addToRolePolicy(
   new PolicyStatement({
@@ -176,7 +278,8 @@ imageProcessorLambda.addToRolePolicy(
       "equipmentPassportId",
       "publicImageAssetId",
       "publicImageKey",
-      "publicImageAltText"
+      "publicImageAltText",
+      "updatedAt"
     ])
   })
 );

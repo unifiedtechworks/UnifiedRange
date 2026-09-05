@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
+    "test:public-image-cleanup": "node scripts/remove-public-passport-image.mjs",
     "test:public-image-processor": "node scripts/process-public-passport-image.mjs",
     "test:public-image-resolver": "node scripts/resolve-public-passport-image.mjs",
     "amplify:sandbox": "ampx sandbox",

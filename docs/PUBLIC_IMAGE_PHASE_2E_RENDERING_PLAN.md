@@ -212,7 +212,7 @@ If projection fields exist but the ledger is missing/not ready, fields disagree,
 
 ## Visibility, unpublish, removal, and replacement
 
-Public delivery must not launch before a backend-controlled lifecycle path exists. The current direct client unpublish is correctly disabled after a derivative is prepared; Phase 2E must not work around that restriction.
+Phase 2F.1 now provides the first backend-controlled owner-removal primitive, and Phase 2F.2 exposes only its owner-facing Public Preview remove control. Direct client unpublish remains disabled after a derivative is prepared; derivative-aware unpublish and replacement controls are still deferred.
 
 ### Snapshot unpublish
 
@@ -229,7 +229,7 @@ The resolver must stop issuing new URLs as soon as the projection/snapshot is de
 
 ### Owner removes the public image
 
-A separate backend command should detach the projection and mark/remove the derivative without unpublishing the text snapshot. The public detail page then falls back to text-only. The private original remains private and unchanged.
+The implemented `removePublicPassportImage(publicPassportSnapshotId)` command authenticates the owner, conditionally detaches all three image projection fields, marks a safely matched ledger row `removed`, and deletes only the canonical public derivative. The public detail then falls back to text-only and the private original remains unchanged. Phase 2F.1 exposes this through a developer harness, and Phase 2F.2 calls it from Public Preview with only the current snapshot id.
 
 ### Replacement
 
@@ -279,7 +279,8 @@ The browser receives only a temporary URL for the processed public JPEG and safe
 ### Phase 2E.0: release prerequisites
 
 - Complete Phase 2C/2D hosted positive, adversarial, concurrency, metadata-removal, IAM, and rollback tests.
-- Implement backend-controlled public-image removal and derivative-aware snapshot unpublish.
+- [x] Implement the Phase 2F.1 backend-controlled public-image removal primitive.
+- [ ] Implement derivative-aware snapshot unpublish and owner-facing lifecycle controls.
 - Define account-private revocation and the maximum accepted signed-URL lifetime.
 - Decide whether existing long-cache derivative objects must be rewritten or delivered with signed response-header overrides.
 
@@ -310,7 +311,8 @@ The original foundation phase changed the Amplify backend/schema/IAM and require
 ### Phase 2E.3: lifecycle and privacy validation
 
 - Test signed-out, signed-in, other-owner, private-account, moderator, and admin sessions.
-- Test removal, unpublish, account visibility changes, object deletion, URL expiration, stale responses, and concurrent state changes.
+- Deploy and test Phase 2F.1 removal, missing-object idempotency, retry state, URL expiration, and concurrent processor/removal state changes.
+- Test derivative-aware unpublish, account visibility changes, replacement, and moderation after their later lifecycle operations exist.
 - Verify no private key/request appears in DOM text, GraphQL variables, public responses, analytics, console output, or backend logs.
 - Verify no public route requests a private Storage prefix.
 
@@ -342,4 +344,4 @@ Do not expand beyond the detail-only hosted-development slice or approve a broad
 
 The original Phase 2E.1 foundation changed the Amplify schema, added `resolve-public-passport-image`, and changed IAM/Storage resource access. Its later hardening changed the resolver Lambda and requires that backend version to be deployed before Phase 2E.2 can succeed.
 
-Phase 2E.2 itself is frontend-only plus documentation: it adds no schema, resolver-contract, IAM, or Storage change and needs no additional backend redeploy once the hardened Phase 2E.1 backend is active. General release and surface expansion still require backend lifecycle commands for removal, derivative-aware unpublish, visibility cleanup, and the remaining hosted acceptance tests.
+Phase 2E.2 itself is frontend-only plus documentation. Phase 2F.1 subsequently adds a schema result enum/index, `remove-public-passport-image`, public-prefix delete-only IAM, processor concurrency guards, and therefore requires backend redeployment. General surface expansion still requires successful hosted removal tests, derivative-aware unpublish, visibility/private-source cleanup, moderation, and the remaining acceptance tests.

@@ -16,6 +16,10 @@ import { useAuthUser } from "@/hooks/useAuthUser";
 import { configureAmplifyClient, getAuthErrorMessage } from "@/lib/amplifyClient";
 import { recordToEquipmentPassport, type EquipmentPassportRecord } from "@/lib/equipmentPassportData";
 import {
+  getPublicImageCleanupFailureMessage,
+  removePublicPassportImage
+} from "@/lib/publicPassportImageCleanupData";
+import {
   buildPublicPassportSnapshotInput,
   recordToSanitizedPublicPassport,
   type PublicPassportSnapshotRecord
@@ -24,6 +28,29 @@ import { sanitizePublicPassport } from "@/lib/sanitizePublicPassport";
 import type { EquipmentPassport, SanitizedPublicPassport } from "@/types";
 
 type PreviewState = "loading" | "saved" | "demo" | "missing";
+const cleanupPendingSessionPrefix = "unifiedrange:public-image-cleanup-pending:";
+
+function hasPendingCleanupMarker(publicPassportSnapshotId: string) {
+  try {
+    return window.sessionStorage.getItem(`${cleanupPendingSessionPrefix}${publicPassportSnapshotId}`) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function setPendingCleanupMarker(publicPassportSnapshotId: string, isPending: boolean) {
+  try {
+    const storageKey = `${cleanupPendingSessionPrefix}${publicPassportSnapshotId}`;
+
+    if (isPending) {
+      window.sessionStorage.setItem(storageKey, "1");
+    } else {
+      window.sessionStorage.removeItem(storageKey);
+    }
+  } catch {
+    // Cleanup remains safe and retryable through the backend even when browser storage is unavailable.
+  }
+}
 
 export function PublicPassportPreview({ passportId }: { passportId?: string }) {
   const client = useMemo(() => {
@@ -37,7 +64,9 @@ export function PublicPassportPreview({ passportId }: { passportId?: string }) {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [isPublishing, setIsPublishing] = useState(false);
+  const [isRemovingPublicImage, setIsRemovingPublicImage] = useState(false);
   const [hasPreparedPublicImage, setHasPreparedPublicImage] = useState(false);
+  const [isPublicImageCleanupPending, setIsPublicImageCleanupPending] = useState(false);
   const previewRequestIdRef = useRef(0);
   const snapshotMutationInFlightRef = useRef(false);
 
@@ -46,6 +75,7 @@ export function PublicPassportPreview({ passportId }: { passportId?: string }) {
     previewRequestIdRef.current = requestId;
     setError("");
     setMessage("");
+    setIsPublicImageCleanupPending(false);
 
     if (!passportId) {
       setRecord(null);
@@ -103,8 +133,10 @@ export function PublicPassportPreview({ passportId }: { passportId?: string }) {
       if (passportResult.data) {
         setRecord(passportResult.data);
         const loadedSnapshot = snapshotResult.data[0] ?? null;
+        const loadedSnapshotHasImage = Boolean(loadedSnapshot?.publicImageAssetId || loadedSnapshot?.publicImageKey);
         setSnapshot(loadedSnapshot);
-        setHasPreparedPublicImage(Boolean(loadedSnapshot?.publicImageAssetId || loadedSnapshot?.publicImageKey));
+        setHasPreparedPublicImage(loadedSnapshotHasImage);
+        setIsPublicImageCleanupPending(Boolean(loadedSnapshot && !loadedSnapshotHasImage && hasPendingCleanupMarker(loadedSnapshot.id)));
         setState("saved");
         return;
       }
@@ -192,7 +224,7 @@ export function PublicPassportPreview({ passportId }: { passportId?: string }) {
     }
 
     if (hasPreparedPublicImage) {
-      setError("This snapshot has a prepared image derivative. Safe image cleanup and unpublishing are not available yet.");
+      setError("Remove the prepared public image before unpublishing this snapshot.");
       return;
     }
 
@@ -221,6 +253,62 @@ export function PublicPassportPreview({ passportId }: { passportId?: string }) {
     } finally {
       snapshotMutationInFlightRef.current = false;
       setIsPublishing(false);
+    }
+  }
+
+  async function handleRemovePublicImage() {
+    if (!snapshot || (!hasPreparedPublicImage && !isPublicImageCleanupPending) || snapshotMutationInFlightRef.current) {
+      return;
+    }
+
+    if (authState.status !== "signed-in") {
+      setError("Sign in to remove the prepared public image.");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      isPublicImageCleanupPending
+        ? "Retry final public derivative cleanup? Public delivery is already unavailable, the sanitized text/setup remains published, and your private original remains unchanged."
+        : "Remove this public image? The sanitized text/setup snapshot will stay published, and your private original will remain private and unchanged."
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    setError("");
+    setMessage("");
+    snapshotMutationInFlightRef.current = true;
+    setIsRemovingPublicImage(true);
+
+    try {
+      const result = await removePublicPassportImage(client, snapshot.id);
+
+      if (result.status === "removed" || result.status === "not_attached") {
+        setPendingCleanupMarker(snapshot.id, false);
+        await loadPreview();
+        setIsPublicImageCleanupPending(false);
+        setMessage(
+          result.status === "removed"
+            ? "Public image removed. The sanitized text/setup snapshot remains published, and the private original was not changed."
+            : "No prepared public image is attached. The sanitized text/setup snapshot remains published."
+        );
+        return;
+      }
+
+      if (result.status === "cleanup_pending") {
+        setPendingCleanupMarker(snapshot.id, true);
+        await loadPreview();
+        setIsPublicImageCleanupPending(true);
+        setError(getPublicImageCleanupFailureMessage(result.failureCode));
+        return;
+      }
+
+      setError(getPublicImageCleanupFailureMessage(result.failureCode));
+    } catch {
+      setError("The public image could not be removed. Your private original was not changed. Try again later.");
+    } finally {
+      snapshotMutationInFlightRef.current = false;
+      setIsRemovingPublicImage(false);
     }
   }
 
@@ -276,10 +364,13 @@ export function PublicPassportPreview({ passportId }: { passportId?: string }) {
       error={error}
       message={message}
       isPublishing={isPublishing}
+      isRemovingPublicImage={isRemovingPublicImage}
       hasPreparedPublicImage={hasPreparedPublicImage}
+      isPublicImageCleanupPending={isPublicImageCleanupPending}
       onPublish={() => void handlePublish(passport)}
       onPrepareImageSnapshot={() => handlePublish(passport, { forImageProcessing: true })}
       onImageProcessed={() => setHasPreparedPublicImage(true)}
+      onRemovePublicImage={snapshot && (hasPreparedPublicImage || isPublicImageCleanupPending) ? () => void handleRemovePublicImage() : undefined}
       onUnpublish={snapshot ? () => void handleUnpublish() : undefined}
     />
   );
@@ -293,10 +384,13 @@ function PublicPreviewContent({
   error,
   message,
   isPublishing,
+  isRemovingPublicImage,
   hasPreparedPublicImage,
+  isPublicImageCleanupPending,
   onPublish,
   onPrepareImageSnapshot,
   onImageProcessed,
+  onRemovePublicImage,
   onUnpublish
 }: {
   passport: EquipmentPassport;
@@ -306,12 +400,18 @@ function PublicPreviewContent({
   error?: string;
   message?: string;
   isPublishing?: boolean;
+  isRemovingPublicImage?: boolean;
   hasPreparedPublicImage?: boolean;
+  isPublicImageCleanupPending?: boolean;
   onPublish?: () => void;
   onPrepareImageSnapshot?: () => Promise<string | null>;
   onImageProcessed?: () => void;
+  onRemovePublicImage?: () => void;
   onUnpublish?: () => void;
 }) {
+  const isSnapshotBusy = Boolean(isPublishing || isRemovingPublicImage);
+  const areSnapshotChangesDisabled = Boolean(isSnapshotBusy || isPublicImageCleanupPending);
+
   return (
     <section>
       <PageHeader
@@ -404,7 +504,7 @@ function PublicPreviewContent({
       <section className="mt-6 rounded-md border border-ink/10 bg-white p-5 shadow-soft">
         <h3 className="text-xl font-bold text-ink">{source === "saved" ? "Publish controls" : "Sample publish controls"}</h3>
         <p className="mt-2 text-sm leading-6 text-ink/65">
-          {source === "saved" ? "Publish or update the sanitized text/setup snapshot in Discover. Private originals remain private, and public pages still render no images." : "These buttons only show local confirmation messages. No backend write occurs."}
+          {source === "saved" ? "Publish or update the sanitized text/setup snapshot in Discover. Private originals remain private. Only an eligible processed derivative may appear on saved Public Passport detail; Discover and public profile cards remain image-free." : "These buttons only show local confirmation messages. No backend write occurs."}
         </p>
         {source === "saved" ? (
           <div className="mt-4">
@@ -414,13 +514,13 @@ function PublicPreviewContent({
                 passportOwnerId={passport.ownerId}
                 privateCoverPhotoKey={passport.privateCoverPhotoKey}
                 hasPreparedPublicImage={hasPreparedPublicImage}
-                isSnapshotSaving={isPublishing}
+                isSnapshotSaving={areSnapshotChangesDisabled}
                 onPrepareSnapshot={onPrepareImageSnapshot}
                 onProcessed={onImageProcessed}
               />
             ) : null}
             <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-              <button type="button" onClick={onPublish} disabled={isPublishing} className="inline-flex justify-center rounded-md bg-ink px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60">
+              <button type="button" onClick={onPublish} disabled={areSnapshotChangesDisabled} className="inline-flex justify-center rounded-md bg-ink px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60">
                 {isPublishing ? "Saving..." : existingSnapshotId ? "Update public snapshot" : "Publish public snapshot"}
               </button>
               {existingSnapshotId ? (
@@ -431,18 +531,29 @@ function PublicPreviewContent({
                   <button
                     type="button"
                     onClick={onUnpublish}
-                    disabled={isPublishing || hasPreparedPublicImage}
-                    title={hasPreparedPublicImage ? "Safe processed-image cleanup is required before unpublishing." : undefined}
+                    disabled={areSnapshotChangesDisabled || hasPreparedPublicImage}
+                    title={hasPreparedPublicImage || isPublicImageCleanupPending ? "Complete public image cleanup before unpublishing." : undefined}
                     className="inline-flex justify-center rounded-md border border-clay/30 bg-white px-4 py-2 text-sm font-semibold text-clay disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     Unpublish
                   </button>
+                  {(hasPreparedPublicImage || isPublicImageCleanupPending) && onRemovePublicImage ? (
+                    <button
+                      type="button"
+                      onClick={onRemovePublicImage}
+                      disabled={isSnapshotBusy}
+                      className="inline-flex justify-center rounded-md border border-clay/30 bg-clay/10 px-4 py-2 text-sm font-semibold text-clay disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {isRemovingPublicImage ? "Removing public image..." : isPublicImageCleanupPending ? "Retry image cleanup" : "Remove public image"}
+                    </button>
+                  ) : null}
                 </>
               ) : null}
             </div>
-            {hasPreparedPublicImage ? <p className="mt-3 text-xs leading-5 text-ink/55">This prepared derivative may appear on the saved Public Passport detail page. Unpublish is disabled until backend image cleanup is implemented.</p> : null}
-            {error ? <p className="mt-3 rounded-md border border-clay/30 bg-clay/10 px-4 py-3 text-sm font-semibold text-clay">{error}</p> : null}
-            {message ? <p className="mt-3 rounded-md border border-moss/25 bg-field px-4 py-3 text-sm font-semibold text-moss">{message}</p> : null}
+            {hasPreparedPublicImage ? <p className="mt-3 text-xs leading-5 text-ink/55">This prepared derivative may appear on the saved Public Passport detail page. Remove it first to keep the sanitized text/setup published without an image. Replacement and derivative-aware unpublish remain separate future workflows.</p> : null}
+            {isPublicImageCleanupPending ? <p className="mt-3 text-xs leading-5 text-ink/55">Public delivery is already unavailable, but final derivative deletion needs a safe retry. Publishing, processing, and unpublishing stay disabled until cleanup completes.</p> : null}
+            {error ? <p className="mt-3 rounded-md border border-clay/30 bg-clay/10 px-4 py-3 text-sm font-semibold text-clay" role="alert">{error}</p> : null}
+            {message ? <p className="mt-3 rounded-md border border-moss/25 bg-field px-4 py-3 text-sm font-semibold text-moss" role="status" aria-live="polite">{message}</p> : null}
           </div>
         ) : (
           <div className="mt-4">

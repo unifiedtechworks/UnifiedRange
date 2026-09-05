@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This guide prepares UnifiedRange for a dev or staging deployment through AWS Amplify Hosting. It does not cover production promotion, public image publishing, destructive moderation workflows, or new product features.
+This guide prepares UnifiedRange for a dev or staging deployment through AWS Amplify Hosting. It does not cover production promotion, wider public-image rollout, destructive moderation workflows, or unrelated product features.
 
 ## Assumptions
 

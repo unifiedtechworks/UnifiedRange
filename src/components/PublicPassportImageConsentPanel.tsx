@@ -284,7 +284,7 @@ export function PublicPassportImageConsentPanel({
         </p>
         {hasPreparedPublicImage ? (
           <p className="mt-3 rounded-md border border-moss/25 bg-white px-3 py-2 text-sm leading-6 text-ink/70">
-            A public-safe derivative is already prepared and may appear on the saved Public Passport detail page while it remains eligible. Discover and public profile cards remain image-free. Safe replacement and removal require a later backend lifecycle action.
+            A public-safe derivative is already prepared and may appear on the saved Public Passport detail page while it remains eligible. Discover and public profile cards remain image-free. Use the owner-only Remove public image action below to return this snapshot to text-only sharing. Replacement remains unavailable.
           </p>
         ) : null}
       </div>
@@ -325,7 +325,7 @@ export function PublicPassportImageConsentPanel({
 
       <div className="mt-3 text-sm leading-6 text-ink/65" aria-live="polite">
         {candidateState === "loading" ? <p>Checking for a verified equipment image...</p> : null}
-        {candidateState === "available" ? <p>{hasPreparedPublicImage ? "A verified equipment cover exists, but replacement is disabled until safe lifecycle cleanup is available." : "A verified equipment cover is available for optional processing."}</p> : null}
+        {candidateState === "available" ? <p>{hasPreparedPublicImage ? "A verified equipment cover exists, but replacement remains disabled. Remove the current public image first." : "A verified equipment cover is available for optional processing."}</p> : null}
         {candidateState === "unavailable" ? <p>No verified equipment image is available for public publishing yet.</p> : null}
         {candidateState === "source_changed" ? <p>The private equipment cover changed or is no longer available. Re-upload or verify the current cover before processing.</p> : null}
         {candidateState === "error" ? <p>The verified equipment image status could not be checked. You can still publish without images.</p> : null}

@@ -11,7 +11,7 @@
 - PrivateImageAsset (owner-only private upload candidate registry with backend-only binding results)
 - MaintenanceLogEntry
 - HuntingChecklist
-- PublicImageAsset (future public-image workflow ledger; owner-readable but not client-writable)
+- PublicImageAsset (public-image workflow ledger; owner-readable but not client-writable)
 
 Each private model should include an `ownerId` identity field tied to Cognito. AppSync authorization should use `allow.ownerDefinedIn("ownerId")` or the model-specific owner field so private reads and writes stay scoped to the signed-in owner.
 
@@ -58,11 +58,11 @@ Public read exceptions remain intentionally narrow:
 
 Private records remain owner-scoped and should not expose private notes, private image keys, lot numbers, purchase details, exact locations, maintenance records, readiness records, or owner private profile details through public flows.
 
-## Phase 1 through Phase 2E.1 Public Image Foundation
+## Phase 1 through Phase 2F.1 Public Image Foundation
 
 `PublicImageAsset` is a non-public workflow ledger for the backend image processor. It contains the public snapshot relationship, source type and record id, processed public derivative fields, bounded processing status/error data, and consent timestamp. It deliberately contains no private S3 key and has no API-key authorization.
 
-Current owner clients may read their own workflow records but cannot create, update, or delete them. `processPublicPassportImage` alone can create/update the Phase 2C ledger state. Admin/moderator access is deferred.
+Current owner clients may read their own workflow records but cannot create, update, or delete them. `processPublicPassportImage` can create/update processing state, and `removePublicPassportImage` can conditionally mark the current asset removed and clear its public cleanup fields. Admin/moderator access is deferred.
 
 `PublicPassportSnapshot` reserves these optional public projection fields:
 
@@ -74,7 +74,7 @@ Current owner clients may read their own workflow records but cannot create, upd
 
 The legacy `coverPhotoUrl` field is also reserved. Field-level authorization permits owner/public reads and owner snapshot deletion while denying normal client create/update writes to all image projection fields. The Phase 2C function receives explicit resource authorization to populate only the new guarded projection fields; it does not populate the legacy URL field.
 
-The existing public snapshot payload builder omits `coverPhotoUrl`, all new projection fields, `EquipmentPassport.privateCoverPhotoKey`, and all `TargetPhoto` keys. Saved public UI mapping also ignores image fields, so Discover and public pages remain text/setup only.
+The existing public snapshot payload builder omits `coverPhotoUrl`, all new projection fields, `EquipmentPassport.privateCoverPhotoKey`, and all `TargetPhoto` keys. Discover/public-profile mapping ignores image fields. Saved Public Passport detail uses only `publicPassportSnapshotId` with the delivery resolver and never accepts a key from page data.
 
 Phase 2A adds `PrivateImageAsset` as an owner-only registry for private upload candidates. It records:
 
@@ -98,9 +98,11 @@ The verification Lambda has attribute-limited exact-table read permission, attri
 
 Phase 2C adds `processPublicPassportImage`, a user-pool-authenticated mutation with snapshot id, private candidate id, optional bounded alt text, and required consent acknowledgement. The function accepts only verified `equipment_cover` candidates, resolves the complete ownership graph server-side, uses the `userProfilesByOwnerId` index instead of scanning private profiles, and fails closed when the profile is private or immutable username ownership is unresolved. It accepts bounded JPEG/PNG input, creates a fresh metadata-free JPEG derivative, and conditionally/transactionally updates only the ledger and public snapshot image projection. Failure responses and logs are bounded and omit owner ids, private keys, filenames, private records, and image bytes.
 
-The derivative Storage namespace is `public/passports/{snapshot_id}/cover/*`. The processor has private-equipment get plus derivative get/write/delete access. The Phase 2E.1 resolver has derivative get access only; no browser, guest, API-key, moderator, or admin identity can read the prefix directly. Phase 2D may call the processor after explicit consent, while `buildPublicPassportSnapshotInput` still omits image fields and public mapping/rendering still ignores them.
+The derivative Storage namespace is `public/passports/{snapshot_id}/cover/*`. The processor has private-equipment get plus derivative get/write/delete access. The Phase 2E.1 resolver has derivative get access only, and the Phase 2F.1 cleanup Lambda has derivative delete only. No browser, guest, API-key, moderator, or admin identity can access the prefix directly. Phase 2D may call the processor after explicit consent, while `buildPublicPassportSnapshotInput` still omits image fields.
 
-`resolvePublicPassportImage` is an API-key-authorized query with one input: `publicPassportSnapshotId`. Its Lambda re-reads attribute-limited public snapshot, public asset, Equipment Passport public flag, and profile visibility data, then checks the exact derivative with S3 `HeadObject`. The owner index locates the profile, and a consistent primary-key read confirms current visibility before signing. It never reads `PrivateImageAsset`, a private image key, target-photo data, or a private Storage prefix. An eligible `ready` `equipment_cover` returns a 60-second signed URL, safe alt text, expiry, and zero cache seconds. All missing, mismatched, private, removed, failed, or unavailable cases return the same generic unavailable response. Public rendering, removal/replacement cleanup, target-photo support, image reporting/moderation, and lifecycle reconciliation remain future work.
+`resolvePublicPassportImage` is an API-key-authorized query with one input: `publicPassportSnapshotId`. Its Lambda re-reads attribute-limited public snapshot, public asset, Equipment Passport public flag, and profile visibility data, then checks the exact derivative with S3 `HeadObject`. The owner index locates the profile, and a consistent primary-key read confirms current visibility before signing. It never reads `PrivateImageAsset`, a private image key, target-photo data, or a private Storage prefix. An eligible `ready` `equipment_cover` returns a 60-second signed URL, safe alt text, expiry, and zero cache seconds. All missing, mismatched, private, removed, failed, or unavailable cases return the same generic unavailable response. Saved Public Passport detail may render that derivative; Discover and public profiles remain image-free.
+
+Phase 2F.1 adds `PublicImageCleanupStatus`, the `removePublicPassportImage(publicPassportSnapshotId)` owner mutation, and the `publicImageAssetsBySnapshotId` secondary index. The cleanup Lambda revalidates ownership, conditionally removes the snapshot's three image projection fields and marks a safely bound `equipment_cover` ledger row `removed` before S3 deletion. A removed row retains its canonical public key only while deletion needs a retry; a GSI lookup followed by consistent primary-key reads lets repeated snapshot-id-only calls retry safely. Successful cleanup removes the ledger key and alt-text copy. The processor now includes snapshot `updatedAt` in finalization conditions and cannot reactivate a removed asset id, preventing an older processing attempt from winning after cleanup. Phase 2F.2 calls this mutation from an owner-only Public Preview remove control and adds no schema or backend input. Replacement, derivative-aware unpublish, visibility/private-source hooks, target-photo support, image reporting/moderation, and scheduled reconciliation remain future work.
 
 ## Public Discovery Models
 

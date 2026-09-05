@@ -2,9 +2,9 @@
 
 ## Status
 
-Phase 1 data guardrails were added on August 5, 2026. Phase 2A private source registration, Phase 2B trusted private source verification, and the Phase 2C backend derivative foundation were added on August 9, 2026. Phase 2D owner consent UI was added on August 18, 2026. Phase 2E.1 adds the backend-only `resolvePublicPassportImage` delivery query, and Phase 2E.2 adds detail-only rendering through that resolver. The schema contains a non-public, client-read-only `PublicImageAsset` workflow ledger, backend-reserved public snapshot projection fields, an owner-only `PrivateImageAsset` candidate registry, verification/processing operations, and a public-safe delivery resolver.
+Phase 1 data guardrails were added on August 5, 2026. Phase 2A private source registration, Phase 2B trusted private source verification, and the Phase 2C backend derivative foundation were added on August 9, 2026. Phase 2D owner consent UI was added on August 18, 2026. Phase 2E.1 adds the backend-only `resolvePublicPassportImage` delivery query, and Phase 2E.2 adds detail-only rendering through that resolver. Phase 2F.1 adds the owner-authorized `removePublicPassportImage` cleanup mutation, a snapshot-indexed ledger retry path, and processor/removal concurrency guards. Phase 2F.2 wires that contract to an owner-only Public Preview remove action without adding backend input. The schema contains a non-public, client-read-only `PublicImageAsset` workflow ledger, backend-reserved public snapshot projection fields, an owner-only `PrivateImageAsset` candidate registry, verification/processing/cleanup operations, and a public-safe delivery resolver.
 
-Phase 2E.2 renders one eligible processed equipment-cover derivative on a saved Public Passport detail page. The component supplies only the route's snapshot ID to Phase 2E.1 and receives a 60-second non-cacheable URL only after the public snapshot, ready asset, Equipment Passport public flag, account visibility, safe alt text, exact derivative path, and S3 object all agree. The derivative namespace remains unreadable directly through Amplify Storage; only the processor and resolver Lambdas can access it. Discover/profile rendering, target-photo processing, removal/replacement, and automatic publishing remain unavailable.
+Phase 2E.2 renders one eligible processed equipment-cover derivative on a saved Public Passport detail page. The component supplies only the route's snapshot ID to Phase 2E.1 and receives a 60-second non-cacheable URL only after the public snapshot, ready asset, Equipment Passport public flag, account visibility, safe alt text, exact derivative path, and S3 object all agree. The derivative namespace remains unreadable directly through Amplify Storage; the processor can read/write/delete, the resolver can read, and the cleanup Lambda can delete only the public derivative prefix. The owner cleanup UI is now available only in Public Preview. Discover/profile rendering, target-photo processing, replacement, derivative-aware unpublish, and automatic publishing remain unavailable.
 
 The browser may create and read its own immutable `PrivateImageAsset` candidate records after a successful private upload. Those rows remain private registration hints until `verifyPrivateImageAsset` independently marks them `verified`. Normal clients cannot write `bindingStatus`, `bindingFailureCode`, or `verifiedAt`. The Phase 2C processor rejects every candidate that is missing `verified` status and repeats the current source/object checks because verification proves source binding only and does not prove decoded image safety or metadata removal.
 
@@ -167,11 +167,11 @@ Public derivative writes should set only backend-controlled metadata:
 The backend design contains or still needs:
 
 1. `processPublicPassportImage` Lambda for explicit owner-requested processing. **Implemented as the backend-only Phase 2C foundation.**
-2. `removePublicPassportImage` Lambda action, or a removal command handled by the same function. **Not implemented.**
+2. `removePublicPassportImage` Lambda action. **Implemented in Phase 2F.1 with a snapshot-id-only owner contract and developer harness; called by the Phase 2F.2 owner-only Public Preview remove action.**
 3. An authenticated AppSync custom action that invokes the processor. **Implemented and called only by the owner-facing Phase 2D consent flow.**
 4. A non-public `PublicImageAsset` workflow ledger. **Implemented.**
 5. Server-managed projection fields on `PublicPassportSnapshot`. **Implemented and guarded from normal client writes.**
-6. Least-privilege access from the function to the specific data models and S3 prefixes. **Implemented for Phase 2C; hosted policy and cross-account testing remain release gates.**
+6. Least-privilege access from each function to specific data attributes and S3 prefixes. **Implemented for the current processor, resolver, and cleanup foundation; hosted policy and cross-account testing remain release gates.**
 7. A scheduled or queued orphan-cleanup path. **Not implemented.**
 8. CloudWatch metrics, structured audit events, alarms, and a dead-letter/retry strategy. **Bounded structured events are implemented; full operational alarms/retries are not.**
 
@@ -548,7 +548,7 @@ Account deletion should:
 
 ### Public snapshot unpublish
 
-The current browser directly deletes `PublicPassportSnapshot`. Once images exist, unpublish must use a backend-controlled command so it can detach the projection, delete the derivative, update the ledger, and then remove the snapshot idempotently.
+The current browser directly deletes a text-only `PublicPassportSnapshot` and keeps Unpublish disabled when an image is attached. Phase 2F.1 removes an image while retaining the text snapshot; it does not unpublish. A later backend-controlled unpublish command must reuse detach-first cleanup, then remove the snapshot idempotently.
 
 ### Private image deletion/replacement
 
@@ -639,7 +639,9 @@ Alarms should cover sustained processing failures, metadata-verification failure
 - [x] Add an owner-only private preview, safety checklist, bounded public alt text, and explicit consent acknowledgement. The current action records confirmation and time, not a policy version.
 - [x] Show loading/available/selected/processing/ready/failed/source-changed states without exposing keys or raw backend errors.
 - [x] Add an image-specific process command whose wrapper accepts only snapshot id, candidate id, and bounded alt text, then supplies required consent internally.
-- [ ] Add backend-controlled replace and remove commands.
+- [x] Add the backend-controlled snapshot-id-only remove command and developer harness.
+- [x] Add the owner-facing remove control without adding keys, paths, or internal IDs to its request.
+- [ ] Add replacement orchestration and owner-facing replacement controls.
 - [x] Disable direct Unpublish for a snapshot with a prepared derivative until backend cleanup exists.
 - [ ] Route derivative-aware unpublish through backend cleanup instead of direct snapshot deletion.
 - [ ] Do not approve the hosted UI release until the Phase 2C positive, negative, concurrency, metadata-removal, IAM, rollback, and hosted tests pass.
@@ -648,7 +650,9 @@ Alarms should cover sustained processing failures, metadata-verification failure
 
 - Detailed design: [PUBLIC_IMAGE_PHASE_2E_RENDERING_PLAN.md](PUBLIC_IMAGE_PHASE_2E_RENDERING_PLAN.md)
 
-- [ ] Implement derivative-aware remove/unpublish and visibility revocation before public delivery.
+- [x] Implement the Phase 2F.1 backend removal primitive with detach-first exact-key cleanup and retryable removed-ledger lookup.
+- [x] Implement the owner-only Public Preview removal UI.
+- [ ] Implement derivative-aware unpublish and visibility/private-source revocation.
 - [x] Add a snapshot-ID-only backend resolver that returns a short-lived ready-derivative URL and safe alt text.
 - [x] Add a bounded developer harness and generated-URL defense-in-depth validation.
 - [x] Render the first approved derivative on Public Passport detail only, with no private fallback.
