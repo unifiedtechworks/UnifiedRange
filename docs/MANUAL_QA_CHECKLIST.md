@@ -455,7 +455,7 @@ User B and Visitor.
 - [ ] Confirm the checklist covers serial numbers, exact locations, license plates, bystander faces, private documents, sensitive personal information, and later public availability.
 - [ ] Enter alt text and confirm whitespace is normalized; blank text, more than 140 characters, HTTP/S3/other URI schemes, and recognizable slash or backslash private/public storage paths show friendly validation.
 - [ ] Select **Save snapshot and prepare image** and inspect the request. Confirm snapshot create/update still omits every image field and the processor variables contain only `publicPassportSnapshotId`, `privateImageAssetId`, bounded `altText`, and `consentConfirmed: true`.
-- [ ] Rapidly activate the image action more than once and attempt a normal publish/unpublish action while it is saving. Confirm only one snapshot mutation and one processor request run.
+- [ ] Rapidly activate the image action more than once and attempt normal publish, remove, or unpublish actions while either the snapshot save or processor request is active. Confirm only one snapshot mutation and one processor request run and every competing action remains disabled for the full operation.
 - [ ] With network throttling enabled, start candidate/Public Preview loading and then sign out, change accounts, change routes, or replace the private cover. Confirm an older response never repopulates private record or candidate state.
 - [ ] Confirm processing, ready, bounded failure, and source-changed states never display raw GraphQL/Lambda/S3 errors or identifiers.
 - [ ] On a forced processor failure after snapshot save, confirm the UI accurately says the text/setup snapshot is saved without an image and does not automatically retry or unpublish.
@@ -548,7 +548,10 @@ Phase 2F.1 provides the owner-authorized backend primitive and Phase 2F.2 wires 
 - [ ] While removal is running, confirm publish, image processing, Unpublish, and duplicate removal actions are disabled and the button shows a bounded removing state.
 - [ ] On `removed` or `not_attached`, confirm Public Preview refreshes to text-only state, the public detail resolver becomes unavailable, and the private Equipment Passport, private original, and `PrivateImageAsset` remain unchanged.
 - [ ] On `cleanup_pending`, confirm public delivery is already unavailable and the owner sees only a friendly bounded retry notice with no key, URL, ID, or raw backend error.
+- [ ] Force or simulate each bounded result: `removed` shows success, `not_attached` shows a safe no-op success, `cleanup_pending` says delivery is detached and offers retry, and `failed` gives a friendly retry-safe message. Confirm no raw GraphQL, Lambda, DynamoDB, S3, IAM, or AWS error appears.
 - [ ] Refresh after `cleanup_pending` in the same browser tab and confirm the session-local retry control remains available. Confirm browser storage contains only the public snapshot-scoped pending marker and no image key, URL, owner/source ID, token, alt text, filename, or image data.
+- [ ] With network throttling enabled, start removal and navigate to another passport or change signed-in account before the response returns. Confirm the late cleanup result does not reload the old passport or overwrite the new preview, while any pending marker remains scoped only to the original public snapshot ID.
+- [ ] Start image processing and attempt publish, remove, and unpublish from the parent controls. Confirm they stay disabled until the full processor request settles, not merely until the text snapshot save finishes.
 - [ ] Confirm text-only Unpublish becomes available after the projection is detached. Replacement remains unavailable as a coordinated lifecycle workflow.
 - [ ] Test the action on a narrow mobile viewport and with long passport text. Confirm controls wrap without horizontal scrolling.
 

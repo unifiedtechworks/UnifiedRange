@@ -64,11 +64,22 @@ export function PublicPassportPreview({ passportId }: { passportId?: string }) {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [isPublishing, setIsPublishing] = useState(false);
+  const [isProcessingPublicImage, setIsProcessingPublicImage] = useState(false);
   const [isRemovingPublicImage, setIsRemovingPublicImage] = useState(false);
   const [hasPreparedPublicImage, setHasPreparedPublicImage] = useState(false);
   const [isPublicImageCleanupPending, setIsPublicImageCleanupPending] = useState(false);
   const previewRequestIdRef = useRef(0);
+  const cleanupRequestIdRef = useRef(0);
   const snapshotMutationInFlightRef = useRef(false);
+  const publicImageProcessingInFlightRef = useRef(false);
+  const cleanupContextKey = authState.status === "signed-in"
+    ? `${passportId ?? ""}:${authState.userSub}:${authState.ownerKey}`
+    : `${passportId ?? ""}:${authState.status}`;
+
+  const handleImageProcessingStateChange = useCallback((isProcessing: boolean) => {
+    publicImageProcessingInFlightRef.current = isProcessing;
+    setIsProcessingPublicImage(isProcessing);
+  }, []);
 
   const loadPreview = useCallback(async () => {
     const requestId = previewRequestIdRef.current + 1;
@@ -173,8 +184,14 @@ export function PublicPassportPreview({ passportId }: { passportId?: string }) {
     };
   }, [loadPreview]);
 
+  useEffect(() => {
+    return () => {
+      cleanupRequestIdRef.current += 1;
+    };
+  }, [cleanupContextKey]);
+
   async function handlePublish(passport: EquipmentPassport, { forImageProcessing = false }: { forImageProcessing?: boolean } = {}) {
-    if (snapshotMutationInFlightRef.current) {
+    if (snapshotMutationInFlightRef.current || (publicImageProcessingInFlightRef.current && !forImageProcessing)) {
       return null;
     }
 
@@ -219,7 +236,7 @@ export function PublicPassportPreview({ passportId }: { passportId?: string }) {
   }
 
   async function handleUnpublish() {
-    if (!snapshot || snapshotMutationInFlightRef.current) {
+    if (!snapshot || snapshotMutationInFlightRef.current || publicImageProcessingInFlightRef.current) {
       return;
     }
 
@@ -257,7 +274,12 @@ export function PublicPassportPreview({ passportId }: { passportId?: string }) {
   }
 
   async function handleRemovePublicImage() {
-    if (!snapshot || (!hasPreparedPublicImage && !isPublicImageCleanupPending) || snapshotMutationInFlightRef.current) {
+    if (
+      !snapshot ||
+      (!hasPreparedPublicImage && !isPublicImageCleanupPending) ||
+      snapshotMutationInFlightRef.current ||
+      publicImageProcessingInFlightRef.current
+    ) {
       return;
     }
 
@@ -269,7 +291,7 @@ export function PublicPassportPreview({ passportId }: { passportId?: string }) {
     const confirmed = window.confirm(
       isPublicImageCleanupPending
         ? "Retry final public derivative cleanup? Public delivery is already unavailable, the sanitized text/setup remains published, and your private original remains unchanged."
-        : "Remove this public image? The sanitized text/setup snapshot will stay published, and your private original will remain private and unchanged."
+        : "Remove this public image? The sanitized text/setup snapshot will stay published, your private original will remain private and unchanged, and text-only Unpublish will be available after cleanup succeeds."
     );
     if (!confirmed) {
       return;
@@ -279,13 +301,25 @@ export function PublicPassportPreview({ passportId }: { passportId?: string }) {
     setMessage("");
     snapshotMutationInFlightRef.current = true;
     setIsRemovingPublicImage(true);
+    const cleanupRequestId = cleanupRequestIdRef.current + 1;
+    cleanupRequestIdRef.current = cleanupRequestId;
 
     try {
       const result = await removePublicPassportImage(client, snapshot.id);
 
       if (result.status === "removed" || result.status === "not_attached") {
         setPendingCleanupMarker(snapshot.id, false);
+
+        if (cleanupRequestIdRef.current !== cleanupRequestId) {
+          return;
+        }
+
         await loadPreview();
+
+        if (cleanupRequestIdRef.current !== cleanupRequestId) {
+          return;
+        }
+
         setIsPublicImageCleanupPending(false);
         setMessage(
           result.status === "removed"
@@ -297,15 +331,29 @@ export function PublicPassportPreview({ passportId }: { passportId?: string }) {
 
       if (result.status === "cleanup_pending") {
         setPendingCleanupMarker(snapshot.id, true);
+
+        if (cleanupRequestIdRef.current !== cleanupRequestId) {
+          return;
+        }
+
         await loadPreview();
+
+        if (cleanupRequestIdRef.current !== cleanupRequestId) {
+          return;
+        }
+
         setIsPublicImageCleanupPending(true);
         setError(getPublicImageCleanupFailureMessage(result.failureCode));
         return;
       }
 
-      setError(getPublicImageCleanupFailureMessage(result.failureCode));
+      if (cleanupRequestIdRef.current === cleanupRequestId) {
+        setError(getPublicImageCleanupFailureMessage(result.failureCode));
+      }
     } catch {
-      setError("The public image could not be removed. Your private original was not changed. Try again later.");
+      if (cleanupRequestIdRef.current === cleanupRequestId) {
+        setError("The public image could not be removed. Your private original was not changed. Try again later.");
+      }
     } finally {
       snapshotMutationInFlightRef.current = false;
       setIsRemovingPublicImage(false);
@@ -364,12 +412,14 @@ export function PublicPassportPreview({ passportId }: { passportId?: string }) {
       error={error}
       message={message}
       isPublishing={isPublishing}
+      isProcessingPublicImage={isProcessingPublicImage}
       isRemovingPublicImage={isRemovingPublicImage}
       hasPreparedPublicImage={hasPreparedPublicImage}
       isPublicImageCleanupPending={isPublicImageCleanupPending}
       onPublish={() => void handlePublish(passport)}
       onPrepareImageSnapshot={() => handlePublish(passport, { forImageProcessing: true })}
       onImageProcessed={() => setHasPreparedPublicImage(true)}
+      onImageProcessingStateChange={handleImageProcessingStateChange}
       onRemovePublicImage={snapshot && (hasPreparedPublicImage || isPublicImageCleanupPending) ? () => void handleRemovePublicImage() : undefined}
       onUnpublish={snapshot ? () => void handleUnpublish() : undefined}
     />
@@ -384,12 +434,14 @@ function PublicPreviewContent({
   error,
   message,
   isPublishing,
+  isProcessingPublicImage,
   isRemovingPublicImage,
   hasPreparedPublicImage,
   isPublicImageCleanupPending,
   onPublish,
   onPrepareImageSnapshot,
   onImageProcessed,
+  onImageProcessingStateChange,
   onRemovePublicImage,
   onUnpublish
 }: {
@@ -400,16 +452,18 @@ function PublicPreviewContent({
   error?: string;
   message?: string;
   isPublishing?: boolean;
+  isProcessingPublicImage?: boolean;
   isRemovingPublicImage?: boolean;
   hasPreparedPublicImage?: boolean;
   isPublicImageCleanupPending?: boolean;
   onPublish?: () => void;
   onPrepareImageSnapshot?: () => Promise<string | null>;
   onImageProcessed?: () => void;
+  onImageProcessingStateChange?: (isProcessing: boolean) => void;
   onRemovePublicImage?: () => void;
   onUnpublish?: () => void;
 }) {
-  const isSnapshotBusy = Boolean(isPublishing || isRemovingPublicImage);
+  const isSnapshotBusy = Boolean(isPublishing || isProcessingPublicImage || isRemovingPublicImage);
   const areSnapshotChangesDisabled = Boolean(isSnapshotBusy || isPublicImageCleanupPending);
 
   return (
@@ -517,11 +571,12 @@ function PublicPreviewContent({
                 isSnapshotSaving={areSnapshotChangesDisabled}
                 onPrepareSnapshot={onPrepareImageSnapshot}
                 onProcessed={onImageProcessed}
+                onProcessingStateChange={onImageProcessingStateChange}
               />
             ) : null}
             <div className="mt-5 flex flex-col gap-3 sm:flex-row">
               <button type="button" onClick={onPublish} disabled={areSnapshotChangesDisabled} className="inline-flex justify-center rounded-md bg-ink px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60">
-                {isPublishing ? "Saving..." : existingSnapshotId ? "Update public snapshot" : "Publish public snapshot"}
+                {isProcessingPublicImage ? "Preparing public-safe image..." : isPublishing ? "Saving..." : existingSnapshotId ? "Update public snapshot" : "Publish public snapshot"}
               </button>
               {existingSnapshotId ? (
                 <>
@@ -550,7 +605,7 @@ function PublicPreviewContent({
                 </>
               ) : null}
             </div>
-            {hasPreparedPublicImage ? <p className="mt-3 text-xs leading-5 text-ink/55">This prepared derivative may appear on the saved Public Passport detail page. Remove it first to keep the sanitized text/setup published without an image. Replacement and derivative-aware unpublish remain separate future workflows.</p> : null}
+            {hasPreparedPublicImage ? <p className="mt-3 text-xs leading-5 text-ink/55">This prepared derivative may appear on the saved Public Passport detail page. Remove it to return this snapshot to text-only sharing; then the existing text-only Unpublish action becomes available. Direct replacement and image-bearing unpublish remain unavailable.</p> : null}
             {isPublicImageCleanupPending ? <p className="mt-3 text-xs leading-5 text-ink/55">Public delivery is already unavailable, but final derivative deletion needs a safe retry. Publishing, processing, and unpublishing stay disabled until cleanup completes.</p> : null}
             {error ? <p className="mt-3 rounded-md border border-clay/30 bg-clay/10 px-4 py-3 text-sm font-semibold text-clay" role="alert">{error}</p> : null}
             {message ? <p className="mt-3 rounded-md border border-moss/25 bg-field px-4 py-3 text-sm font-semibold text-moss" role="status" aria-live="polite">{message}</p> : null}

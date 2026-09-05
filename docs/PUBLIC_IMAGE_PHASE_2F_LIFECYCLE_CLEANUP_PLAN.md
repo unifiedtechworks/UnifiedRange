@@ -1,6 +1,6 @@
 # Phase 2F Public Image Lifecycle Cleanup Plan
 
-Last updated: August 31, 2026
+Last updated: September 5, 2026
 
 ## Purpose and current boundary
 
@@ -16,6 +16,8 @@ Phase 2F.1 now implements the backend cleanup foundation, and Phase 2F.2 adds th
 - The processor now conditions final projection on the snapshot's existing `updatedAt` generation and refuses to reactivate a `removed` ledger row, so removal wins over an older in-flight processor finalization.
 - The developer-only [Phase 2F.1 cleanup harness](PHASE_2F_1_LIFECYCLE_CLEANUP_TESTING.md) exercises the mutation independently of product UI.
 - Public Preview shows **Remove public image** only to the signed-in owner when a prepared derivative is attached. It sends only the snapshot id, refreshes to text-only state, and never deletes the private original.
+- The hardened UI holds one synchronous operation guard across snapshot saving and the full image processor request, and separately across cleanup, so publishing, processing, removal, and unpublishing cannot overlap.
+- Cleanup responses carry an in-memory request generation tied to the route and authenticated owner context. Route/account changes invalidate that generation before any late result can reload or overwrite the newer Public Preview.
 - Replacement and derivative-aware unpublish remain blocked after a derivative is prepared.
 - Discover cards and public profile cards remain image-free.
 - Range Session target photos remain private and ineligible.
@@ -103,6 +105,8 @@ Recommended flow:
 4. The backend performs the detach-first transition and returns `removed`, `not_attached`, `cleanup_pending`, or `failed`, plus only a bounded failure code when needed.
 5. Refresh the snapshot. The public detail immediately becomes text-only; the UI shows a bounded cleanup-pending notice and retains a same-tab retry marker containing only the public snapshot-scoped state, never a key, URL, owner/source identity, token, filename, alt text, or image data.
 6. Complete or retry derivative deletion in the backend.
+
+`removed` is a success, `not_attached` is an idempotent no-op success, `cleanup_pending` means public delivery is already detached while exact derivative cleanup needs a retry, and `failed` is a bounded retry-safe failure. The UI never renders raw GraphQL, Lambda, DynamoDB, S3, IAM, or AWS error text.
 
 Repeated requests succeed safely. A missing projection returns `not_attached` unless an indexed removed ledger row still has canonical cleanup pending. An already-missing S3 object is a successful idempotent delete. Missing/foreign snapshot IDs share `unauthorized` because a deleted/unpublished snapshot cannot be ownership-verified without adding an existence oracle.
 
@@ -276,6 +280,9 @@ Logs and metrics should use fixed event names and bounded failure/reason codes. 
 
 - [x] Add the explicit owner-facing remove control and refresh the text-only snapshot after removal or detach-pending cleanup.
 - [x] Keep the private original unchanged, send only the public snapshot id, and show only bounded owner states.
+- [x] Block all overlapping publish/process/remove/unpublish operations for the full request lifetime.
+- [x] Invalidate route/account-stale cleanup and processing responses before they can update a newer preview.
+- [x] Keep cleanup-pending same-tab retry state free of image keys and private identifiers.
 
 ### Phase 2F.3: derivative-aware unpublish and replacement
 

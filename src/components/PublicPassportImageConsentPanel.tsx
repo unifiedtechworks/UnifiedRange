@@ -48,7 +48,8 @@ export function PublicPassportImageConsentPanel({
   hasPreparedPublicImage = false,
   isSnapshotSaving = false,
   onPrepareSnapshot,
-  onProcessed
+  onProcessed,
+  onProcessingStateChange
 }: {
   passportId: string;
   passportOwnerId: string;
@@ -57,6 +58,7 @@ export function PublicPassportImageConsentPanel({
   isSnapshotSaving?: boolean;
   onPrepareSnapshot: () => Promise<string | null>;
   onProcessed?: () => void;
+  onProcessingStateChange?: (isProcessing: boolean) => void;
 }) {
   const client = useMemo(() => {
     configureAmplifyClient();
@@ -77,7 +79,11 @@ export function PublicPassportImageConsentPanel({
   const [processingState, setProcessingState] = useState<ProcessingState>("idle");
   const [processingMessage, setProcessingMessage] = useState("");
   const candidateRequestIdRef = useRef(0);
+  const processingRequestIdRef = useRef(0);
   const processingRequestInFlightRef = useRef(false);
+  const processingContextKey = authState.status === "signed-in"
+    ? `${authState.userSub}:${authState.ownerKey}`
+    : authState.status;
 
   const resetConsent = useCallback(() => {
     setSafetyConfirmations(emptySafetyConfirmations());
@@ -141,6 +147,14 @@ export function PublicPassportImageConsentPanel({
       candidateRequestIdRef.current += 1;
     };
   }, [loadCandidate]);
+
+  useEffect(() => {
+    return () => {
+      processingRequestIdRef.current += 1;
+      processingRequestInFlightRef.current = false;
+      onProcessingStateChange?.(false);
+    };
+  }, [onProcessingStateChange, passportId, passportOwnerId, privateCoverPhotoKey, processingContextKey]);
 
   useEffect(() => {
     let isCurrent = true;
@@ -225,10 +239,17 @@ export function PublicPassportImageConsentPanel({
 
     setAltText(normalizedAltText.value);
     processingRequestInFlightRef.current = true;
+    const processingRequestId = processingRequestIdRef.current + 1;
+    processingRequestIdRef.current = processingRequestId;
     setProcessingState("processing");
+    onProcessingStateChange?.(true);
 
     try {
       const publicPassportSnapshotId = await onPrepareSnapshot();
+
+      if (processingRequestIdRef.current !== processingRequestId) {
+        return;
+      }
 
       if (!publicPassportSnapshotId) {
         setProcessingState("failed");
@@ -241,6 +262,10 @@ export function PublicPassportImageConsentPanel({
         privateImageAssetId: candidate.id,
         altText: normalizedAltText.value
       });
+
+      if (processingRequestIdRef.current !== processingRequestId) {
+        return;
+      }
 
       if (result.status === "ready") {
         setProcessingState("ready");
@@ -263,10 +288,15 @@ export function PublicPassportImageConsentPanel({
         setChoice("without_image");
       }
     } catch {
-      setProcessingState("failed");
-      setProcessingMessage("The public-safe image could not be completed. Your private original was not changed. Try again later.");
+      if (processingRequestIdRef.current === processingRequestId) {
+        setProcessingState("failed");
+        setProcessingMessage("The public-safe image could not be completed. Your private original was not changed. Try again later.");
+      }
     } finally {
-      processingRequestInFlightRef.current = false;
+      if (processingRequestIdRef.current === processingRequestId) {
+        processingRequestInFlightRef.current = false;
+        onProcessingStateChange?.(false);
+      }
     }
   }
 
@@ -284,7 +314,7 @@ export function PublicPassportImageConsentPanel({
         </p>
         {hasPreparedPublicImage ? (
           <p className="mt-3 rounded-md border border-moss/25 bg-white px-3 py-2 text-sm leading-6 text-ink/70">
-            A public-safe derivative is already prepared and may appear on the saved Public Passport detail page while it remains eligible. Discover and public profile cards remain image-free. Use the owner-only Remove public image action below to return this snapshot to text-only sharing. Replacement remains unavailable.
+            A public-safe derivative is already prepared and may appear on the saved Public Passport detail page while it remains eligible. Discover and public profile cards remain image-free. Use the owner-only Remove public image action below to return this snapshot to text-only sharing. Direct replacement and image-bearing unpublish remain unavailable.
           </p>
         ) : null}
       </div>
@@ -325,7 +355,7 @@ export function PublicPassportImageConsentPanel({
 
       <div className="mt-3 text-sm leading-6 text-ink/65" aria-live="polite">
         {candidateState === "loading" ? <p>Checking for a verified equipment image...</p> : null}
-        {candidateState === "available" ? <p>{hasPreparedPublicImage ? "A verified equipment cover exists, but replacement remains disabled. Remove the current public image first." : "A verified equipment cover is available for optional processing."}</p> : null}
+        {candidateState === "available" ? <p>{hasPreparedPublicImage ? "A verified equipment cover exists, but direct replacement is unavailable. Remove the current public image only if you want to return to text-only sharing." : "A verified equipment cover is available for optional processing."}</p> : null}
         {candidateState === "unavailable" ? <p>No verified equipment image is available for public publishing yet.</p> : null}
         {candidateState === "source_changed" ? <p>The private equipment cover changed or is no longer available. Re-upload or verify the current cover before processing.</p> : null}
         {candidateState === "error" ? <p>The verified equipment image status could not be checked. You can still publish without images.</p> : null}
