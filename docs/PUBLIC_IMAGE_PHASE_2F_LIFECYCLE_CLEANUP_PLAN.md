@@ -6,7 +6,7 @@ Last updated: September 5, 2026
 
 Phase 2F should make a processed public Equipment Passport cover safely removable before UnifiedRange expands image rendering beyond saved Public Passport detail pages. It must coordinate public-delivery revocation, snapshot projection changes, derivative deletion, ledger state, retries, and audit without touching the owner-private original.
 
-Phase 2F.1 now implements the backend cleanup foundation, and Phase 2F.2 adds the first owner-facing removal control. Today:
+Phase 2F.1 implements the backend cleanup foundation, Phase 2F.2 adds the first owner-facing removal control, and Phase 2F.3 composes that cleanup with owner-scoped snapshot deletion for derivative-aware unpublish. Today:
 
 - Phase 2C can create a bounded, metadata-stripped JPEG derivative from one verified `equipment_cover` candidate.
 - Phase 2D requires explicit owner selection, safety acknowledgements, and alt text.
@@ -16,9 +16,10 @@ Phase 2F.1 now implements the backend cleanup foundation, and Phase 2F.2 adds th
 - The processor now conditions final projection on the snapshot's existing `updatedAt` generation and refuses to reactivate a `removed` ledger row, so removal wins over an older in-flight processor finalization.
 - The developer-only [Phase 2F.1 cleanup harness](PHASE_2F_1_LIFECYCLE_CLEANUP_TESTING.md) exercises the mutation independently of product UI.
 - Public Preview shows **Remove public image** only to the signed-in owner when a prepared derivative is attached. It sends only the snapshot id, refreshes to text-only state, and never deletes the private original.
-- The hardened UI holds one synchronous operation guard across snapshot saving and the full image processor request, and separately across cleanup, so publishing, processing, removal, and unpublishing cannot overlap.
-- Cleanup responses carry an in-memory request generation tied to the route and authenticated owner context. Route/account changes invalidate that generation before any late result can reload or overwrite the newer Public Preview.
-- Replacement and derivative-aware unpublish remain blocked after a derivative is prepared.
+- The hardened UI holds one synchronous operation guard across snapshot saving, the full image processor request, owner removal, and derivative-aware unpublish, so publishing, processing, removal, and unpublishing cannot overlap.
+- Cleanup and unpublish responses carry in-memory request generations tied to the route and authenticated owner context. Route/account changes invalidate those generations before any late result can reload or overwrite a newer Public Preview.
+- Image-bearing Unpublish calls `removePublicPassportImage` with only the snapshot id, waits for confirmed detachment, and only then deletes the sanitized text/setup snapshot.
+- Direct image replacement remains unavailable.
 - Discover cards and public profile cards remain image-free.
 - Range Session target photos remain private and ineligible.
 
@@ -42,16 +43,16 @@ The existing resolver already fails closed when the snapshot is absent, the acco
 
 ## Recommended backend ownership
 
-Lifecycle operations should be backend commands, not a sequence of browser model updates and Storage deletes. Recommended future commands are:
+Storage-key resolution and derivative deletion remain backend commands rather than browser Storage operations. Phase 2F.3 safely composes the existing backend cleanup mutation with the existing owner-authorized snapshot delete; the browser still never reads or supplies a key. A future atomic unpublish command may replace this two-call orchestration if durable cleanup scheduling or stronger cross-call atomicity is required.
 
 | Command | Authorization | Accepted client input | Result |
 | --- | --- | --- | --- |
 | `removePublicPassportImage` | Signed-in snapshot owner | `publicPassportSnapshotId` | **Implemented in Phase 2F.1.** Keep the text snapshot published, detach its image, and attempt/retry exact derivative cleanup |
-| `unpublishPublicPassport` | Signed-in snapshot owner | `publicPassportSnapshotId` | Revoke/delete the public snapshot and schedule its derivative cleanup |
+| Derivative-aware Unpublish | Signed-in snapshot owner | `publicPassportSnapshotId` to cleanup, followed by the same snapshot id for owner-scoped model deletion | **Implemented in Phase 2F.3.** Detach delivery first, then delete sanitized text/setup only after a bounded safe cleanup result |
 | Replacement workflow | Signed-in snapshot owner | Existing processor contract: snapshot id, verified private-image asset id, bounded alt text, explicit consent | Detach the old image, then process and attach a new eligible derivative |
 | `moderatePublicPassportImage` | Cognito `admin`/`moderator` group through a separate action | Snapshot id, bounded action and reason code | Hide or remove the current public derivative without private-record access |
 
-The owner removal and moderation commands should accept a snapshot id rather than a public asset id. The backend resolves and conditionally operates on the projection that is current when the command executes. This prevents a stale page from removing a replacement it did not display.
+Owner removal, derivative-aware unpublish, and future moderation commands accept a snapshot id rather than a public asset id. The backend cleanup resolver conditionally operates on the projection current when the command executes. The frontend also scopes the follow-on snapshot deletion to its route/account request generation so a late response cannot update or delete a different preview.
 
 No lifecycle command should accept a raw public or private key. IAM should grant each function only the DynamoDB attributes and exact public derivative prefix required for its job. Owner cleanup functions need no private-prefix read permission.
 
@@ -63,12 +64,12 @@ The Phase 2F.1 durable transition stops future resolver calls before S3 deletion
 2. Read the current snapshot projection and its `PublicImageAsset` ledger row with consistent reads.
 3. Revalidate snapshot ownership, `ready` state, `equipment_cover`, projection/ledger agreement, and the exact derivative-key grammar.
 4. Execute a conditional DynamoDB transaction that:
-   - removes `publicImageAssetId`, `publicImageKey`, and `publicImageAltText` from a retained text snapshot, or deletes the snapshot for unpublish;
+   - removes `publicImageAssetId`, `publicImageKey`, and `publicImageAltText` from the retained text snapshot;
    - changes the matching ledger asset to a non-deliverable lifecycle state; and
    - retains the canonical public key only on the removed owner-private ledger row while deletion needs a retry.
 5. Delete the exact derivative object. S3 `NoSuchKey` is a successful idempotent outcome.
 6. Finalize the cleanup record and clear the ledger's key/alt-text copy when it is no longer required to retry deletion.
-7. A repeated mutation can find the removed ledger row by snapshot id and retry. Durable background backoff/dead-letter reconciliation remains future work.
+7. A repeated mutation can find the removed ledger row by snapshot id and retry while the snapshot still exists. If derivative-aware unpublish continues after `cleanup_pending`, the snapshot is revoked and the protected removed ledger row retains the cleanup state for future operator or durable reconciliation; scheduled reconciliation remains future work.
 
 The conditional transaction must compare the expected snapshot id, current asset id, current key, and current lifecycle generation. If another operation has changed any of them, the command should re-read and either return an already-complete result or stop with a bounded conflict result. It must never delete an object found only in stale browser state.
 
@@ -112,13 +113,17 @@ Repeated requests succeed safely. A missing projection returns `not_attached` un
 
 ## Derivative-aware unpublish
 
-The browser currently deletes a text-only `PublicPassportSnapshot` directly and blocks unpublish when an image projection exists. Phase 2F should replace this with one owner-authorized backend unpublish command for both text-only and image-bearing snapshots.
+Phase 2F.3 preserves direct owner-scoped deletion for a text-only snapshot. When a prepared derivative or same-tab cleanup-pending marker exists, Public Preview instead uses this ordered flow:
 
-For an image-bearing snapshot, the command should transactionally mark the current asset non-deliverable and delete the public snapshot. Deleting the snapshot is equivalent to clearing all public text/image projection fields and makes both the public detail and resolver unavailable. The asset ledger or private cleanup job must retain the exact validated derivative locator only until S3 cleanup succeeds; it must not depend on a deleted snapshot to remember the object.
+1. Explain that the processed public image is detached first, the sanitized text/setup is then unpublished, and neither the private original nor private Equipment Passport is deleted.
+2. Call `removePublicPassportImage` with only `publicPassportSnapshotId`.
+3. Continue to snapshot deletion only for `removed`, `not_attached`, or `cleanup_pending`. All three mean no current public image projection remains; `cleanup_pending` additionally means exact object cleanup still needs retry or reconciliation.
+4. Stop before snapshot deletion for `failed`, an unknown result normalized to failure, or a network/auth failure. Show only a bounded message and leave the public text/setup published.
+5. Delete the same snapshot through the existing owner-authorized model operation. The public detail and Discover entry then become unavailable.
 
-For a text-only snapshot, the same command should remain idempotent and preserve current unpublish behavior. Public comments, reactions, reports, and moderation evidence must follow their separately documented retention policy; the image cleanup command must not silently broaden into destructive moderation or private-record deletion.
+If cleanup detaches delivery but text deletion fails, Public Preview refreshes the snapshot and explains that the image is unavailable while the sanitized text/setup may remain published. The owner can retry Unpublish without reprocessing an image. A cleanup-pending retry remains available while the snapshot exists. If text deletion succeeds after `cleanup_pending`, the page is unpublished immediately; the removed ledger row remains the backend signal for later reconciliation because no scheduled reconciler exists yet.
 
-If object deletion fails after the snapshot is revoked, unpublish should still remain effective. The object is not directly readable through Amplify Storage, the resolver cannot authorize it without the snapshot, and cleanup can retry safely. The owner-private Equipment Passport and private image remain unchanged.
+The flow uses one synchronous mutation guard and a route/account-scoped request generation. Publish, processing, owner removal, and duplicate Unpublish cannot overlap, and a late result cannot apply to another passport. No cleanup/unpublish request contains a key, path, URL, asset id, owner id, source id, filename, image bytes, or private identifier. Public comments, reactions, reports, and moderation evidence continue to follow their separately documented retention policy.
 
 ## Replacement behavior
 
@@ -152,9 +157,9 @@ The visibility-setting workflow should eventually invoke a backend orchestrator 
 
 ### Public snapshot is unpublished
 
-- Use the derivative-aware backend command described above.
-- Revoke/delete the snapshot and mark its current asset non-deliverable in one conditional transaction.
-- Delete the derivative asynchronously if necessary.
+- Use Phase 2F.3's derivative-aware owner flow: conditionally detach/mark the current asset non-deliverable through `removePublicPassportImage`, then delete the same snapshot only after a safe bounded cleanup result.
+- Keep the two calls under one frontend operation guard and one route/account request generation. A future atomic backend command can replace this orchestration when durable reconciliation is introduced.
+- If exact derivative deletion remains pending after delivery detachment, allow snapshot unpublish and retain the protected removed ledger state for later reconciliation.
 - Preserve the private source and protected lifecycle/moderation evidence.
 
 ### Private original is deleted or replaced
@@ -242,10 +247,10 @@ If the DynamoDB detach transaction fails, do not delete an object that might sti
 Phase 2F implementation should keep lifecycle controls in owner-only Public Preview:
 
 - **Remove public image** — keeps the sanitized text snapshot public.
-- **Unpublish public setup** — removes the public snapshot and its image reference.
-- **Replace public image** — first removes the old public image, then begins a fresh consent flow.
+- **Unpublish** — if needed, detaches the public derivative first and then removes the sanitized snapshot.
+- **Replace public image** — remains deferred; no direct replacement control exists.
 
-Owner states should be bounded: removing, public image removed, cleanup pending, replacement ready, and unable to complete. Public pages should simply fall back to the sanitized text detail with no raw error or technical status. Settings copy for changing an account to private should explain that public images will be removed and will not return automatically.
+Owner states are bounded: confirming in the native owner dialog, detaching the public image, unpublishing text/setup, unpublished, cleanup pending but unpublished, cleanup failed with no unpublish, and image detached but text unpublish failed. Public pages simply become text-only after detachment or unavailable after unpublish, with no raw error or technical status.
 
 No Phase 2F control belongs on Discover or public profile cards, and no target-photo control should be introduced.
 
@@ -284,12 +289,16 @@ Logs and metrics should use fixed event names and bounded failure/reason codes. 
 - [x] Invalidate route/account-stale cleanup and processing responses before they can update a newer preview.
 - [x] Keep cleanup-pending same-tab retry state free of image keys and private identifiers.
 
-### Phase 2F.3: derivative-aware unpublish and replacement
+### Phase 2F.3: derivative-aware unpublish
 
-- Replace direct snapshot deletion with a derivative-aware backend unpublish command.
-- Add detach-first replacement orchestration with a new immutable asset generation.
-- Require fresh verification, checklist, consent, and alt text.
-- Prove stale processor invocations cannot reattach an old image.
+- [x] Preserve the existing direct owner deletion for text-only snapshots.
+- [x] For image-bearing snapshots, call the backend cleanup mutation first and continue only after `removed`, `not_attached`, or detach-confirmed `cleanup_pending`.
+- [x] Stop on failed/unknown/network/auth cleanup results and keep the text snapshot published.
+- [x] Block overlapping lifecycle actions and discard route/account-stale cleanup or delete responses.
+- [x] Provide bounded recovery when image detachment succeeds but text deletion fails.
+- [ ] Complete the hosted positive, failure, cleanup-pending, recovery, and stale-navigation checklist.
+
+Direct image replacement remains a separate future phase. It must use a new immutable asset generation, require fresh verification/checklist/consent/alt text, and prove stale processors cannot reattach an old image.
 
 ### Phase 2F.4: lifecycle hooks and reconciliation
 
@@ -325,9 +334,9 @@ Logs and metrics should use fixed event names and bounded failure/reason codes. 
 
 ## Explicitly out of scope
 
-Phase 2F.1 and the current Phase 2F.2 owner UI slice do not implement:
+The current Phase 2F.1-2F.3 release does not implement:
 
-- derivative-aware unpublish, replacement, queues, streams, or scheduled jobs;
+- direct image replacement, queues, streams, or scheduled reconciliation;
 - moderator lifecycle state or audit models;
 - Discover or public profile image rendering;
 - target-photo publishing or cleanup as public media;

@@ -4,7 +4,7 @@
 
 This is a developer-only test path for the deployed owner-authorized `removePublicPassportImage` mutation. It accepts one `publicPassportSnapshotId`, detaches the current public image projection, marks a safely matched `PublicImageAsset` removed, and deletes only its canonical processed derivative. The sanitized text/setup snapshot remains published.
 
-Phase 2F.1 is the backend contract and developer harness. Phase 2F.2 now calls that same snapshot-id-only contract from an owner-only Public Preview remove button. Replacement, derivative-aware unpublish, account-visibility cleanup, moderation actions, Discover images, public-profile images, galleries, and target-photo publishing remain unavailable.
+Phase 2F.1 is the backend contract and developer harness. Phase 2F.2 calls that same snapshot-id-only contract from an owner-only Public Preview remove button, and Phase 2F.3 calls it before owner-scoped snapshot deletion for derivative-aware Unpublish. Direct replacement, account-visibility cleanup, moderation actions, Discover images, public-profile images, galleries, and target-photo publishing remain unavailable.
 
 ## Deployment checkpoint — August 31, 2026
 
@@ -123,4 +123,4 @@ Use isolated disposable fixtures:
 
 ## Current limitation and next phase
 
-Phase 2F.1 exposes the backend primitive and developer harness. Phase 2F.2 now wires an explicit owner-facing remove action while Public Preview continues to disable direct unpublish and replacement when a derivative is attached. Derivative-aware backend unpublish, immutable replacement generations with fresh consent, account-visibility/private-source hooks, scheduled reconciliation, and image moderation remain later work.
+Phase 2F.1 exposes the backend primitive and developer harness. Phase 2F.2 wires an explicit owner-facing remove action, and Phase 2F.3 safely runs the same cleanup before owner-scoped snapshot deletion. Immutable replacement generations with fresh consent, account-visibility/private-source hooks, scheduled reconciliation, and image moderation remain later work.

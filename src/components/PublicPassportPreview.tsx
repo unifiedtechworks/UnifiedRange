@@ -13,7 +13,7 @@ import { Tag } from "@/components/Tag";
 import { rangeSessions, targetPhotos } from "@/data/mockData";
 import { getOpticById, getPassportById, getProjectileById } from "@/data/selectors";
 import { useAuthUser } from "@/hooks/useAuthUser";
-import { configureAmplifyClient, getAuthErrorMessage } from "@/lib/amplifyClient";
+import { configureAmplifyClient } from "@/lib/amplifyClient";
 import { recordToEquipmentPassport, type EquipmentPassportRecord } from "@/lib/equipmentPassportData";
 import {
   getPublicImageCleanupFailureMessage,
@@ -28,6 +28,7 @@ import { sanitizePublicPassport } from "@/lib/sanitizePublicPassport";
 import type { EquipmentPassport, SanitizedPublicPassport } from "@/types";
 
 type PreviewState = "loading" | "saved" | "demo" | "missing";
+type UnpublishState = "idle" | "removing_image" | "unpublishing_text";
 const cleanupPendingSessionPrefix = "unifiedrange:public-image-cleanup-pending:";
 
 function hasPendingCleanupMarker(publicPassportSnapshotId: string) {
@@ -66,10 +67,12 @@ export function PublicPassportPreview({ passportId }: { passportId?: string }) {
   const [isPublishing, setIsPublishing] = useState(false);
   const [isProcessingPublicImage, setIsProcessingPublicImage] = useState(false);
   const [isRemovingPublicImage, setIsRemovingPublicImage] = useState(false);
+  const [unpublishState, setUnpublishState] = useState<UnpublishState>("idle");
   const [hasPreparedPublicImage, setHasPreparedPublicImage] = useState(false);
   const [isPublicImageCleanupPending, setIsPublicImageCleanupPending] = useState(false);
   const previewRequestIdRef = useRef(0);
   const cleanupRequestIdRef = useRef(0);
+  const unpublishRequestIdRef = useRef(0);
   const snapshotMutationInFlightRef = useRef(false);
   const publicImageProcessingInFlightRef = useRef(false);
   const cleanupContextKey = authState.status === "signed-in"
@@ -94,7 +97,7 @@ export function PublicPassportPreview({ passportId }: { passportId?: string }) {
       setHasPreparedPublicImage(false);
       setError("Missing record ID.");
       setState("missing");
-      return;
+      return null;
     }
 
     const demoPassport = getPassportById(passportId);
@@ -104,12 +107,12 @@ export function PublicPassportPreview({ passportId }: { passportId?: string }) {
       setSnapshot(null);
       setHasPreparedPublicImage(false);
       setState("demo");
-      return;
+      return null;
     }
 
     if (authState.status === "loading") {
       setState("loading");
-      return;
+      return null;
     }
 
     if (authState.status !== "signed-in") {
@@ -118,7 +121,7 @@ export function PublicPassportPreview({ passportId }: { passportId?: string }) {
       setHasPreparedPublicImage(false);
       setError("Sign in to preview and publish saved Equipment Passports.");
       setState("missing");
-      return;
+      return null;
     }
 
     try {
@@ -133,7 +136,7 @@ export function PublicPassportPreview({ passportId }: { passportId?: string }) {
       ]);
 
       if (previewRequestIdRef.current !== requestId) {
-        return;
+        return null;
       }
 
       const errors = [...(passportResult.errors ?? []), ...(snapshotResult.errors ?? [])];
@@ -149,11 +152,11 @@ export function PublicPassportPreview({ passportId }: { passportId?: string }) {
         setHasPreparedPublicImage(loadedSnapshotHasImage);
         setIsPublicImageCleanupPending(Boolean(loadedSnapshot && !loadedSnapshotHasImage && hasPendingCleanupMarker(loadedSnapshot.id)));
         setState("saved");
-        return;
+        return loadedSnapshot;
       }
     } catch (loadError) {
       if (previewRequestIdRef.current !== requestId) {
-        return;
+        return null;
       }
 
       console.error("Unable to load public preview", loadError);
@@ -161,13 +164,14 @@ export function PublicPassportPreview({ passportId }: { passportId?: string }) {
     }
 
     if (previewRequestIdRef.current !== requestId) {
-      return;
+      return null;
     }
 
     setRecord(null);
     setSnapshot(null);
     setHasPreparedPublicImage(false);
     setState("missing");
+    return null;
   }, [authState, client, passportId]);
 
   useEffect(() => {
@@ -187,6 +191,7 @@ export function PublicPassportPreview({ passportId }: { passportId?: string }) {
   useEffect(() => {
     return () => {
       cleanupRequestIdRef.current += 1;
+      unpublishRequestIdRef.current += 1;
     };
   }, [cleanupContextKey]);
 
@@ -240,36 +245,108 @@ export function PublicPassportPreview({ passportId }: { passportId?: string }) {
       return;
     }
 
-    if (hasPreparedPublicImage) {
-      setError("Remove the prepared public image before unpublishing this snapshot.");
+    if (authState.status !== "signed-in") {
+      setError("Sign in to unpublish this public snapshot.");
       return;
     }
 
-    const confirmed = window.confirm("Unpublish this public snapshot? It will be removed from Discover.");
+    const requiresImageCleanup = hasPreparedPublicImage || isPublicImageCleanupPending;
+    const confirmed = window.confirm(
+      requiresImageCleanup
+        ? "Unpublish this public snapshot? The processed public image will be detached first, then the sanitized setup text will be removed from Discover. Your private original image and private Equipment Passport will not be deleted."
+        : "Unpublish this public snapshot? The sanitized setup text will be removed from Discover. Your private Equipment Passport and private images will not be deleted."
+    );
     if (!confirmed) {
       return;
     }
 
+    const snapshotId = snapshot.id;
+    const unpublishRequestId = unpublishRequestIdRef.current + 1;
+    unpublishRequestIdRef.current = unpublishRequestId;
+    let publicImageWasDetached = false;
+    let derivativeCleanupPending = false;
+
     setError("");
     setMessage("");
     snapshotMutationInFlightRef.current = true;
-    setIsPublishing(true);
+    setUnpublishState(requiresImageCleanup ? "removing_image" : "unpublishing_text");
 
     try {
-      const result = await client.models.PublicPassportSnapshot.delete({ id: snapshot.id });
+      if (requiresImageCleanup) {
+        const cleanupResult = await removePublicPassportImage(client, snapshotId);
 
-      if (result.errors?.length) {
-        throw new Error(result.errors.map((item) => item.message).join(" "));
+        if (cleanupResult.status === "removed" || cleanupResult.status === "not_attached") {
+          setPendingCleanupMarker(snapshotId, false);
+          publicImageWasDetached = true;
+        } else if (cleanupResult.status === "cleanup_pending") {
+          setPendingCleanupMarker(snapshotId, true);
+          publicImageWasDetached = true;
+          derivativeCleanupPending = true;
+        } else {
+          if (unpublishRequestIdRef.current === unpublishRequestId) {
+            setError(`${getPublicImageCleanupFailureMessage(cleanupResult.failureCode)} The public setup remains published because unpublish did not continue.`);
+          }
+          return;
+        }
+
+        if (unpublishRequestIdRef.current !== unpublishRequestId) {
+          return;
+        }
+
+        setHasPreparedPublicImage(false);
+        setIsPublicImageCleanupPending(derivativeCleanupPending);
+        setUnpublishState("unpublishing_text");
+      }
+
+      const result = await client.models.PublicPassportSnapshot.delete({ id: snapshotId });
+
+      if (unpublishRequestIdRef.current !== unpublishRequestId) {
+        return;
+      }
+
+      if (result.errors?.length || !result.data) {
+        throw new Error("snapshot_delete_failed");
       }
 
       setSnapshot(null);
-      setMessage("Public snapshot unpublished.");
-    } catch (unpublishError) {
-      console.error("Unable to unpublish public passport snapshot", unpublishError);
-      setError(getAuthErrorMessage(unpublishError));
+      setHasPreparedPublicImage(false);
+      setIsPublicImageCleanupPending(false);
+      setPendingCleanupMarker(snapshotId, false);
+      setMessage(
+        derivativeCleanupPending
+          ? "Public snapshot unpublished. Public image delivery was detached first; final derivative cleanup still needs backend retry or reconciliation. Your private original was not changed."
+          : publicImageWasDetached
+            ? "Public image detached and public snapshot unpublished. Your private original image and private Equipment Passport were not changed."
+            : "Public snapshot unpublished. Your private Equipment Passport and private images were not changed."
+      );
+    } catch {
+      if (unpublishRequestIdRef.current !== unpublishRequestId) {
+        return;
+      }
+
+      if (publicImageWasDetached) {
+        const refreshedSnapshot = await loadPreview();
+
+        if (unpublishRequestIdRef.current !== unpublishRequestId) {
+          return;
+        }
+
+        const refreshedSnapshotHasImage = Boolean(refreshedSnapshot?.publicImageAssetId || refreshedSnapshot?.publicImageKey);
+        if (refreshedSnapshotHasImage) {
+          setError("The public snapshot changed while unpublish was finishing and may still be published with a newer prepared image. Review the current preview and retry Unpublish. Your private original was not changed.");
+        } else {
+          setError(
+            derivativeCleanupPending
+              ? "Public image delivery is detached and final derivative cleanup remains pending, but the sanitized text/setup may still be published. Retry Unpublish; your private original was not changed."
+              : "The public image was detached, but the sanitized text/setup may still be published. Retry Unpublish without preparing the image again. Your private original was not changed."
+          );
+        }
+      } else {
+        setError("The public snapshot could not be unpublished and may still be public. Refresh and try again. Your private records and images were not changed.");
+      }
     } finally {
       snapshotMutationInFlightRef.current = false;
-      setIsPublishing(false);
+      setUnpublishState("idle");
     }
   }
 
@@ -414,6 +491,7 @@ export function PublicPassportPreview({ passportId }: { passportId?: string }) {
       isPublishing={isPublishing}
       isProcessingPublicImage={isProcessingPublicImage}
       isRemovingPublicImage={isRemovingPublicImage}
+      unpublishState={unpublishState}
       hasPreparedPublicImage={hasPreparedPublicImage}
       isPublicImageCleanupPending={isPublicImageCleanupPending}
       onPublish={() => void handlePublish(passport)}
@@ -436,6 +514,7 @@ function PublicPreviewContent({
   isPublishing,
   isProcessingPublicImage,
   isRemovingPublicImage,
+  unpublishState,
   hasPreparedPublicImage,
   isPublicImageCleanupPending,
   onPublish,
@@ -454,6 +533,7 @@ function PublicPreviewContent({
   isPublishing?: boolean;
   isProcessingPublicImage?: boolean;
   isRemovingPublicImage?: boolean;
+  unpublishState?: UnpublishState;
   hasPreparedPublicImage?: boolean;
   isPublicImageCleanupPending?: boolean;
   onPublish?: () => void;
@@ -463,7 +543,8 @@ function PublicPreviewContent({
   onRemovePublicImage?: () => void;
   onUnpublish?: () => void;
 }) {
-  const isSnapshotBusy = Boolean(isPublishing || isProcessingPublicImage || isRemovingPublicImage);
+  const isUnpublishing = Boolean(unpublishState && unpublishState !== "idle");
+  const isSnapshotBusy = Boolean(isPublishing || isProcessingPublicImage || isRemovingPublicImage || isUnpublishing);
   const areSnapshotChangesDisabled = Boolean(isSnapshotBusy || isPublicImageCleanupPending);
 
   return (
@@ -586,11 +667,10 @@ function PublicPreviewContent({
                   <button
                     type="button"
                     onClick={onUnpublish}
-                    disabled={areSnapshotChangesDisabled || hasPreparedPublicImage}
-                    title={hasPreparedPublicImage || isPublicImageCleanupPending ? "Complete public image cleanup before unpublishing." : undefined}
+                    disabled={isSnapshotBusy}
                     className="inline-flex justify-center rounded-md border border-clay/30 bg-white px-4 py-2 text-sm font-semibold text-clay disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    Unpublish
+                    {unpublishState === "removing_image" ? "Detaching public image..." : unpublishState === "unpublishing_text" ? "Unpublishing text/setup..." : "Unpublish"}
                   </button>
                   {(hasPreparedPublicImage || isPublicImageCleanupPending) && onRemovePublicImage ? (
                     <button
@@ -605,8 +685,10 @@ function PublicPreviewContent({
                 </>
               ) : null}
             </div>
-            {hasPreparedPublicImage ? <p className="mt-3 text-xs leading-5 text-ink/55">This prepared derivative may appear on the saved Public Passport detail page. Remove it to return this snapshot to text-only sharing; then the existing text-only Unpublish action becomes available. Direct replacement and image-bearing unpublish remain unavailable.</p> : null}
-            {isPublicImageCleanupPending ? <p className="mt-3 text-xs leading-5 text-ink/55">Public delivery is already unavailable, but final derivative deletion needs a safe retry. Publishing, processing, and unpublishing stay disabled until cleanup completes.</p> : null}
+            {hasPreparedPublicImage ? <p className="mt-3 text-xs leading-5 text-ink/55">This prepared derivative may appear on the saved Public Passport detail page. Remove it to return this snapshot to text-only sharing, or use Unpublish to detach it before removing the sanitized text/setup. Direct image replacement remains unavailable.</p> : null}
+            {isPublicImageCleanupPending ? <p className="mt-3 text-xs leading-5 text-ink/55">Public delivery is already unavailable, but final derivative deletion needs a safe retry. Publishing and image processing stay disabled. Retry image cleanup while keeping the text/setup public, or use Unpublish to retry cleanup and then remove the text/setup.</p> : null}
+            {unpublishState === "removing_image" ? <p className="mt-3 rounded-md border border-moss/25 bg-field px-4 py-3 text-sm font-semibold text-moss" role="status" aria-live="polite">Detaching the processed public image before unpublishing. The private original is not being changed.</p> : null}
+            {unpublishState === "unpublishing_text" ? <p className="mt-3 rounded-md border border-moss/25 bg-field px-4 py-3 text-sm font-semibold text-moss" role="status" aria-live="polite">Public image delivery is unavailable. Unpublishing the sanitized text/setup now.</p> : null}
             {error ? <p className="mt-3 rounded-md border border-clay/30 bg-clay/10 px-4 py-3 text-sm font-semibold text-clay" role="alert">{error}</p> : null}
             {message ? <p className="mt-3 rounded-md border border-moss/25 bg-field px-4 py-3 text-sm font-semibold text-moss" role="status" aria-live="polite">{message}</p> : null}
           </div>

@@ -22,7 +22,7 @@ Phase 2E.2 is a narrow detail-only rendering slice, not broad public image relea
 | Public mapper | Keep `recordToSanitizedPublicPassport` free of image keys; use a detail-only delivery helper keyed by snapshot ID |
 | Missing or denied image | Render no image and no technical error; never fall back to a private source |
 | Revocation | Stop issuing URLs immediately, detach the projection first, then delete asynchronously and idempotently |
-| Release gate | Implement derivative-aware remove/unpublish and visibility revocation before enabling public rendering |
+| Release gate | Validate derivative-aware remove/unpublish and implement visibility revocation before expanding public rendering |
 
 ## Why Public Passport detail is first
 
@@ -212,18 +212,19 @@ If projection fields exist but the ledger is missing/not ready, fields disagree,
 
 ## Visibility, unpublish, removal, and replacement
 
-Phase 2F.1 now provides the first backend-controlled owner-removal primitive, and Phase 2F.2 exposes only its owner-facing Public Preview remove control. Direct client unpublish remains disabled after a derivative is prepared; derivative-aware unpublish and replacement controls are still deferred.
+Phase 2F.1 provides the backend-controlled owner-removal primitive, Phase 2F.2 exposes its owner-facing Public Preview remove control, and Phase 2F.3 composes cleanup with owner-scoped snapshot deletion for derivative-aware Unpublish. Direct image replacement remains deferred.
 
 ### Snapshot unpublish
 
-A future unpublish command should:
+The implemented owner flow:
 
-1. authenticate and verify the owner;
-2. detach or disable the public image projection first;
-3. mark the ledger asset removed;
-4. remove the public snapshot from public lookup;
-5. delete or queue deletion of the derivative idempotently; and
-6. preserve the private Equipment Passport and original image.
+1. confirms the signed-in owner intent;
+2. calls the backend cleanup command with only the public snapshot id so the image projection is detached and the ledger asset becomes non-deliverable;
+3. continues only for `removed`, `not_attached`, or detach-confirmed `cleanup_pending`;
+4. deletes the same sanitized snapshot through the existing owner-authorized model operation; and
+5. preserves the private Equipment Passport and original image.
+
+If cleanup fails, snapshot deletion does not run. If cleanup succeeds but text deletion fails, the UI explains that the image is detached while the text/setup may remain public and permits a safe Unpublish retry. A future atomic command may replace this two-call orchestration when durable reconciliation is added.
 
 The resolver must stop issuing new URLs as soon as the projection/snapshot is detached. Previously issued URLs may remain usable only until their short expiration; this limitation must be part of release review and owner-facing public-sharing copy.
 
@@ -280,7 +281,7 @@ The browser receives only a temporary URL for the processed public JPEG and safe
 
 - Complete Phase 2C/2D hosted positive, adversarial, concurrency, metadata-removal, IAM, and rollback tests.
 - [x] Implement the Phase 2F.1 backend-controlled public-image removal primitive.
-- [ ] Implement derivative-aware snapshot unpublish and owner-facing lifecycle controls.
+- [x] Implement derivative-aware snapshot unpublish and owner-facing lifecycle controls.
 - Define account-private revocation and the maximum accepted signed-URL lifetime.
 - Decide whether existing long-cache derivative objects must be rewritten or delivered with signed response-header overrides.
 
@@ -312,7 +313,7 @@ The original foundation phase changed the Amplify backend/schema/IAM and require
 
 - Test signed-out, signed-in, other-owner, private-account, moderator, and admin sessions.
 - Deploy and test Phase 2F.1 removal, missing-object idempotency, retry state, URL expiration, and concurrent processor/removal state changes.
-- Test derivative-aware unpublish, account visibility changes, replacement, and moderation after their later lifecycle operations exist.
+- Test deployed derivative-aware unpublish; test account visibility changes, replacement, and moderation after those later lifecycle operations exist.
 - Verify no private key/request appears in DOM text, GraphQL variables, public responses, analytics, console output, or backend logs.
 - Verify no public route requests a private Storage prefix.
 
@@ -344,4 +345,4 @@ Do not expand beyond the detail-only hosted-development slice or approve a broad
 
 The original Phase 2E.1 foundation changed the Amplify schema, added `resolve-public-passport-image`, and changed IAM/Storage resource access. Its later hardening changed the resolver Lambda and requires that backend version to be deployed before Phase 2E.2 can succeed.
 
-Phase 2E.2 itself is frontend-only plus documentation. Phase 2F.1 subsequently adds a schema result enum/index, `remove-public-passport-image`, public-prefix delete-only IAM, processor concurrency guards, and therefore requires backend redeployment. General surface expansion still requires successful hosted removal tests, derivative-aware unpublish, visibility/private-source cleanup, moderation, and the remaining acceptance tests.
+Phase 2E.2 itself is frontend-only plus documentation. Phase 2F.1 subsequently adds a schema result enum/index, `remove-public-passport-image`, public-prefix delete-only IAM, processor concurrency guards, and therefore requires backend redeployment. Phase 2F.3 is frontend/docs-only and uses that deployed cleanup contract before snapshot deletion. General surface expansion still requires successful hosted removal/unpublish tests, visibility/private-source cleanup, moderation, and the remaining acceptance tests.

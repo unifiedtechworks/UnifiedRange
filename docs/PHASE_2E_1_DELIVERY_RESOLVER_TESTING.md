@@ -98,4 +98,4 @@ Review Lambda logs separately. Allowed fields are fixed event names, bounded int
 
 ## Product boundary after testing
 
-Passing this harness approves only the resolver primitive. Phase 2E.2 now uses that primitive on saved Public Passport detail only; Discover and public profiles remain image-free. Detail rendering still requires its own signed-in/signed-out, expiry/caching, visibility, stale-response, private-boundary, and accessibility tests. Do not expand surfaces or approve a broader release until backend-controlled removal, derivative-aware unpublish, hosted adversarial checks, and the remaining lifecycle gates are complete.
+Passing this harness approves only the resolver primitive. Phase 2E.2 uses that primitive on saved Public Passport detail only; Discover and public profiles remain image-free. Detail rendering still requires its own signed-in/signed-out, expiry/caching, visibility, stale-response, private-boundary, and accessibility tests. Do not expand surfaces or approve a broader release until backend-controlled removal and derivative-aware Unpublish pass their hosted adversarial checks and the remaining lifecycle gates are complete.

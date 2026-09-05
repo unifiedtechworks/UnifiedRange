@@ -314,7 +314,7 @@ export function PublicPassportImageConsentPanel({
         </p>
         {hasPreparedPublicImage ? (
           <p className="mt-3 rounded-md border border-moss/25 bg-white px-3 py-2 text-sm leading-6 text-ink/70">
-            A public-safe derivative is already prepared and may appear on the saved Public Passport detail page while it remains eligible. Discover and public profile cards remain image-free. Use the owner-only Remove public image action below to return this snapshot to text-only sharing. Direct replacement and image-bearing unpublish remain unavailable.
+            A public-safe derivative is already prepared and may appear on the saved Public Passport detail page while it remains eligible. Discover and public profile cards remain image-free. Use the owner-only Remove public image action to return this snapshot to text-only sharing, or use Unpublish to detach the image before removing the sanitized text/setup. Direct image replacement remains unavailable.
           </p>
         ) : null}
       </div>

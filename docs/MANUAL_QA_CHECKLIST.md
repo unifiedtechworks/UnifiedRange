@@ -2,7 +2,7 @@
 
 Last updated: August 30, 2026
 
-Use this checklist for a complete hosted-development release review. It starts from the current MVP, including Phase 2A owner-only `PrivateImageAsset` candidate registration, Phase 2B trusted private source verification, the Phase 2C derivative processor, the Phase 2D owner-only equipment-cover consent UI, Phase 2E detail-only public derivative delivery/rendering, the Phase 2F.1 backend cleanup primitive, and the Phase 2F.2 owner-only Public Preview removal control. It does not assume that derivative-aware unpublish/replacement, Discover/profile image rendering, account deletion/export, username sign-in, notifications, or destructive moderation actions exist.
+Use this checklist for a complete hosted-development release review. It starts from the current MVP, including Phase 2A owner-only `PrivateImageAsset` candidate registration, Phase 2B trusted private source verification, the Phase 2C derivative processor, the Phase 2D owner-only equipment-cover consent UI, Phase 2E detail-only public derivative delivery/rendering, the Phase 2F.1 backend cleanup primitive, the Phase 2F.2 owner-only Public Preview removal control, and Phase 2F.3 derivative-aware Unpublish. It does not assume that direct replacement, Discover/profile image rendering, account deletion/export, username sign-in, notifications, or destructive moderation actions exist.
 
 ## Test session record
 
@@ -464,7 +464,7 @@ User B and Visitor.
 - [ ] Edit safe source fields, return to Public Preview, update the snapshot, and confirm the public page changes only after the explicit update.
 - [ ] Inspect normal Public Preview create/update requests and confirm they omit all image projection fields. Only the backend processor may populate the guarded projection.
 - [ ] With a snapshot that has no prepared derivative, unpublish it and confirm it disappears from Discover, its prior public detail route becomes unavailable, and the private Equipment Passport remains intact.
-- [ ] With a snapshot that has a prepared derivative, confirm direct Unpublish and replacement remain disabled while the owner-only **Remove public image** action is available.
+- [ ] With a snapshot that has a prepared derivative, confirm owner-only **Remove public image** and derivative-aware **Unpublish** are available while direct image replacement remains unavailable.
 - [ ] Republish only if needed for later checklist sections.
 
 ### Expected results
@@ -524,7 +524,7 @@ Account type: User B with disposable prepared public-image data, Visitor, and op
 - [ ] Confirm image-load failure or URL expiry removes the image quietly while the complete sanitized text detail remains usable and no technical error is shown.
 - [ ] Test narrow mobile widths and long safe alt text. Confirm the loading/image card never causes horizontal scrolling, and the caption remains readable.
 
-Phase 2F.1 provides the owner-authorized backend primitive and Phase 2F.2 wires its explicit owner-only Public Preview removal control. Derivative-aware unpublish, replacement, account/private-source cleanup, and moderator hide/remove remain blocked until their later backend/UI actions exist. Follow [Phase 2F Public Image Lifecycle Cleanup Plan](PUBLIC_IMAGE_PHASE_2F_LIFECYCLE_CLEANUP_PLAN.md).
+Phase 2F.1 provides the owner-authorized backend primitive, Phase 2F.2 wires its explicit owner-only Public Preview removal control, and Phase 2F.3 composes cleanup with owner-scoped snapshot deletion for derivative-aware unpublish. Replacement, account/private-source cleanup, durable reconciliation, and moderator hide/remove remain deferred. Follow [Phase 2F Public Image Lifecycle Cleanup Plan](PUBLIC_IMAGE_PHASE_2F_LIFECYCLE_CLEANUP_PLAN.md).
 
 ### Phase 2F.1 backend cleanup — run after backend redeploy
 
@@ -555,9 +555,23 @@ Phase 2F.1 provides the owner-authorized backend primitive and Phase 2F.2 wires 
 - [ ] Confirm text-only Unpublish becomes available after the projection is detached. Replacement remains unavailable as a coordinated lifecycle workflow.
 - [ ] Test the action on a narrow mobile viewport and with long passport text. Confirm controls wrap without horizontal scrolling.
 
-### Future Phase 2F.3+ lifecycle cleanup — not runnable yet
+### Phase 2F.3 derivative-aware unpublish — run after frontend deployment
 
-- [ ] Derivative-aware unpublish revokes the snapshot and image together, remains idempotent when the object is missing, and never deletes the private Equipment Passport.
+- [ ] With no attached derivative, choose **Unpublish**. Confirm the owner dialog explains that Discover/public detail access ends while the private Equipment Passport and private images remain unchanged, and confirm no cleanup mutation is sent.
+- [ ] With a prepared derivative, choose **Unpublish**. Confirm the dialog explains image detachment happens first, sanitized text/setup unpublish happens second, and neither the private original nor private Equipment Passport is deleted.
+- [ ] Inspect both requests. Confirm cleanup sends only `publicPassportSnapshotId`; the follow-on owner delete targets the same snapshot. No key, path, URL, image asset/owner/source id, filename, alt text, token text, image bytes, or private image key is supplied or displayed.
+- [ ] Confirm `removed` and `not_attached` transition through a bounded image-detached state and then unpublish the sanitized text/setup. Confirm the public detail resolver is unavailable and the setup disappears from Discover.
+- [ ] Force `cleanup_pending`. Confirm public image delivery is detached, text unpublish continues, success explains final object cleanup still needs backend retry/reconciliation, and the private original remains unchanged.
+- [ ] Force cleanup `failed`, unknown, network, and auth outcomes. Confirm text unpublish does not run, the setup remains published, and the owner sees only a friendly retry-safe message.
+- [ ] Force text snapshot deletion to fail after `removed`/`not_attached`. Confirm the UI says the image is detached but text may remain published and allows Unpublish retry without image reprocessing.
+- [ ] Force text deletion to fail after `cleanup_pending`. Confirm the same recovery message notes pending derivative cleanup, **Retry image cleanup** remains available, and Unpublish can be retried.
+- [ ] Rapidly click Unpublish and attempt publish, processing, and owner removal during each phase. Confirm only one lifecycle sequence runs and all competing mutation controls remain disabled.
+- [ ] Throttle cleanup and snapshot deletion separately, then change route or signed-in account during each wait. Confirm no late result reloads or overwrites another Public Preview and no follow-on delete targets a different snapshot.
+- [ ] Refresh after success and confirm the snapshot remains unpublished. Confirm no public or private S3 key, internal ledger data, raw GraphQL/Lambda/AWS error, or private-source fallback appears in UI, console, public pages, or browser storage.
+- [ ] Confirm Discover cards/public profile cards stay image-free, target photos remain excluded, and direct replacement remains unavailable.
+
+### Future Phase 2F.4+ lifecycle cleanup — not runnable yet
+
 - [ ] Replacement detaches the old image, requires a new verified `equipment_cover`, checklist, consent, and alt text, and never restores the old derivative after failure.
 - [ ] Changing an account to private revokes new delivery and schedules every current derivative for cleanup; returning to public never republishes an image automatically.
 - [ ] Deleting/replacing a private original revokes its public derivative and requires fresh verification/consent for any later image.
