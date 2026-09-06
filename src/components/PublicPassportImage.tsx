@@ -3,6 +3,7 @@
 import { generateClient } from "aws-amplify/data";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Schema } from "../../amplify/data/resource";
+import { PublicImageReportButton } from "@/components/PublicImageReportButton";
 import { configureAmplifyClient } from "@/lib/amplifyClient";
 import {
   loadPublicPassportImageDelivery,
@@ -10,7 +11,10 @@ import {
 } from "@/lib/publicPassportImageDeliveryData";
 
 type PublicImageState = "checking" | "loading" | "loaded" | "unavailable";
-type ActiveDelivery = Extract<PublicPassportImageDelivery, { status: "available" }> & { requestId: number };
+type ActiveDelivery = Extract<PublicPassportImageDelivery, { status: "available" }> & {
+  requestId: number;
+  snapshotId: string;
+};
 
 const imageLoadTimeoutMilliseconds = 15_000;
 const processedImageMaxDimension = 1_600;
@@ -40,7 +44,7 @@ export function PublicPassportImage({ publicPassportSnapshotId }: { publicPasspo
       return;
     }
 
-    setDelivery({ ...result, requestId });
+    setDelivery({ ...result, requestId, snapshotId: publicPassportSnapshotId });
     setState("loading");
   }, [client, publicPassportSnapshotId]);
 
@@ -74,7 +78,7 @@ export function PublicPassportImage({ publicPassportSnapshotId }: { publicPasspo
     return null;
   }
 
-  if (state === "checking" || !delivery) {
+  if (state === "checking" || !delivery || delivery.snapshotId !== publicPassportSnapshotId) {
     return (
       <div
         className="mb-6 flex aspect-[8/5] max-h-[34rem] w-full max-w-full items-center justify-center rounded-md border border-ink/10 bg-ink/[0.03] px-4 text-center text-sm text-ink/55 shadow-soft"
@@ -134,8 +138,11 @@ export function PublicPassportImage({ publicPassportSnapshotId }: { publicPasspo
           className={`h-full w-full object-cover transition-opacity duration-200 ${state === "loaded" ? "opacity-100" : "opacity-0"}`}
         />
       </div>
-      <figcaption className="border-t border-ink/10 px-4 py-3 text-xs leading-5 text-ink/55">
-        User-approved processed public image. Private originals and image metadata are not shown.
+      <figcaption className="flex min-w-0 flex-col gap-3 border-t border-ink/10 px-4 py-3 text-xs leading-5 text-ink/55 lg:flex-row lg:items-start lg:justify-between">
+        <span className="min-w-0">User-approved processed public image. Private originals and image metadata are not shown.</span>
+        {state === "loaded" ? (
+          <PublicImageReportButton key={publicPassportSnapshotId} publicPassportSnapshotId={publicPassportSnapshotId} />
+        ) : null}
       </figcaption>
     </figure>
   );

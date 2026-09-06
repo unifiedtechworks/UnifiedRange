@@ -19,7 +19,7 @@ This design refines the product boundary in [PUBLIC_IMAGE_PUBLISHING_PLAN.md](PU
 - `PublicImageModerationStatus` contains `clear`, `hidden`, and `removed`, independently of processing lifecycle status.
 - `PublicImageAsset` stores no private S3 key and is not API-key readable. Owners may read their own future workflow records, but current clients cannot create, update, or delete them.
 - `PublicImageAsset.moderationStatus`, `hiddenAt`, `removedAt`, `moderationReason`, and `lastReportAt` are owner-readable and client-nonwritable. Actor identity fields are intentionally absent pending a protected audit model.
-- `ReportTargetType` reserves `public_image`. `Report.publicImageAssetId` cannot be supplied or updated by a reporter or accessed publicly; report owners retain read/delete authorization for generated-operation compatibility, and `admin`/`moderator` groups may read it. Phase 2G.2 must populate it through a trusted report command, and no current UI renders it.
+- `ReportTargetType` reserves `public_image`. `Report.publicImageAssetId` cannot be supplied or updated by a reporter or accessed publicly; report owners retain read/delete authorization for generated-operation compatibility, and `admin`/`moderator` groups may read it. Phase 2G.2 adds a detail-only snapshot-level report form without populating or rendering this field. A future trusted report command must establish the binding before image actions can use a report.
 - `PublicPassportSnapshot.publicImageAssetId`, `publicImageKey`, and `publicImageAltText` are readable by the owner and public API, but client create/update authorization is intentionally absent.
 - The legacy `PublicPassportSnapshot.coverPhotoUrl` field received the same create/update guard and is no longer mapped into saved public UI data.
 - `buildPublicPassportSnapshotInput` continues to omit every image field.
@@ -482,7 +482,7 @@ Public snapshot APIs may expose the public derivative key because the derivative
 
 ## Moderation design
 
-Phase 2G.1 reserves the dedicated `public_image` report target whose client-visible `targetId` is the public snapshot id. The protected `Report.publicImageAssetId` field is reserved to bind the report to the immutable `PublicImageAsset.id` generation current at submission, so a stale report cannot action a replacement. The reporter cannot populate or update that field; minimum owner read/delete authorization preserves existing generated model-operation compatibility, but no product UI renders it. Phase 2G.2 must add the backend command that establishes the binding; an unbound direct-model report is never actionable. The browser never supplies the asset id, private source id, or S3 key.
+Phase 2G.1 reserves the dedicated `public_image` report target whose client-visible `targetId` is the public snapshot id. The protected `Report.publicImageAssetId` field is reserved to bind the report to the immutable `PublicImageAsset.id` generation current at submission, so a stale report cannot action a replacement. The reporter cannot populate or update that field; minimum owner read/delete authorization preserves existing generated model-operation compatibility, but no product UI renders it. Phase 2G.2 uses the existing reporter-owned model path and intentionally leaves the field unset because the resolver does not expose it and no trusted report mutation exists. Such reports are useful for metadata/status review but never actionable for image hide/remove. A future backend command must safely establish the binding. The browser never supplies the asset id, private source id, or S3 key.
 
 Processing lifecycle states remain:
 
@@ -668,7 +668,8 @@ Alarms should cover sustained processing failures, metadata-verification failure
 - Detailed design: [PUBLIC_IMAGE_PHASE_2G_MODERATION_PLAN.md](PUBLIC_IMAGE_PHASE_2G_MODERATION_PLAN.md)
 - [x] Reserve `public_image`, a reporter-nonwritable immutable asset-generation binding, and separate client-nonwritable moderation fields.
 - [x] Initialize new processing rows to `clear`, reject blocked generations in the processor, and return generic unavailable delivery for hidden/removed/unknown moderation states while retaining a temporary legacy-null compatibility path.
-- [ ] Add the Phase 2G.2 snapshot-id-only report command that validates current eligibility and writes the protected immutable generation binding.
+- [x] Add the Phase 2G.2 detail-only signed-in image report form using bounded snapshot-level report data and no ledger identifier.
+- [ ] Replace the interim direct report path with a trusted snapshot-id-only command that validates current eligibility and writes the protected immutable generation binding.
 - [ ] Backfill eligible legacy rows to `clear` and remove the resolver's temporary missing-value compatibility before moderator actions can write state.
 - [ ] Add audited admin/moderator hide/remove action that preserves private originals.
 - [ ] Test caches and signed-out visibility after remove/unpublish.

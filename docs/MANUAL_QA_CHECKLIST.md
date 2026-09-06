@@ -607,11 +607,26 @@ Phase 2F.1 provides the owner-authorized backend primitive, Phase 2F.2 wires its
 - [ ] In the same isolated fixture, try to process a hidden/removed generation again. Confirm the processor returns a bounded failure, does not overwrite the moderation state, and does not attach or restore a derivative.
 - [ ] Confirm missing moderation state is documented as temporary legacy compatibility and must be backfilled to `clear` before Phase 2G.4 moderator actions are enabled.
 
+### Phase 2G.2 public image reporting — run after frontend deployment
+
+- [ ] Open a saved Public Passport detail with an eligible processed derivative. Confirm **Report image** appears only after the image successfully loads and stays absent while checking/loading or when delivery is unavailable/broken.
+- [ ] Open Discover cards, public profile cards, comments, private pages, and demo/sample detail. Confirm none gains image-report UI and demo/sample detail remains image-free.
+- [ ] Signed out, load the eligible image and confirm the action is a sign-in prompt. Confirm no authenticated Report mutation runs.
+- [ ] Signed in, open **Report image** and confirm the reasons are limited to unsafe content, personal information, harassment/threat, illegal hunting/poaching, sales/marketplace activity, and other.
+- [ ] Confirm helper copy calls out serial numbers, exact locations, license plates, private documents, bystanders, and sensitive personal information, and explains that reporting does not automatically hide/remove the image.
+- [ ] Enter more than 500 characters, a URL, an S3-style URL, or a private/public storage path in details. Confirm the client bounds or rejects it with friendly copy and no raw GraphQL/AWS error.
+- [ ] Submit a valid report and inspect the authenticated GraphQL variables. Confirm `targetType = public_image`, `targetId` is only the public snapshot id, and the request contains the current reporter identity, allow-listed reason, normalized details, open status, and creation time. Confirm it contains no `publicImageAssetId`, private/public key, derivative/source path, owner/source record id, URL, filename, target-photo data, or image bytes.
+- [ ] Confirm success is friendly, the same rendered view does not offer an immediate duplicate submission, and the image remains publicly available because reports do not auto-hide.
+- [ ] Expire/sign out the session or force a mutation failure. Confirm the UI shows one bounded retry message and no raw GraphQL, Lambda, AWS, key, URL, id, token, or stack detail.
+- [ ] Change routes while submission is pending. Confirm a late response does not update the new route or expose report/image internals.
+- [ ] As admin/moderator, confirm the existing metadata queue can show the `public_image` target and update report workflow status only. It must not render the image, expose ledger/private data, or offer hide/remove actions.
+- [ ] Confirm `Report.publicImageAssetId` remains unset. Record this report as generation-unbound and non-actionable until a trusted backend binding command is implemented.
+
 ### Future Phase 2G image reporting/moderation — not runnable yet
 
 Follow the [Phase 2G Public Image Moderation Plan](PUBLIC_IMAGE_PHASE_2G_MODERATION_PLAN.md) after its backend and UI phases are implemented.
 
-- [ ] Report an available public image from saved Public Passport detail while signed in; confirm the client sends only snapshot id, bounded reason/details, and no asset/source/owner id, key, URL, filename, or image bytes.
+- [ ] Migrate image reporting to a trusted snapshot-id-only backend command; confirm it binds the exact immutable generation without any client-supplied asset/source/owner id, key, URL, filename, or image bytes.
 - [ ] Confirm signed-out, duplicate, rapid, missing, hidden, removed, superseded, private-account, unpublished, demo/sample, and target-photo report attempts fail safely without becoming an existence oracle.
 - [ ] Replace an image after reporting it. Confirm the old report remains bound to the old immutable generation and cannot preview, hide, or remove the replacement.
 - [ ] Confirm an open report alone does not hide an image and report status changes never mutate image availability.

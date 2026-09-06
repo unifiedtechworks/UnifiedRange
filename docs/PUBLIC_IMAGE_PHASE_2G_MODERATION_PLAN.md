@@ -6,7 +6,7 @@ Last updated: September 5, 2026
 
 Phase 2G adds a safe reporting and moderation lifecycle for the one processed Equipment Passport cover that may render on saved Public Passport detail. It must exist and pass hosted adversarial testing before image rendering is considered for Discover cards or public profile pages.
 
-Phase 2G.1 now provides schema and delivery-contract guardrails only. It does not add a report command/button, moderation review UI, moderator action, notification, audit log, or broader image rendering.
+Phase 2G.1 provides schema and delivery-contract guardrails. Phase 2G.2 adds the first detail-only **Report image** UI using the existing reporter-owned `Report` create path and the safe public snapshot id. Because no trusted binding command exists and the delivery resolver intentionally withholds ledger ids, these first reports are generation-unbound and must remain non-actionable. No dedicated image review UI, moderator action, notification, audit log, or broader image rendering exists.
 
 ## Current boundary
 
@@ -15,7 +15,7 @@ Today:
 - `PublicPassportImage` receives only a public snapshot id and renders only on saved Public Passport detail.
 - `resolvePublicPassportImage` returns a 60-second, non-cacheable URL only when the public snapshot, public profile visibility, source passport, `ready` public-image ledger row, non-blocked moderation state, canonical derivative key, safe alt text, and S3 object all agree.
 - `PublicImageAsset` is owner-readable and client-nonwritable. Phase 2G.1 adds an independent owner-readable `clear | hidden | removed` moderation state plus bounded lifecycle timestamps/reason metadata, but does not broaden moderator access to the full ledger.
-- Signed-in users can report public snapshots and comments through the existing `Report` model. `ReportTargetType` now reserves `public_image`, and `Report.publicImageAssetId` is a protected generation binding that reporters cannot populate or update. Report owners retain read/delete authorization so existing generated report responses remain compatible, but no current UI displays the value.
+- Signed-in users can report public snapshots and comments through the existing `Report` model. When an eligible derivative finishes loading on saved Public Passport detail, Phase 2G.2 also offers **Report image** and stores `targetType = public_image` with the safe public snapshot id. `Report.publicImageAssetId` remains unset because the browser cannot safely bind it.
 - Admins and moderators can read report metadata and update only `Report.status`. That status change does not hide, delete, or mutate content.
 - Owner removal, derivative-aware Unpublish, and remove-first replacement use backend-controlled detachment and preserve the private original.
 - Discover cards, public profile cards, and target photos remain image-free.
@@ -48,6 +48,8 @@ reportPublicPassportImage(
 ```
 
 The command should derive reporter identity from Cognito and accept no reporter id, public image asset id, source id, owner id, key, URL, filename, or image bytes. Keep the existing reporter-owned model create path for existing non-image reports until it is intentionally migrated.
+
+Phase 2G.2 does not implement this command. Its constrained interim UI submits only the existing model fields: current Cognito reporter id, `targetType = public_image`, public snapshot id, allow-listed reason, normalized optional details, `status = open`, and creation time. It never obtains or submits an image asset id, key, path, URL, owner/source id, filename, target-photo data, or image bytes. This preserves privacy but does not establish immutable generation binding.
 
 Server validation should:
 
@@ -223,8 +225,8 @@ Phase 2G.1 implements only the smallest fields that can remain safe before repor
 - `ReportTargetType` includes `public_image`.
 - Continue using `targetId` for the safe public snapshot id.
 - `Report.publicImageAssetId` reserves the backend-written immutable reported-generation binding. Its field authorization permits `admin`/`moderator` read and report-owner read/delete while denying reporter create/update and all public/API-key access. No current UI displays or accepts it.
-- The existing direct reporter-owned model create path is not the supported way to create a `public_image` report because it cannot establish the protected generation binding. Any unbound row must be treated as unavailable/non-actionable. Phase 2G.2 must add the dedicated report command so reporter identity, initial status, binding, normalization, and idempotency are server-controlled.
-- A new report index is deferred until the Phase 2G.2 command and Phase 2G.3 queue access patterns are finalized; adding a speculative index now would not make unbound reports safe.
+- Phase 2G.2 temporarily uses the direct reporter-owned model create path for snapshot-level image reports because it cannot establish the protected generation binding. Every such unbound row must be treated as unavailable/non-actionable by future image preview/action code. A later backend hardening phase must add the dedicated report command so reporter identity, initial status, binding, normalization, and idempotency are server-controlled.
+- A new report index is deferred until the trusted binding command and Phase 2G.3 queue access patterns are finalized; adding a speculative index now would not make unbound reports safe.
 
 ### PublicImageAsset
 
@@ -320,10 +322,10 @@ Do not store S3 keys, URLs, private candidate/source ids, filenames, alt text, i
 
 ### Phase 2G.2: public image reporting on detail only
 
-- Add the authenticated snapshot-id-only report command.
-- Add **Report image** only beside an available image on saved Public Passport detail.
-- Add idempotency/rate limits, signed-out prompting, and bounded UI states.
-- Keep Discover/public profiles image-free.
+- **Implemented:** add **Report image** only after an eligible image loads on saved Public Passport detail, with allow-listed reasons, normalized 500-character details, bounded success/failure copy, and a signed-out sign-in prompt.
+- **Implemented:** send the safe public snapshot id through the existing reporter-owned model path without any key, path, URL, asset/owner/source id, filename, target-photo data, or image bytes.
+- **Limitation:** reports remain generation-unbound and non-actionable until a trusted backend command validates the current derivative and writes `Report.publicImageAssetId`. Client-only duplicate blocking is per rendered view; durable idempotency/rate limiting is deferred with that command.
+- Discover/public profiles remain image-free, and report submission never auto-hides or removes an image.
 
 ### Phase 2G.3: admin/moderator review UI
 
@@ -367,7 +369,7 @@ Do not store S3 keys, URLs, private candidate/source ids, filenames, alt text, i
 
 ## Deferred and out of scope
 
-- Phase 2G.2-2G.6 report Lambda/IAM, UI, indexes, moderator projection/action, cleanup orchestration, notification, and audit implementation;
+- trusted report-binding Lambda/IAM, indexes, moderator projection/action UI, cleanup orchestration, notification, and audit implementation;
 - automated report-count hiding or other brigading-sensitive enforcement;
 - broad moderator access to private records or the full public/private image ledgers;
 - owner notification center, appeal, warning, suspension, or account action;
