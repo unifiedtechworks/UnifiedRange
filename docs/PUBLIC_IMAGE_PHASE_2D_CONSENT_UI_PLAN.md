@@ -4,7 +4,7 @@
 
 Phase 2D owner consent UI was implemented on August 18, 2026 without a schema or backend authorization change. Saved Equipment Passport Public Preview now defaults to **Publish without images**, privately loads only the current verified and processor-compatible `equipment_cover` candidate, requires a private source preview, all safety acknowledgements, and alt text up to 140 characters, then calls the deployed Phase 2C processor through a constrained user-pool wrapper.
 
-Public delivery and detail-only rendering were added in later phases. Target photos, automatic processing, direct public Storage writes, and direct image replacement remain unavailable. Phase 2F.2 later added owner removal, and Phase 2F.3 added derivative-aware Unpublish through the backend cleanup contract.
+Public delivery and detail-only rendering were added in later phases. Target photos, automatic processing, direct public Storage writes, and atomic replacement remain unavailable. Phase 2F.2 later added owner removal, Phase 2F.3 added derivative-aware Unpublish, and Phase 2F.4 added remove-first replacement through the backend cleanup contract.
 
 The August 29, 2026 hardening pass added request-generation checks so stale Public Preview or candidate responses cannot win after an auth/route/source change, synchronous in-flight locks for snapshot and processor mutations, and broader rejection of URI schemes and slash/backslash private/public storage-path forms in alt text. It did not change schema, backend logic, Storage access, or public rendering.
 
@@ -258,7 +258,7 @@ Do not report the overall action as rolled back. Do not automatically unpublish 
 | Verified image available | Offer one current verified equipment cover; do not preselect it | Select it or continue without image |
 | Selected | Show private source preview, checklist, and alt text; no backend action yet | Confirm checklist, edit alt text, clear selection |
 | Processing | Show “Creating a public-safe derivative…” and disable duplicate image actions | Wait for the bounded result; text-only navigation may remain available after save |
-| Processed successfully | Say the protected derivative is ready for saved Public Passport detail while Discover/profile cards remain image-free | Use the later owner removal or derivative-aware Unpublish controls; direct replacement remains deferred |
+| Processed successfully | Say the protected derivative is ready for saved Public Passport detail while Discover/profile cards remain image-free | Use the later owner removal, remove-first replacement, or derivative-aware Unpublish controls; atomic replacement remains deferred |
 | Failed | Show a friendly bounded message; retain no sensitive technical data | Retry after correction, choose no image, or return to the private source page |
 | Source changed | Clear consent and selection because the previous verification no longer matches the current cover | Re-verify the current private cover or continue without image |
 
@@ -291,7 +291,7 @@ There are two different meanings of “remove,” and the UI must distinguish th
 
 ### After processing
 
-Phase 2F.1 later added the backend lifecycle command, Phase 2F.2 exposed **Remove public image**, and Phase 2F.3 made Unpublish call cleanup before deleting the sanitized snapshot. Normal clients still cannot clear guarded fields or delete processor-owned derivatives directly. **Replace public image** remains unavailable.
+Phase 2F.1 later added the backend lifecycle command, Phase 2F.2 exposed **Remove public image**, Phase 2F.3 made Unpublish call cleanup before deleting the sanitized snapshot, and Phase 2F.4 added an owner-facing remove-first replacement sequence that reuses this consent UI after detachment. Normal clients still cannot clear guarded fields or delete processor-owned derivatives directly. Atomic replacement remains unavailable.
 
 A later backend action should:
 

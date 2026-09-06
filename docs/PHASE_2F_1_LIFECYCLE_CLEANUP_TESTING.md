@@ -4,7 +4,7 @@
 
 This is a developer-only test path for the deployed owner-authorized `removePublicPassportImage` mutation. It accepts one `publicPassportSnapshotId`, detaches the current public image projection, marks a safely matched `PublicImageAsset` removed, and deletes only its canonical processed derivative. The sanitized text/setup snapshot remains published.
 
-Phase 2F.1 is the backend contract and developer harness. Phase 2F.2 calls that same snapshot-id-only contract from an owner-only Public Preview remove button, and Phase 2F.3 calls it before owner-scoped snapshot deletion for derivative-aware Unpublish. Direct replacement, account-visibility cleanup, moderation actions, Discover images, public-profile images, galleries, and target-photo publishing remain unavailable.
+Phase 2F.1 is the backend contract and developer harness. Phase 2F.2 calls that same snapshot-id-only contract from an owner-only Public Preview remove button, Phase 2F.3 calls it before owner-scoped snapshot deletion for derivative-aware Unpublish, and Phase 2F.4 calls it before unlocking the existing consent/processor flow for remove-first replacement. Atomic replacement, account-visibility cleanup, moderation actions, Discover images, public-profile images, galleries, and target-photo publishing remain unavailable.
 
 ## Deployment checkpoint — August 31, 2026
 

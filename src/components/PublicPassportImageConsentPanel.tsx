@@ -47,6 +47,7 @@ export function PublicPassportImageConsentPanel({
   privateCoverPhotoKey,
   hasPreparedPublicImage = false,
   isSnapshotSaving = false,
+  isReplacingPublicImage = false,
   onPrepareSnapshot,
   onProcessed,
   onProcessingStateChange
@@ -56,6 +57,7 @@ export function PublicPassportImageConsentPanel({
   privateCoverPhotoKey?: string | null;
   hasPreparedPublicImage?: boolean;
   isSnapshotSaving?: boolean;
+  isReplacingPublicImage?: boolean;
   onPrepareSnapshot: () => Promise<string | null>;
   onProcessed?: () => void;
   onProcessingStateChange?: (isProcessing: boolean) => void;
@@ -269,7 +271,11 @@ export function PublicPassportImageConsentPanel({
 
       if (result.status === "ready") {
         setProcessingState("ready");
-        setProcessingMessage("The public-safe derivative is prepared and can appear on the saved Public Passport detail while it remains eligible.");
+        setProcessingMessage(
+          isReplacingPublicImage
+            ? "The replacement public-safe derivative is prepared and can appear on the saved Public Passport detail while it remains eligible."
+            : "The public-safe derivative is prepared and can appear on the saved Public Passport detail while it remains eligible."
+        );
         onProcessed?.();
         return;
       }
@@ -279,7 +285,7 @@ export function PublicPassportImageConsentPanel({
       );
       setProcessingState("failed");
       setProcessingMessage(
-        `Your text/setup snapshot is saved without a public image. ${getPublicImageProcessingFailureMessage(result.failureCode)}`
+        `${isReplacingPublicImage ? "The old public image remains detached, and your text/setup snapshot remains published without an image." : "Your text/setup snapshot is saved without a public image."} ${getPublicImageProcessingFailureMessage(result.failureCode)}`
       );
 
       if (sourceChanged) {
@@ -290,7 +296,11 @@ export function PublicPassportImageConsentPanel({
     } catch {
       if (processingRequestIdRef.current === processingRequestId) {
         setProcessingState("failed");
-        setProcessingMessage("The public-safe image could not be completed. Your private original was not changed. Try again later.");
+        setProcessingMessage(
+          isReplacingPublicImage
+            ? "The replacement public-safe image could not be completed. The old public image remains detached, the text/setup remains published without an image, and your private original was not changed. You can retry later."
+            : "The public-safe image could not be completed. Your private original was not changed. Try again later."
+        );
       }
     } finally {
       if (processingRequestIdRef.current === processingRequestId) {
@@ -314,7 +324,12 @@ export function PublicPassportImageConsentPanel({
         </p>
         {hasPreparedPublicImage ? (
           <p className="mt-3 rounded-md border border-moss/25 bg-white px-3 py-2 text-sm leading-6 text-ink/70">
-            A public-safe derivative is already prepared and may appear on the saved Public Passport detail page while it remains eligible. Discover and public profile cards remain image-free. Use the owner-only Remove public image action to return this snapshot to text-only sharing, or use Unpublish to detach the image before removing the sanitized text/setup. Direct image replacement remains unavailable.
+            A public-safe derivative is already prepared and may appear on the saved Public Passport detail page while it remains eligible. Discover and public profile cards remain image-free. Use Remove public image to return to text-only sharing, Replace public image to begin a remove-first replacement, or Unpublish to detach the image before removing the sanitized text/setup.
+          </p>
+        ) : null}
+        {isReplacingPublicImage && !hasPreparedPublicImage ? (
+          <p className="mt-3 rounded-md border border-moss/25 bg-white px-3 py-2 text-sm leading-6 text-ink/70">
+            Replacement is ready for a new consent review. The old public image is detached, the sanitized text/setup remains published, and the private original is unchanged. Only the newly verified current Equipment Passport cover can be processed; if the private cover has not changed, return to the private passport and upload and verify the replacement first.
           </p>
         ) : null}
       </div>
@@ -355,7 +370,7 @@ export function PublicPassportImageConsentPanel({
 
       <div className="mt-3 text-sm leading-6 text-ink/65" aria-live="polite">
         {candidateState === "loading" ? <p>Checking for a verified equipment image...</p> : null}
-        {candidateState === "available" ? <p>{hasPreparedPublicImage ? "A verified equipment cover exists, but direct replacement is unavailable. Remove the current public image only if you want to return to text-only sharing." : "A verified equipment cover is available for optional processing."}</p> : null}
+        {candidateState === "available" ? <p>{hasPreparedPublicImage ? "A verified equipment cover exists. Use Replace public image to detach the current derivative before starting a new consent review." : isReplacingPublicImage ? "The current verified equipment cover is available. Confirm it is the new replacement you uploaded before processing." : "A verified equipment cover is available for optional processing."}</p> : null}
         {candidateState === "unavailable" ? <p>No verified equipment image is available for public publishing yet.</p> : null}
         {candidateState === "source_changed" ? <p>The private equipment cover changed or is no longer available. Re-upload or verify the current cover before processing.</p> : null}
         {candidateState === "error" ? <p>The verified equipment image status could not be checked. You can still publish without images.</p> : null}
@@ -437,7 +452,7 @@ export function PublicPassportImageConsentPanel({
               onClick={() => void handleProcessImage()}
               className="inline-flex w-full justify-center rounded-md bg-ink px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
             >
-              {isProcessing || isSnapshotSaving ? "Preparing public-safe image..." : "Save snapshot and prepare image"}
+              {isProcessing || isSnapshotSaving ? "Preparing public-safe image..." : isReplacingPublicImage ? "Save snapshot and prepare replacement image" : "Save snapshot and prepare image"}
             </button>
             <p className="mt-2 text-xs leading-5 text-ink/55">This explicit action saves the sanitized text/setup snapshot first, then calls the processor. Ordinary text publishing never processes an image.</p>
           </div>

@@ -212,7 +212,7 @@ If projection fields exist but the ledger is missing/not ready, fields disagree,
 
 ## Visibility, unpublish, removal, and replacement
 
-Phase 2F.1 provides the backend-controlled owner-removal primitive, Phase 2F.2 exposes its owner-facing Public Preview remove control, and Phase 2F.3 composes cleanup with owner-scoped snapshot deletion for derivative-aware Unpublish. Direct image replacement remains deferred.
+Phase 2F.1 provides the backend-controlled owner-removal primitive, Phase 2F.2 exposes its owner-facing Public Preview remove control, Phase 2F.3 composes cleanup with owner-scoped snapshot deletion for derivative-aware Unpublish, and Phase 2F.4 composes the same cleanup contract with the existing consent/processor flow for owner-facing remove-first replacement. Atomic replacement remains deferred.
 
 ### Snapshot unpublish
 
@@ -234,7 +234,7 @@ The implemented `removePublicPassportImage(publicPassportSnapshotId)` command au
 
 ### Replacement
 
-Replacement requires fresh Phase 2D consent. Process the new versioned derivative, conditionally switch the projection, then retire the superseded asset. If the switch fails, keep the prior ready image and delete the unsuccessful new object. Never overwrite a fixed public filename.
+Phase 2F.4 implements replacement as a privacy-first, non-atomic sequence. Public Preview first calls `removePublicPassportImage` with only the snapshot id and continues only for `removed`, `not_attached`, or detach-confirmed `cleanup_pending`. The old derivative is unavailable before the owner can select the newly verified current equipment cover, repeat the Phase 2D checklist, provide new bounded alt text, and invoke the existing processor. A cleanup failure stops replacement. A later processing failure leaves the sanitized snapshot public without an image and allows retry; the old derivative is never restored or replaced by a private-source fallback. Atomic prepare-and-cutover replacement remains future work.
 
 ### Account becomes private
 
@@ -313,7 +313,7 @@ The original foundation phase changed the Amplify backend/schema/IAM and require
 
 - Test signed-out, signed-in, other-owner, private-account, moderator, and admin sessions.
 - Deploy and test Phase 2F.1 removal, missing-object idempotency, retry state, URL expiration, and concurrent processor/removal state changes.
-- Test deployed derivative-aware unpublish; test account visibility changes, replacement, and moderation after those later lifecycle operations exist.
+- Test deployed derivative-aware unpublish and remove-first replacement; test account visibility changes and moderation after those later lifecycle operations exist.
 - Verify no private key/request appears in DOM text, GraphQL variables, public responses, analytics, console output, or backend logs.
 - Verify no public route requests a private Storage prefix.
 

@@ -6,7 +6,7 @@ Last updated: September 5, 2026
 
 Phase 2F should make a processed public Equipment Passport cover safely removable before UnifiedRange expands image rendering beyond saved Public Passport detail pages. It must coordinate public-delivery revocation, snapshot projection changes, derivative deletion, ledger state, retries, and audit without touching the owner-private original.
 
-Phase 2F.1 implements the backend cleanup foundation, Phase 2F.2 adds the first owner-facing removal control, and Phase 2F.3 composes that cleanup with owner-scoped snapshot deletion for derivative-aware unpublish. Today:
+Phase 2F.1 implements the backend cleanup foundation, Phase 2F.2 adds the first owner-facing removal control, Phase 2F.3 composes that cleanup with owner-scoped snapshot deletion for derivative-aware unpublish, and Phase 2F.4 composes cleanup with the existing consent/processor flow for remove-first replacement. Today:
 
 - Phase 2C can create a bounded, metadata-stripped JPEG derivative from one verified `equipment_cover` candidate.
 - Phase 2D requires explicit owner selection, safety acknowledgements, and alt text.
@@ -16,10 +16,10 @@ Phase 2F.1 implements the backend cleanup foundation, Phase 2F.2 adds the first 
 - The processor now conditions final projection on the snapshot's existing `updatedAt` generation and refuses to reactivate a `removed` ledger row, so removal wins over an older in-flight processor finalization.
 - The developer-only [Phase 2F.1 cleanup harness](PHASE_2F_1_LIFECYCLE_CLEANUP_TESTING.md) exercises the mutation independently of product UI.
 - Public Preview shows **Remove public image** only to the signed-in owner when a prepared derivative is attached. It sends only the snapshot id, refreshes to text-only state, and never deletes the private original.
-- The hardened UI holds one synchronous operation guard across snapshot saving, the full image processor request, owner removal, and derivative-aware unpublish, so publishing, processing, removal, and unpublishing cannot overlap.
-- Cleanup and unpublish responses carry in-memory request generations tied to the route and authenticated owner context. Route/account changes invalidate those generations before any late result can reload or overwrite a newer Public Preview.
+- The hardened UI holds one synchronous operation guard across snapshot saving, the full image processor request, owner removal, replacement cleanup, and derivative-aware unpublish, so publishing, processing, removal, replacement, and unpublishing cannot overlap.
+- Cleanup, unpublish, replacement, and processing responses carry in-memory request generations tied to the route, source, and authenticated owner context as appropriate. Context changes invalidate those generations before any late result can reload or overwrite a newer Public Preview.
 - Image-bearing Unpublish calls `removePublicPassportImage` with only the snapshot id, waits for confirmed detachment, and only then deletes the sanitized text/setup snapshot.
-- Direct image replacement remains unavailable.
+- **Replace public image** calls the same snapshot-id-only cleanup first and continues to the existing consent/processor flow only after `removed`, `not_attached`, or detach-confirmed `cleanup_pending`. Atomic replacement remains unavailable.
 - Discover cards and public profile cards remain image-free.
 - Range Session target photos remain private and ineligible.
 
@@ -49,7 +49,7 @@ Storage-key resolution and derivative deletion remain backend commands rather th
 | --- | --- | --- | --- |
 | `removePublicPassportImage` | Signed-in snapshot owner | `publicPassportSnapshotId` | **Implemented in Phase 2F.1.** Keep the text snapshot published, detach its image, and attempt/retry exact derivative cleanup |
 | Derivative-aware Unpublish | Signed-in snapshot owner | `publicPassportSnapshotId` to cleanup, followed by the same snapshot id for owner-scoped model deletion | **Implemented in Phase 2F.3.** Detach delivery first, then delete sanitized text/setup only after a bounded safe cleanup result |
-| Replacement workflow | Signed-in snapshot owner | Existing processor contract: snapshot id, verified private-image asset id, bounded alt text, explicit consent | Detach the old image, then process and attach a new eligible derivative |
+| Replacement workflow | Signed-in snapshot owner | Cleanup receives only snapshot id; existing processor receives snapshot id, verified private-image asset id, bounded alt text, explicit consent | **Implemented in Phase 2F.4.** Detach the old image, then process and attach a newly verified eligible derivative |
 | `moderatePublicPassportImage` | Cognito `admin`/`moderator` group through a separate action | Snapshot id, bounded action and reason code | Hide or remove the current public derivative without private-record access |
 
 Owner removal, derivative-aware unpublish, and future moderation commands accept a snapshot id rather than a public asset id. The backend cleanup resolver conditionally operates on the projection current when the command executes. The frontend also scopes the follow-on snapshot deletion to its route/account request generation so a late response cannot update or delete a different preview.
@@ -127,17 +127,17 @@ The flow uses one synchronous mutation guard and a route/account-scoped request 
 
 ## Replacement behavior
 
-The first Phase 2F replacement should favor privacy and simple recovery over seamless visual availability:
+Phase 2F.4 implements replacement by favoring privacy and simple recovery over seamless visual availability:
 
-1. Ask the owner to remove/detach the current public image.
-2. Complete the non-deliverable projection transition. The text snapshot remains public without an image.
-3. Let the owner select one current verified JPEG/PNG `equipment_cover` candidate through the existing consent flow.
-4. Require the full safety checklist and new bounded alt text again.
-5. Process the new derivative with the existing narrow processor inputs.
-6. Attach it only if the snapshot is still owned, published, public, image-empty at the expected lifecycle generation, and otherwise eligible.
-7. Delete the old derivative independently with idempotent retries.
+1. Ask the owner to confirm that the current public image will be removed first and that a new private cover has been uploaded and verified.
+2. Send only `publicPassportSnapshotId` to `removePublicPassportImage` and continue only for `removed`, `not_attached`, or detach-confirmed `cleanup_pending`.
+3. Complete the non-deliverable projection transition. The text snapshot remains public without an image, and a cleanup-pending old object remains unavailable while backend reconciliation is still needed.
+4. Let the owner select one newly verified, current JPEG/PNG `equipment_cover` candidate through the existing consent flow.
+5. Require the full safety checklist and new bounded alt text again.
+6. Process the new derivative with only the existing narrow processor inputs: snapshot id, private candidate id, bounded alt text, and internal consent confirmation.
+7. Attach it only if the snapshot is still owned, published, public, image-empty at the expected lifecycle generation, and otherwise eligible.
 
-If new processing fails, the setup remains safely text-only. The old derivative is not restored automatically. This avoids a stale image surviving because a replacement failed midway.
+If cleanup fails, returns an unknown result, or encounters a network/auth error, replacement does not start. If new processing fails after safe detachment, the setup remains safely text-only and the owner can retry or cancel the in-page replacement flow. The old derivative is not restored automatically. This avoids a stale image surviving because a replacement failed midway.
 
 The backend should create a new immutable asset generation and versioned derivative key for a replacement. It should not reactivate a `removed` ledger row or reuse a removed key, even when the same private candidate and alt text are selected again. A lifecycle generation/conditional version on the snapshot prevents an older processing invocation from attaching after removal, unpublish, an account-private transition, or a newer replacement.
 
@@ -248,9 +248,9 @@ Phase 2F implementation should keep lifecycle controls in owner-only Public Prev
 
 - **Remove public image** — keeps the sanitized text snapshot public.
 - **Unpublish** — if needed, detaches the public derivative first and then removes the sanitized snapshot.
-- **Replace public image** — remains deferred; no direct replacement control exists.
+- **Replace public image** — removes/detaches the old derivative first, then unlocks a fresh consent/checklist/alt-text pass for a newly verified current cover.
 
-Owner states are bounded: confirming in the native owner dialog, detaching the public image, unpublishing text/setup, unpublished, cleanup pending but unpublished, cleanup failed with no unpublish, and image detached but text unpublish failed. Public pages simply become text-only after detachment or unavailable after unpublish, with no raw error or technical status.
+Owner states are bounded: confirming in the native owner dialog, removing the old image, ready for a new verified cover, processing the replacement, replacement prepared, cleanup pending but delivery detached, cleanup failed with no replacement, replacement processing failed with retry available, detaching for unpublish, unpublishing text/setup, unpublished, and image detached but text unpublish failed. Public pages simply become text-only after detachment, show only the newly eligible derivative after replacement succeeds, or become unavailable after unpublish, with no raw error or technical status.
 
 No Phase 2F control belongs on Discover or public profile cards, and no target-photo control should be introduced.
 
@@ -298,21 +298,30 @@ Logs and metrics should use fixed event names and bounded failure/reason codes. 
 - [x] Provide bounded recovery when image detachment succeeds but text deletion fails.
 - [ ] Complete the hosted positive, failure, cleanup-pending, recovery, and stale-navigation checklist.
 
-Direct image replacement remains a separate future phase. It must use a new immutable asset generation, require fresh verification/checklist/consent/alt text, and prove stale processors cannot reattach an old image.
+### Phase 2F.4: owner-facing remove-first replacement
 
-### Phase 2F.4: lifecycle hooks and reconciliation
+- [x] Add **Replace public image** only to the signed-in owner's saved Public Preview when an image is attached or cleanup is pending.
+- [x] Call the existing cleanup operation with only the snapshot id and continue only after `removed`, `not_attached`, or detach-confirmed `cleanup_pending`.
+- [x] Reuse the existing current-candidate validation, private preview, full safety checklist, bounded alt text, and narrow processor contract.
+- [x] Keep the sanitized text/setup published and the private original unchanged across cleanup and processing outcomes.
+- [x] Block overlapping mutations and invalidate route/account/source-stale cleanup and processing responses.
+- [ ] Complete hosted positive, cleanup-pending, failure, recovery, retry, cancel, and stale-navigation checks.
+
+Atomic prepare-and-cutover replacement remains a future option. The implemented flow intentionally creates a text-only interval and never restores the old derivative automatically.
+
+### Phase 2F.5: lifecycle hooks and reconciliation
 
 - Integrate account-private and private-source deletion/replacement events.
 - Add durable retries, dead-letter handling, metrics, and scheduled orphan reconciliation.
 - Test missing records/objects and partially completed operations.
 
-### Phase 2F.5: image reporting and moderation
+### Phase 2F.6: image reporting and moderation
 
 - Add a typed public-image report path.
 - Add group-authorized hide/remove actions, quarantine only if policy requires it, and protected audit history.
 - Verify moderators cannot access private originals or private image records.
 
-### Phase 2F.6: release validation
+### Phase 2F.7: release validation
 
 - Run owner, other-owner, signed-out, moderator, admin, concurrent, retry, and object-missing tests.
 - Confirm issued URLs expire within the current 60-second bound and no new URL is issued after revocation.
@@ -334,9 +343,9 @@ Direct image replacement remains a separate future phase. It must use a new immu
 
 ## Explicitly out of scope
 
-The current Phase 2F.1-2F.3 release does not implement:
+The current Phase 2F.1-2F.4 release does not implement:
 
-- direct image replacement, queues, streams, or scheduled reconciliation;
+- atomic prepare-and-cutover replacement, queues, streams, or scheduled reconciliation;
 - moderator lifecycle state or audit models;
 - Discover or public profile image rendering;
 - target-photo publishing or cleanup as public media;
