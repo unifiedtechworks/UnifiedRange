@@ -87,7 +87,7 @@ Use the role-based [Manual QA Checklist](MANUAL_QA_CHECKLIST.md) for the compreh
 - Public image rendering is limited to eligible processed Equipment Passport covers on saved Public Passport detail. Uploaded originals remain private, and Discover/profile cards and target photos remain image-free. Phase 2F.1 provides the backend removal primitive, Phase 2F.2 adds its owner-only Public Preview remove control, Phase 2F.3 detaches an attached derivative before owner unpublish continues, and Phase 2F.4 adds an owner-facing remove-first replacement flow. Replacement is intentionally non-atomic: the old image becomes unavailable before the new consent/processing step, and failure leaves a safe text-only snapshot. Atomic replacement, account/private-source hooks, durable cleanup reconciliation, and image moderation remain unavailable. See the [Public Image Publishing Plan](PUBLIC_IMAGE_PUBLISHING_PLAN.md).
 - Feeds and follows are not implemented.
 - A notification center is not implemented.
-- Moderation has report metadata review and status workflow only. It has no destructive content removal, hiding, suspension, or account actions.
+- Moderation has report metadata review and status workflow only. It has no destructive content removal, public-image reporting/action, hiding, suspension, or account actions. Public-image moderation is planned in the [Phase 2G Public Image Moderation Plan](PUBLIC_IMAGE_PHASE_2G_MODERATION_PLAN.md).
 - Username sign-in is planned but not implemented. Current Cognito login remains email/password; any future username lookup must not expose account email addresses.
 - Public profiles and Discover intentionally expose a limited sanitized view rather than private `UserProfile` or owner-scoped records.
 
@@ -96,10 +96,11 @@ Use the role-based [Manual QA Checklist](MANUAL_QA_CHECKLIST.md) for the compreh
 1. Implement protected account data export and account deletion workflows based on the existing lifecycle plans.
 2. Polish public profiles with improved safe empty states, presentation, and published-setup organization.
 3. Complete hosted Phase 2C-2E image processing/delivery tests plus Phase 2F.1-2F.4 removal/unpublish/replacement checks, then add visibility/private-source cleanup and durable reconciliation before considering wider rendering.
-4. Add moderation report counts by status and target, plus filtering and sorting, without coupling status changes to destructive content actions.
-5. Improve Discover search, filters, result organization, and public setup browsing while preserving sanitized snapshot boundaries.
-6. Implement username sign-in only through the privacy-preserving server-side lookup described in the Username Sign-In Plan; email/password remains the current Cognito login.
+4. Follow the [Phase 2G Public Image Moderation Plan](PUBLIC_IMAGE_PHASE_2G_MODERATION_PLAN.md) to add exact-generation image reports and separate audited moderator hide/remove actions before considering Discover images; keep report status independent from image availability.
+5. Add moderation report counts by status and target, plus filtering and sorting, without coupling status changes to destructive content actions.
+6. Improve Discover search, filters, result organization, and public setup browsing while preserving sanitized snapshot boundaries.
+7. Implement username sign-in only through the privacy-preserving server-side lookup described in the Username Sign-In Plan; email/password remains the current Cognito login.
 
 ## Release Boundary
 
-The Phase 2F.3 lifecycle increment adds no schema or backend changes and does not widen the product boundary. UnifiedRange remains a privacy-first recordkeeping, readiness, and sanitized setup-discovery product. It does not provide ballistic calculators, scope outputs, hold recommendations, field corrections, sight-in instructions, or instructions for adjusting or aiming equipment.
+The Phase 2G planning increment adds no schema, backend, or runtime changes and does not widen the product boundary. UnifiedRange remains a privacy-first recordkeeping, readiness, and sanitized setup-discovery product. It does not provide ballistic calculators, scope outputs, hold recommendations, field corrections, sight-in instructions, or instructions for adjusting or aiming equipment.

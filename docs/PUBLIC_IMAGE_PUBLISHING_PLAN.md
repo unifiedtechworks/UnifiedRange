@@ -95,7 +95,7 @@ The Public Preview page should make **Publish without images** the default. Imag
 
 Account visibility must be checked by the backend. For the first release, public image publishing should be blocked when the public account snapshot is private. A later exception would require a deliberately designed, explicit account-level permission; a client-only override is insufficient.
 
-The preview should also provide **Remove public image** independently of text unpublishing. Replacing an image should process the new derivative before switching the public reference, then clean up the old derivative.
+The preview provides **Remove public image** independently of text unpublishing. Phase 2F.4 implements replacement as a remove-first sequence: detach the old derivative, keep sanitized text/setup published, then require a newly verified current cover, renewed safety acknowledgements, and new alt text. Atomic prepare-and-cutover replacement remains deferred.
 
 ## Backend processing architecture
 
@@ -187,7 +187,9 @@ Public images must participate in reporting without exposing their private sourc
 - Keep report status separate from image availability. A report marked `reviewed` must not implicitly publish or remove an image.
 - Consider automated scanning as defense in depth, not as a replacement for explicit consent or human review.
 
-No destructive moderation action is part of the current app. The image release must extend authorization and moderation documentation before enabling public reads.
+The detailed report binding, safe moderator projection, detach-first hide/remove behavior, moderation hold, audit, abuse controls, and phased rollout are specified in [PUBLIC_IMAGE_PHASE_2G_MODERATION_PLAN.md](PUBLIC_IMAGE_PHASE_2G_MODERATION_PLAN.md).
+
+No destructive moderation action is part of the current app. Authorization, reporting, and moderation must be implemented and tested before public image rendering expands beyond saved Public Passport detail.
 
 ## Implementation phases
 
@@ -247,7 +249,7 @@ No destructive moderation action is part of the current app. The image release m
 - Hardened generated-URL validation and added a developer-only API-key harness that requires only the public snapshot ID, exercises the non-cacheable JPEG delivery, and prints no URL, key, alt text, IDs, credentials, or image bytes.
 - Implemented rendering of ready public derivatives on saved Public Passport detail pages only, with no private fallback.
 - Discover cards and public profile cards remain image-free during the detail-only release.
-- Phase 2F has added backend-controlled removal and derivative-aware unpublish. Replacement, visibility/private-source revocation, durable reconciliation, and audited image moderation remain required before any broader rendering surface. Follow [PUBLIC_IMAGE_PHASE_2F_LIFECYCLE_CLEANUP_PLAN.md](PUBLIC_IMAGE_PHASE_2F_LIFECYCLE_CLEANUP_PLAN.md).
+- Phase 2F has added backend-controlled removal, derivative-aware unpublish, and remove-first replacement. Visibility/private-source revocation, durable reconciliation, and audited image moderation remain required before any broader rendering surface. Follow [PUBLIC_IMAGE_PHASE_2F_LIFECYCLE_CLEANUP_PLAN.md](PUBLIC_IMAGE_PHASE_2F_LIFECYCLE_CLEANUP_PLAN.md).
 
 ### Phase 2F.1: backend lifecycle cleanup foundation
 
@@ -257,11 +259,11 @@ No destructive moderation action is part of the current app. The image release m
 - Processor finalization now compares the snapshot `updatedAt` generation, and removed ledger rows cannot be reactivated. A stale processor loses to removal and rolls back a newly written derivative.
 - The cleanup role can delete only `public/passports/{snapshotId}/cover/*`; it has no private-prefix, list, or public-write access.
 - Follow [PHASE_2F_1_LIFECYCLE_CLEANUP_TESTING.md](PHASE_2F_1_LIFECYCLE_CLEANUP_TESTING.md) for the developer-only authenticated harness.
-- Phase 2F.2 adds the owner-facing remove control, and Phase 2F.3 adds derivative-aware Unpublish. A later phase must add immutable replacement generations. Account/private-source hooks, scheduled reconciliation, and image moderation remain later work.
+- Phase 2F.2 adds the owner-facing remove control, Phase 2F.3 adds derivative-aware Unpublish, and Phase 2F.4 adds remove-first replacement using a newly verified immutable private candidate/public derivative generation. Account/private-source hooks, scheduled reconciliation, and image moderation remain later work.
 
-### Later public image moderation and surface expansion
+### Phase 2G public image moderation and later surface expansion
 
-- Add public-image reports and an audited moderator removal action that preserves the private original.
+- Follow [PUBLIC_IMAGE_PHASE_2G_MODERATION_PLAN.md](PUBLIC_IMAGE_PHASE_2G_MODERATION_PLAN.md) for exact-generation public-image reports, safe moderator preview, separate audited hide/remove actions, cleanup, and private-original preservation.
 - Test unpublish, replacement, account-visibility changes, account lifecycle behavior, cache invalidation, and orphan cleanup.
 - Consider Discover/public profile rendering only after detail delivery, lifecycle, accessibility, and moderation tests pass.
 

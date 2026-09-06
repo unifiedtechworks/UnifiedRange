@@ -50,9 +50,9 @@ Storage-key resolution and derivative deletion remain backend commands rather th
 | `removePublicPassportImage` | Signed-in snapshot owner | `publicPassportSnapshotId` | **Implemented in Phase 2F.1.** Keep the text snapshot published, detach its image, and attempt/retry exact derivative cleanup |
 | Derivative-aware Unpublish | Signed-in snapshot owner | `publicPassportSnapshotId` to cleanup, followed by the same snapshot id for owner-scoped model deletion | **Implemented in Phase 2F.3.** Detach delivery first, then delete sanitized text/setup only after a bounded safe cleanup result |
 | Replacement workflow | Signed-in snapshot owner | Cleanup receives only snapshot id; existing processor receives snapshot id, verified private-image asset id, bounded alt text, explicit consent | **Implemented in Phase 2F.4.** Detach the old image, then process and attach a newly verified eligible derivative |
-| `moderatePublicPassportImage` | Cognito `admin`/`moderator` group through a separate action | Snapshot id, bounded action and reason code | Hide or remove the current public derivative without private-record access |
+| `moderatePublicPassportImage` | Cognito `admin`/`moderator` group through a separate action | Report id, bounded action/reason, and idempotency key | Resolve the report's immutable image generation and hide/remove it without private-record access or risking a newer replacement |
 
-Owner removal, derivative-aware unpublish, and future moderation commands accept a snapshot id rather than a public asset id. The backend cleanup resolver conditionally operates on the projection current when the command executes. The frontend also scopes the follow-on snapshot deletion to its route/account request generation so a late response cannot update or delete a different preview.
+Owner removal and derivative-aware unpublish accept a snapshot id rather than a public asset id. The future report-driven moderation command should accept a report id and resolve its backend-bound immutable image generation; neither workflow accepts an asset id from the browser. The backend conditionally operates on trusted current state, and frontend request generations prevent late results from updating a different preview.
 
 No lifecycle command should accept a raw public or private key. IAM should grant each function only the DynamoDB attributes and exact public derivative prefix required for its job. Owner cleanup functions need no private-prefix read permission.
 
@@ -189,6 +189,8 @@ Private image deletion is not currently part of Phase 2F implementation. When ad
 ## Moderation and reporting plan
 
 Image reporting and moderation remain future work. The current report target enum has no `public_image` value, and report-status updates do not authorize content or image mutation.
+
+The implementation-ready continuation of this section is [Phase 2G Public Image Moderation and Reporting Plan](PUBLIC_IMAGE_PHASE_2G_MODERATION_PLAN.md).
 
 Recommended future boundary:
 

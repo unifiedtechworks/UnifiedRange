@@ -595,6 +595,19 @@ Phase 2F.1 provides the owner-authorized backend primitive, Phase 2F.2 wires its
 - [ ] Moderator hide/remove preserves the private original, uses a separate group-authorized action, and records a protected audit event without granting private image access.
 - [ ] Duplicate, concurrent, and retried operations converge on one non-deliverable state and do not leave a stale projection or multiple live derivatives.
 
+### Future Phase 2G image reporting/moderation — not runnable yet
+
+Follow the [Phase 2G Public Image Moderation Plan](PUBLIC_IMAGE_PHASE_2G_MODERATION_PLAN.md) after its backend and UI phases are implemented.
+
+- [ ] Report an available public image from saved Public Passport detail while signed in; confirm the client sends only snapshot id, bounded reason/details, and no asset/source/owner id, key, URL, filename, or image bytes.
+- [ ] Confirm signed-out, duplicate, rapid, missing, hidden, removed, superseded, private-account, unpublished, demo/sample, and target-photo report attempts fail safely without becoming an existence oracle.
+- [ ] Replace an image after reporting it. Confirm the old report remains bound to the old immutable generation and cannot preview, hide, or remove the replacement.
+- [ ] Confirm an open report alone does not hide an image and report status changes never mutate image availability.
+- [ ] Confirm moderator/admin review shows only the processed public derivative and safe report/public metadata, never private originals, private image ledgers, private keys, owner private fields, or target photos.
+- [ ] Hide/remove the reported image through the separate group-authorized action. Confirm the public image projection detaches, no new URL is issued, public text/setup remains, and the private original is unchanged.
+- [ ] Force cleanup pending and concurrent owner lifecycle actions. Confirm bounded retry behavior, no stale/newer derivative deletion, and no raw infrastructure detail.
+- [ ] Confirm normal users cannot read moderation projections or invoke image actions and Discover/public profile cards remain image-free.
+
 ## 14. Public profiles
 
 ### Account type

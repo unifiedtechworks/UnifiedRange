@@ -52,6 +52,7 @@ Report reasons:
 - Signed-out users can view public setup pages but must sign in before reporting.
 - Cognito `admin` and `moderator` group members can update report workflow status only. Normal users cannot update reports.
 - Status changes do not delete, hide, suspend, or mutate reported content.
+- Public-image-specific reports and moderator/admin image actions are not implemented. Their proposed privacy, immutable-generation binding, and private-original preservation rules are documented in the [Phase 2G Public Image Moderation Plan](PUBLIC_IMAGE_PHASE_2G_MODERATION_PLAN.md).
 - Public social features must not expose private passport fields, private images, owner private details, marketplace activity, or direct messaging.
 
 ## Admin Review States

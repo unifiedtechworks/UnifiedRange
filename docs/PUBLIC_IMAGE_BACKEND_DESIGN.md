@@ -478,7 +478,7 @@ Public snapshot APIs may expose the public derivative key because the derivative
 
 ## Moderation design
 
-Future public-image reporting should add a dedicated report target such as `public_image` whose `targetId` is the stable `PublicImageAsset.id`, never a private source ID or S3 key.
+Future public-image reporting should add a dedicated `public_image` report target whose client-visible `targetId` is the public snapshot id. A backend-only field should bind the report to the immutable `PublicImageAsset.id` generation current at submission, so a stale report cannot action a replacement. The browser never supplies the asset id, private source id, or S3 key.
 
 Planned asset states:
 
@@ -653,6 +653,7 @@ Alarms should cover sustained processing failures, metadata-verification failure
 - [x] Implement the Phase 2F.1 backend removal primitive with detach-first exact-key cleanup and retryable removed-ledger lookup.
 - [x] Implement the owner-only Public Preview removal UI.
 - [x] Implement derivative-aware Unpublish through the existing snapshot-id-only cleanup mutation.
+- [x] Implement owner-facing remove-first replacement through the existing cleanup and processor contracts.
 - [ ] Implement visibility/private-source revocation.
 - [x] Add a snapshot-ID-only backend resolver that returns a short-lived ready-derivative URL and safe alt text.
 - [x] Add a bounded developer harness and generated-URL defense-in-depth validation.
@@ -661,7 +662,8 @@ Alarms should cover sustained processing failures, metadata-verification failure
 
 ### Later public image moderation and expansion
 
-- [ ] Add `public_image` reports against stable public asset IDs.
+- Detailed design: [PUBLIC_IMAGE_PHASE_2G_MODERATION_PLAN.md](PUBLIC_IMAGE_PHASE_2G_MODERATION_PLAN.md)
+- [ ] Add snapshot-id-only `public_image` reporting with a backend-bound immutable public asset generation.
 - [ ] Add audited admin/moderator hide/remove action that preserves private originals.
 - [ ] Test caches and signed-out visibility after remove/unpublish.
 
@@ -675,7 +677,7 @@ Alarms should cover sustained processing failures, metadata-verification failure
 
 ## Release acceptance gates
 
-Do not enable public image selection or rendering until all of these are true:
+Do not expand public image rendering beyond saved Public Passport detail until all of these are true:
 
 - the function cannot read another owner's source through modified inputs or record fields;
 - no action accepts an arbitrary private/public key or URL;
