@@ -20,6 +20,7 @@ Phase 2F.1 implements the backend cleanup foundation, Phase 2F.2 adds the first 
 - Cleanup, unpublish, replacement, and processing responses carry in-memory request generations tied to the route, source, and authenticated owner context as appropriate. Context changes invalidate those generations before any late result can reload or overwrite a newer Public Preview.
 - Image-bearing Unpublish calls `removePublicPassportImage` with only the snapshot id, waits for confirmed detachment, and only then deletes the sanitized text/setup snapshot.
 - **Replace public image** calls the same snapshot-id-only cleanup first and continues to the existing consent/processor flow only after `removed`, `not_attached`, or detach-confirmed `cleanup_pending`. Atomic replacement remains unavailable.
+- Phase 2G.1 adds a separate `clear | hidden | removed` moderation state. Existing owner cleanup continues to update processing/lifecycle cleanup fields only; it neither impersonates a moderator nor clears a moderation hold. A future moderator action remains a separate group-authorized command.
 - Discover cards and public profile cards remain image-free.
 - Range Session target photos remain private and ineligible.
 
@@ -39,7 +40,7 @@ Every Phase 2F path must preserve these rules:
 8. Return bounded user-facing results and log no keys, URLs, filenames, alt text, image bytes, owner/source ids, or tokens.
 9. Never restore a removed image automatically. A later public image requires fresh eligibility checks and explicit owner consent.
 
-The existing resolver already fails closed when the snapshot is absent, the account is private, the projection and ledger disagree, the asset is not `ready`, the source is not `equipment_cover`, or the derivative object is missing. Phase 2F should retain those checks as defense in depth.
+The existing resolver already fails closed when the snapshot is absent, the account is private, the projection and ledger disagree, the asset is not `ready`, the moderation state is hidden/removed/unknown, the source is not `equipment_cover`, or the derivative object is missing. Phase 2F should retain those checks as defense in depth.
 
 ## Recommended backend ownership
 
@@ -188,7 +189,7 @@ Private image deletion is not currently part of Phase 2F implementation. When ad
 
 ## Moderation and reporting plan
 
-Image reporting and moderation remain future work. The current report target enum has no `public_image` value, and report-status updates do not authorize content or image mutation.
+Image reporting and moderator actions remain future work. Phase 2G.1 reserves the `public_image` report target, a protected immutable-generation binding, and separate client-nonwritable image moderation fields. It does not add the trusted report command or any moderator action, and existing report-status updates still do not authorize content or image mutation.
 
 The implementation-ready continuation of this section is [Phase 2G Public Image Moderation and Reporting Plan](PUBLIC_IMAGE_PHASE_2G_MODERATION_PLAN.md).
 

@@ -4,7 +4,7 @@
 
 Public image rendering is limited to one eligible processed equipment-cover derivative on a saved Public Passport detail page. UnifiedRange stores Equipment Passport setup photos and Range Session target photos in owner-scoped private S3 paths. Normal `PublicPassportSnapshot` publishing copies sanitized text/setup data only; it does not expose a private image key, signed private URL, or private image bytes. Phase 2D provides owner-only consent and processing, Phase 2E.1 provides bounded delivery, and Phase 2E.2 adds detail-only rendering. Discover and public profile cards remain image-free.
 
-This document defines the privacy and safety boundary for the phased release. Phase 1 reserves a non-public workflow ledger and guarded public snapshot projection fields. Phase 2A adds owner-only registration of private upload candidates. Phase 2B adds trusted owner/source/S3 binding. Phase 2C adds the derivative processor for a verified Equipment Passport cover. Phase 2D adds explicit owner selection, private source preview, safety acknowledgements, bounded alt text, and a constrained processor invocation. Phase 2E.1 adds a snapshot-ID-only public resolver that may issue a short-lived URL after current eligibility checks. Phase 2E.2 calls that resolver only from saved Public Passport detail. Phase 2F.1 adds a snapshot-ID-only owner cleanup mutation that detaches the projection before deleting a canonical public derivative. Phase 2F.2 exposes that mutation only through an owner-only Public Preview remove control. Phase 2F.3 uses that cleanup contract before owner-scoped snapshot deletion for derivative-aware Unpublish. Phase 2F.4 reuses cleanup before the existing consent/processor flow for remove-first replacement. These phases do not add direct public Storage access, target-photo processing, Discover/profile images, atomic replacement, or moderation actions.
+This document defines the privacy and safety boundary for the phased release. Phase 1 reserves a non-public workflow ledger and guarded public snapshot projection fields. Phase 2A adds owner-only registration of private upload candidates. Phase 2B adds trusted owner/source/S3 binding. Phase 2C adds the derivative processor for a verified Equipment Passport cover. Phase 2D adds explicit owner selection, private source preview, safety acknowledgements, bounded alt text, and a constrained processor invocation. Phase 2E.1 adds a snapshot-ID-only public resolver that may issue a short-lived URL after current eligibility checks. Phase 2E.2 calls that resolver only from saved Public Passport detail. Phase 2F.1 adds a snapshot-ID-only owner cleanup mutation that detaches the projection before deleting a canonical public derivative. Phase 2F.2 exposes that mutation only through an owner-only Public Preview remove control. Phase 2F.3 uses that cleanup contract before owner-scoped snapshot deletion for derivative-aware Unpublish. Phase 2F.4 reuses cleanup before the existing consent/processor flow for remove-first replacement. Phase 2G.1 reserves protected public-image report/moderation contracts and blocks delivery or reprocessing for a non-clear moderation state. These phases do not add direct public Storage access, target-photo processing, Discover/profile images, atomic replacement, image-report UI, or moderator image actions.
 
 Normal client create/update operations still cannot write public image projection fields. An IAM-authorized verifier may mark a private candidate verified after re-reading its private source and exact S3 object metadata. The authenticated Phase 2C action can process only a verified `equipment_cover` after explicit consent and current ownership/visibility checks. Phase 2D calls that action only from the signed-in owner's saved Public Preview with opaque snapshot/candidate IDs, bounded alt text, and required consent. The derivative destination has no public or browser Storage read rule. Phase 2E.1 grants read/head only to the resolver Lambda, which can return a 60-second URL and safe alt text for an eligible derivative. Phase 2E.2 renders that URL directly on saved public detail without caching it beyond the current view or falling back to a private image.
 
@@ -142,7 +142,7 @@ Phase 1 already reserves these optional, client-nonwritable fields on `PublicPas
 
 The existing `coverPhotoUrl` field must remain empty for private images. Before implementation, decide whether it will be removed/deprecated or populated only from a trusted public derivative. Prefer storing a key and resolving the public URL through one controlled helper rather than accepting arbitrary URLs from clients.
 
-`PublicImageAsset` is the owner-readable, client-nonwritable future processing ledger. Phase 2A also adds `PrivateImageAsset`, an owner-only candidate registry containing private source linkage and upload metadata. Its verification fields are client-nonwritable, and the model has no public/API-key or moderator read access. `PublicImageAsset.privateImageAssetId` is reserved for a future backend-created relationship; no current client can create it.
+`PublicImageAsset` is the owner-readable, client-nonwritable processing ledger. Phase 2G.1 adds separate owner-readable/client-nonwritable moderation status and bounded lifecycle metadata without granting moderators broad model read access. Phase 2A also adds `PrivateImageAsset`, an owner-only candidate registry containing private source linkage and upload metadata. Its verification fields are client-nonwritable, and the model has no public/API-key or moderator read access. `PublicImageAsset.privateImageAssetId` is backend-created; no current client can create it.
 
 Future schema work should be limited to explicit Lambda resource authorization and any action/result types needed for trusted finalization and processing. Do not broaden client writes or public reads to ship that backend.
 
@@ -180,7 +180,7 @@ Deleting or replacing a private original should not silently leave an unmanaged 
 
 Public images must participate in reporting without exposing their private source:
 
-- Add a future report target such as `public_image`, linked to the public asset or public snapshot—not the private key.
+- Phase 2G.1 reserves `public_image` with the safe public snapshot id as `targetId` and a separate reporter-nonwritable immutable asset-generation binding. The Phase 2G.2 backend report command remains required before this becomes a supported user flow.
 - Let signed-in users report personal information, threats/harm, harassment, illegal hunting, unsafe content, sales/marketplace activity, or other policy violations.
 - Show admins/moderators the public derivative and report metadata only. Do not grant access to the private original through the moderation card.
 - Provide an audited action to remove or disable the public derivative without deleting the owner's private image.
@@ -189,7 +189,7 @@ Public images must participate in reporting without exposing their private sourc
 
 The detailed report binding, safe moderator projection, detach-first hide/remove behavior, moderation hold, audit, abuse controls, and phased rollout are specified in [PUBLIC_IMAGE_PHASE_2G_MODERATION_PLAN.md](PUBLIC_IMAGE_PHASE_2G_MODERATION_PLAN.md).
 
-No destructive moderation action is part of the current app. Authorization, reporting, and moderation must be implemented and tested before public image rendering expands beyond saved Public Passport detail.
+No public-image report UI or destructive moderation action is part of the current app. Phase 2G.1 schema fields do not grant moderator access to private originals or the full image ledger. Reporting and moderation commands/UI must be implemented and tested before public image rendering expands beyond saved Public Passport detail.
 
 ## Implementation phases
 
@@ -264,6 +264,8 @@ No destructive moderation action is part of the current app. Authorization, repo
 ### Phase 2G public image moderation and later surface expansion
 
 - Follow [PUBLIC_IMAGE_PHASE_2G_MODERATION_PLAN.md](PUBLIC_IMAGE_PHASE_2G_MODERATION_PLAN.md) for exact-generation public-image reports, safe moderator preview, separate audited hide/remove actions, cleanup, and private-original preservation.
+- Phase 2G.1 is implemented: the schema reserves the report target/binding and separate moderation state, new processing rows initialize to `clear`, blocked states cannot be delivered or reprocessed, and legacy rows retain a temporary missing-status compatibility path until a controlled backfill.
+- Phase 2G.2 report command/UI, Phase 2G.3 safe moderator review projection/UI, and Phase 2G.4 moderator hide/remove remain unavailable.
 - Test unpublish, replacement, account-visibility changes, account lifecycle behavior, cache invalidation, and orphan cleanup.
 - Consider Discover/public profile rendering only after detail delivery, lifecycle, accessibility, and moderation tests pass.
 

@@ -252,7 +252,7 @@ A future audited moderator action should detach delivery or set a dedicated hidd
 
 Public image reporting is not part of the first detail rendering slice. Before images expand beyond the controlled detail page:
 
-- add a dedicated `public_image` report target using the public snapshot id in the browser and a backend-bound immutable public asset generation, never a client-supplied private candidate/source ID or S3 key;
+- use the Phase 2G.1 `public_image` target and protected immutable-generation field through a future snapshot-id-only backend report command, never a client-supplied public/private asset id, source ID, or S3 key;
 - show moderators only the processed public derivative and report metadata;
 - add an audited hide/remove command with separate authorization;
 - make `reviewed` or `dismissed` report status independent from image availability;

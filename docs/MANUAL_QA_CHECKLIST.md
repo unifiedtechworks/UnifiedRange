@@ -595,6 +595,18 @@ Phase 2F.1 provides the owner-authorized backend primitive, Phase 2F.2 wires its
 - [ ] Moderator hide/remove preserves the private original, uses a separate group-authorized action, and records a protected audit event without granting private image access.
 - [ ] Duplicate, concurrent, and retried operations converge on one non-deliverable state and do not leave a stale projection or multiple live derivatives.
 
+### Phase 2G.1 moderation/report contract foundation — run after backend deployment
+
+- [ ] Re-run the existing public passport/comment reporting and admin/moderator status workflow. Confirm it remains unchanged and status updates still perform no content/image action.
+- [ ] Confirm there is no **Report image** button, image moderation card, safe moderator preview, hide/remove control, moderation notification, or Discover/public-profile image rendering.
+- [ ] As an owner, read an owned `PublicImageAsset` after newly processing or safely reprocessing a cover and confirm `moderationStatus` is `clear`. Confirm the owner cannot create/update/delete moderation fields or set `hidden`/`removed` through generated model operations.
+- [ ] As another normal user, API-key client, moderator, and admin, confirm the full `PublicImageAsset` ledger cannot be listed/read unless that Cognito identity is itself the record owner. No role gains private source access.
+- [ ] Confirm a normal reporter cannot populate or update `Report.publicImageAssetId` and no current UI displays or accepts it. The report owner may read/delete the opaque binding for generated-operation compatibility, while other users and API-key clients cannot read it. Treat any manually created `public_image` report without a backend binding as non-actionable.
+- [ ] Confirm an eligible legacy asset with no `moderationStatus` still resolves during the temporary compatibility window. Reprocess it and confirm the backend initializes `clear` without changing its private source.
+- [ ] In an isolated disposable sandbox only, set a ledger row to `hidden`, `removed`, and an invalid/unknown value through trusted backend tooling. Confirm `resolvePublicPassportImage` always returns the same generic unavailable shape, issues no URL, and exposes no moderation reason, actor, asset id, key, or technical detail.
+- [ ] In the same isolated fixture, try to process a hidden/removed generation again. Confirm the processor returns a bounded failure, does not overwrite the moderation state, and does not attach or restore a derivative.
+- [ ] Confirm missing moderation state is documented as temporary legacy compatibility and must be backfilled to `clear` before Phase 2G.4 moderator actions are enabled.
+
 ### Future Phase 2G image reporting/moderation — not runnable yet
 
 Follow the [Phase 2G Public Image Moderation Plan](PUBLIC_IMAGE_PHASE_2G_MODERATION_PLAN.md) after its backend and UI phases are implemented.

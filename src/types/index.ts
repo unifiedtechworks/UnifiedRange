@@ -13,6 +13,12 @@ export type CommentStatus = "visible" | "hidden" | "reported";
 
 export type TargetType = "passport" | "session" | "public_passport";
 
+export type ReportTargetType = TargetType | "comment" | "public_image";
+
+export type ReportStatus = "open" | "reviewed" | "dismissed" | "action_needed";
+
+export type PublicImageModerationStatus = "clear" | "hidden" | "removed";
+
 export type ReactionType =
   | "helpful_setup"
   | "similar_to_mine"
@@ -268,9 +274,9 @@ export interface Reaction {
 export interface Report extends Timestamped {
   id: string;
   reporterId: string;
-  targetType: TargetType;
+  targetType: ReportTargetType;
   targetId: string;
   reason: string;
   details?: string;
-  status: "open" | "reviewed" | "resolved";
+  status: ReportStatus;
 }

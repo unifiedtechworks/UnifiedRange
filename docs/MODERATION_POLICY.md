@@ -52,7 +52,9 @@ Report reasons:
 - Signed-out users can view public setup pages but must sign in before reporting.
 - Cognito `admin` and `moderator` group members can update report workflow status only. Normal users cannot update reports.
 - Status changes do not delete, hide, suspend, or mutate reported content.
-- Public-image-specific reports and moderator/admin image actions are not implemented. Their proposed privacy, immutable-generation binding, and private-original preservation rules are documented in the [Phase 2G Public Image Moderation Plan](PUBLIC_IMAGE_PHASE_2G_MODERATION_PLAN.md).
+- Phase 2G.1 reserves a `public_image` report target and a backend-only immutable image-generation binding. There is no supported public-image report command/button yet; a directly created unbound row is non-actionable.
+- The public-image ledger now has a separate client-nonwritable `clear | hidden | removed` moderation state. The delivery resolver returns generic unavailable for blocked or unknown states, while a temporary missing-state compatibility path supports pre-2G.1 rows until controlled backfill.
+- Public-image review UI and moderator/admin image actions remain unimplemented. Moderators do not receive broad ledger or private-original access. Their planned safe projection, immutable-generation checks, private-original preservation, and audited actions are documented in the [Phase 2G Public Image Moderation Plan](PUBLIC_IMAGE_PHASE_2G_MODERATION_PLAN.md).
 - Public social features must not expose private passport fields, private images, owner private details, marketplace activity, or direct messaging.
 
 ## Admin Review States

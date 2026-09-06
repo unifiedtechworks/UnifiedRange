@@ -45,6 +45,7 @@ type PublicImageAsset = {
   publicImageKey: string;
   publicImageAltText: string;
   status: string;
+  moderationStatus: string;
 };
 
 type EquipmentPassport = {
@@ -197,7 +198,8 @@ function readPublicImageAsset(item: DynamoItem | undefined, expectedId: string) 
     sourceRecordId: stringValue(item, "sourceRecordId") ?? "",
     publicImageKey: stringValue(item, "publicImageKey") ?? "",
     publicImageAltText: stringValue(item, "publicImageAltText") ?? "",
-    status: stringValue(item, "status") ?? ""
+    status: stringValue(item, "status") ?? "",
+    moderationStatus: stringValue(item, "moderationStatus") ?? ""
   } satisfies PublicImageAsset;
 
   if (asset.id !== expectedId) {
@@ -287,6 +289,7 @@ function validateEligibility(
     asset.sourceType !== "equipment_cover" ||
     asset.sourceRecordId !== snapshot.equipmentPassportId ||
     asset.status !== "ready" ||
+    (asset.moderationStatus !== "" && asset.moderationStatus !== "clear") ||
     asset.publicImageKey !== snapshot.publicImageKey ||
     asset.publicImageAltText !== snapshot.publicImageAltText ||
     snapshot.publicImageKey !== expectedPublicKey ||
@@ -395,7 +398,8 @@ export const handler: Schema["resolvePublicPassportImage"]["functionHandler"] = 
         "sourceRecordId",
         "publicImageKey",
         "publicImageAltText",
-        "status"
+        "status",
+        "moderationStatus"
       ]),
       getItem(equipmentPassportTableName, snapshot.equipmentPassportId, ["id", "ownerId", "isPublic"]),
       getPublicProfile(snapshot.ownerId)

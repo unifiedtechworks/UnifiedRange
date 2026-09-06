@@ -178,7 +178,8 @@ imageDeliveryLambda.addToRolePolicy(
       "sourceRecordId",
       "publicImageKey",
       "publicImageAltText",
-      "status"
+      "status",
+      "moderationStatus"
     ])
   })
 );
@@ -297,7 +298,8 @@ imageProcessorLambda.addToRolePolicy(
       "sourceRecordId",
       "publicImageKey",
       "publicImageAltText",
-      "status"
+      "status",
+      "moderationStatus"
     ])
   })
 );
@@ -332,6 +334,7 @@ imageProcessorLambda.addToRolePolicy(
       "publicImageKey",
       "publicImageAltText",
       "status",
+      "moderationStatus",
       "processingErrorCode",
       "consentConfirmedAt",
       "createdAt",

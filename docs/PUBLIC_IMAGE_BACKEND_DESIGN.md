@@ -2,9 +2,9 @@
 
 ## Status
 
-Phase 1 data guardrails were added on August 5, 2026. Phase 2A private source registration, Phase 2B trusted private source verification, and the Phase 2C backend derivative foundation were added on August 9, 2026. Phase 2D owner consent UI was added on August 18, 2026. Phase 2E.1 adds the backend-only `resolvePublicPassportImage` delivery query, and Phase 2E.2 adds detail-only rendering through that resolver. Phase 2F.1 adds the owner-authorized `removePublicPassportImage` cleanup mutation, a snapshot-indexed ledger retry path, and processor/removal concurrency guards. Phase 2F.2 wires that contract to an owner-only Public Preview remove action, and Phase 2F.3 invokes the same cleanup contract before owner-scoped snapshot deletion for derivative-aware Unpublish. Neither UI phase adds backend input. The schema contains a non-public, client-read-only `PublicImageAsset` workflow ledger, backend-reserved public snapshot projection fields, an owner-only `PrivateImageAsset` candidate registry, verification/processing/cleanup operations, and a public-safe delivery resolver.
+Phase 1 data guardrails were added on August 5, 2026. Phase 2A private source registration, Phase 2B trusted private source verification, and the Phase 2C backend derivative foundation were added on August 9, 2026. Phase 2D owner consent UI was added on August 18, 2026. Phase 2E.1 adds the backend-only `resolvePublicPassportImage` delivery query, and Phase 2E.2 adds detail-only rendering through that resolver. Phase 2F.1 adds the owner-authorized `removePublicPassportImage` cleanup mutation, a snapshot-indexed ledger retry path, and processor/removal concurrency guards. Phase 2F.2 wires that contract to an owner-only Public Preview remove action, Phase 2F.3 makes Unpublish derivative-aware, and Phase 2F.4 adds remove-first replacement. Phase 2G.1 adds only moderation/report schema contracts and delivery enforcement; it does not add reporting or moderation UI/actions. The schema contains a non-public, client-read-only `PublicImageAsset` workflow ledger, backend-reserved public snapshot projection fields, an owner-only `PrivateImageAsset` candidate registry, verification/processing/cleanup operations, and a public-safe delivery resolver.
 
-Phase 2E.2 renders one eligible processed equipment-cover derivative on a saved Public Passport detail page. The component supplies only the route's snapshot ID to Phase 2E.1 and receives a 60-second non-cacheable URL only after the public snapshot, ready asset, Equipment Passport public flag, account visibility, safe alt text, exact derivative path, and S3 object all agree. The derivative namespace remains unreadable directly through Amplify Storage; the processor can read/write/delete, the resolver can read, and the cleanup Lambda can delete only the public derivative prefix. Owner removal, derivative-aware Unpublish, and remove-first replacement are available only in Public Preview. Discover/profile rendering, target-photo processing, atomic replacement, and automatic publishing remain unavailable.
+Phase 2E.2 renders one eligible processed equipment-cover derivative on a saved Public Passport detail page. The component supplies only the route's snapshot ID to Phase 2E.1 and receives a 60-second non-cacheable URL only after the public snapshot, ready asset, allowed moderation state, Equipment Passport public flag, account visibility, safe alt text, exact derivative path, and S3 object all agree. The derivative namespace remains unreadable directly through Amplify Storage; the processor can read/write/delete, the resolver can read, and the cleanup Lambda can delete only the public derivative prefix. Owner removal, derivative-aware Unpublish, and remove-first replacement are available only in Public Preview. Discover/profile rendering, target-photo processing, atomic replacement, and automatic publishing remain unavailable.
 
 The browser may create and read its own immutable `PrivateImageAsset` candidate records after a successful private upload. Those rows remain private registration hints until `verifyPrivateImageAsset` independently marks them `verified`. Normal clients cannot write `bindingStatus`, `bindingFailureCode`, or `verifiedAt`. The Phase 2C processor rejects every candidate that is missing `verified` status and repeats the current source/object checks because verification proves source binding only and does not prove decoded image safety or metadata removal.
 
@@ -16,7 +16,10 @@ This design refines the product boundary in [PUBLIC_IMAGE_PUBLISHING_PLAN.md](PU
 
 - `PublicImageAssetSourceType` currently permits only `equipment_cover`; target photos remain excluded.
 - `PublicImageAssetStatus` contains `draft`, `processing`, `ready`, `failed`, and `removed`.
+- `PublicImageModerationStatus` contains `clear`, `hidden`, and `removed`, independently of processing lifecycle status.
 - `PublicImageAsset` stores no private S3 key and is not API-key readable. Owners may read their own future workflow records, but current clients cannot create, update, or delete them.
+- `PublicImageAsset.moderationStatus`, `hiddenAt`, `removedAt`, `moderationReason`, and `lastReportAt` are owner-readable and client-nonwritable. Actor identity fields are intentionally absent pending a protected audit model.
+- `ReportTargetType` reserves `public_image`. `Report.publicImageAssetId` cannot be supplied or updated by a reporter or accessed publicly; report owners retain read/delete authorization for generated-operation compatibility, and `admin`/`moderator` groups may read it. Phase 2G.2 must populate it through a trusted report command, and no current UI renders it.
 - `PublicPassportSnapshot.publicImageAssetId`, `publicImageKey`, and `publicImageAltText` are readable by the owner and public API, but client create/update authorization is intentionally absent.
 - The legacy `PublicPassportSnapshot.coverPhotoUrl` field received the same create/update guard and is no longer mapped into saved public UI data.
 - `buildPublicPassportSnapshotInput` continues to omit every image field.
@@ -365,7 +368,7 @@ Do not place a private source key in a public-readable asset model.
 
 Use a non-public workflow ledger plus a minimal public projection.
 
-Future `PublicImageAsset` fields may include:
+The Phase 2G.1 ledger now separates `moderationStatus` (`clear | hidden | removed`) from processing `status`. A fuller shape, showing current fields alongside later processing/audit additions, may include:
 
 ```text
 id
@@ -376,7 +379,8 @@ sourceRecordId             // opaque private image registration ID, not an S3 ke
 role                       // cover; gallery later
 publicImageKey             // processed derivative only
 altText
-status                     // pending | processing | approved | failed | hidden | removed
+status                     // draft | processing | ready | failed | removed
+moderationStatus           // clear | hidden | removed
 consentVersion
 consentedAt
 contentHash
@@ -478,18 +482,17 @@ Public snapshot APIs may expose the public derivative key because the derivative
 
 ## Moderation design
 
-Future public-image reporting should add a dedicated `public_image` report target whose client-visible `targetId` is the public snapshot id. A backend-only field should bind the report to the immutable `PublicImageAsset.id` generation current at submission, so a stale report cannot action a replacement. The browser never supplies the asset id, private source id, or S3 key.
+Phase 2G.1 reserves the dedicated `public_image` report target whose client-visible `targetId` is the public snapshot id. The protected `Report.publicImageAssetId` field is reserved to bind the report to the immutable `PublicImageAsset.id` generation current at submission, so a stale report cannot action a replacement. The reporter cannot populate or update that field; minimum owner read/delete authorization preserves existing generated model-operation compatibility, but no product UI renders it. Phase 2G.2 must add the backend command that establishes the binding; an unbound direct-model report is never actionable. The browser never supplies the asset id, private source id, or S3 key.
 
-Planned asset states:
+Processing lifecycle states remain:
 
-- `pending`: accepted but not yet processed;
+- `draft`: reserved before active processing when applicable;
 - `processing`: processor owns the active attempt;
-- `approved`: sanitized derivative is eligible for public projection;
+- `ready`: sanitized derivative is eligible for public projection;
 - `failed`: no public projection; owner may retry safely;
-- `hidden`: public projection removed by moderation or safety workflow;
 - `removed`: owner/unpublish/lifecycle removal completed or in final cleanup.
 
-If product policy wants the externally documented set `pending`, `approved`, `hidden`, and `removed`, keep `processing` and `failed` as internal workflow states.
+The separate moderation states are `clear`, `hidden`, and `removed`. Report workflow state remains on `Report`; the presence of a report does not change delivery by itself.
 
 Moderation must:
 
@@ -663,7 +666,10 @@ Alarms should cover sustained processing failures, metadata-verification failure
 ### Later public image moderation and expansion
 
 - Detailed design: [PUBLIC_IMAGE_PHASE_2G_MODERATION_PLAN.md](PUBLIC_IMAGE_PHASE_2G_MODERATION_PLAN.md)
-- [ ] Add snapshot-id-only `public_image` reporting with a backend-bound immutable public asset generation.
+- [x] Reserve `public_image`, a reporter-nonwritable immutable asset-generation binding, and separate client-nonwritable moderation fields.
+- [x] Initialize new processing rows to `clear`, reject blocked generations in the processor, and return generic unavailable delivery for hidden/removed/unknown moderation states while retaining a temporary legacy-null compatibility path.
+- [ ] Add the Phase 2G.2 snapshot-id-only report command that validates current eligibility and writes the protected immutable generation binding.
+- [ ] Backfill eligible legacy rows to `clear` and remove the resolver's temporary missing-value compatibility before moderator actions can write state.
 - [ ] Add audited admin/moderator hide/remove action that preserves private originals.
 - [ ] Test caches and signed-out visibility after remove/unpublish.
 

@@ -101,6 +101,7 @@ type PublicImageAsset = {
   publicImageKey?: string;
   publicImageAltText?: string;
   status: string;
+  moderationStatus: string;
 };
 
 type ImageHeader = {
@@ -322,7 +323,8 @@ function readPublicImageAsset(item: DynamoItem | undefined, expectedId: string) 
     sourceRecordId: stringValue(item, "sourceRecordId") ?? "",
     publicImageKey: stringValue(item, "publicImageKey"),
     publicImageAltText: stringValue(item, "publicImageAltText"),
-    status: stringValue(item, "status") ?? ""
+    status: stringValue(item, "status") ?? "",
+    moderationStatus: stringValue(item, "moderationStatus") ?? ""
   };
 
   if (asset.id !== expectedId) {
@@ -761,6 +763,10 @@ function validateExistingLedger(
   ) {
     throw new ProcessingFailure("unauthorized");
   }
+
+  if (ledger && ledger.moderationStatus !== "" && ledger.moderationStatus !== "clear") {
+    throw new ProcessingFailure("state_changed");
+  }
 }
 
 async function publicObjectExists(publicKey: string) {
@@ -795,9 +801,9 @@ async function startProcessingLedger({
       TableName: publicImageAssetTableName,
       Key: { id: { S: publicImageAssetId } },
       ConditionExpression:
-        "attribute_not_exists(#id) OR (#ownerId = :ownerId AND #snapshotId = :snapshotId AND #privateAssetId = :privateAssetId AND #sourceType = :sourceType AND #sourceRecordId = :sourceRecordId AND #status <> :removed AND (#status <> :processing OR #updatedAt < :leaseCutoff))",
+        "attribute_not_exists(#id) OR (#ownerId = :ownerId AND #snapshotId = :snapshotId AND #privateAssetId = :privateAssetId AND #sourceType = :sourceType AND #sourceRecordId = :sourceRecordId AND #status <> :removed AND (attribute_not_exists(#moderationStatus) OR #moderationStatus = :moderationClear) AND (#status <> :processing OR #updatedAt < :leaseCutoff))",
       UpdateExpression:
-        "SET #ownerId = :ownerId, #snapshotId = :snapshotId, #privateAssetId = :privateAssetId, #sourceType = :sourceType, #sourceRecordId = :sourceRecordId, #status = :processing, #consent = :consent, #createdAt = if_not_exists(#createdAt, :now), #updatedAt = :now REMOVE #failureCode, #publicKey, #altText",
+        "SET #ownerId = :ownerId, #snapshotId = :snapshotId, #privateAssetId = :privateAssetId, #sourceType = :sourceType, #sourceRecordId = :sourceRecordId, #status = :processing, #moderationStatus = if_not_exists(#moderationStatus, :moderationClear), #consent = :consent, #createdAt = if_not_exists(#createdAt, :now), #updatedAt = :now REMOVE #failureCode, #publicKey, #altText",
       ExpressionAttributeNames: {
         "#id": "id",
         "#ownerId": "ownerId",
@@ -806,6 +812,7 @@ async function startProcessingLedger({
         "#sourceType": "sourceType",
         "#sourceRecordId": "sourceRecordId",
         "#status": "status",
+        "#moderationStatus": "moderationStatus",
         "#consent": "consentConfirmedAt",
         "#createdAt": "createdAt",
         "#updatedAt": "updatedAt",
@@ -821,6 +828,7 @@ async function startProcessingLedger({
         ":sourceRecordId": { S: sourceRecordId },
         ":processing": { S: "processing" },
         ":removed": { S: "removed" },
+        ":moderationClear": { S: "clear" },
         ":leaseCutoff": { S: leaseCutoff },
         ":consent": { S: consentConfirmedAt },
         ":now": { S: consentConfirmedAt }
@@ -895,6 +903,7 @@ async function finalizeProjection({
     "#sourceType": "sourceType",
     "#sourceRecordId": "sourceRecordId",
     "#status": "status",
+    "#moderationStatus": "moderationStatus",
     "#publicKey": "publicImageKey",
     "#altText": "publicImageAltText",
     "#failureCode": "processingErrorCode",
@@ -908,12 +917,13 @@ async function finalizeProjection({
     ":sourceType": { S: "equipment_cover" },
     ":sourceRecordId": { S: asset.sourceRecordId },
     ":ready": { S: "ready" },
+    ":moderationClear": { S: "clear" },
     ":publicKey": { S: publicKey },
     ":consent": { S: consentConfirmedAt },
     ":now": { S: now }
   };
   let ledgerUpdate =
-    "SET #status = :ready, #publicKey = :publicKey, #consent = :consent, #updatedAt = :now";
+    "SET #status = :ready, #moderationStatus = if_not_exists(#moderationStatus, :moderationClear), #publicKey = :publicKey, #consent = :consent, #updatedAt = :now";
   if (altText) {
     ledgerValues[":altText"] = { S: altText };
     ledgerUpdate += ", #altText = :altText REMOVE #failureCode";
@@ -1050,7 +1060,7 @@ async function finalizeProjection({
             TableName: publicImageAssetTableName,
             Key: { id: { S: publicImageAssetId } },
             ConditionExpression:
-              "#ownerId = :ownerId AND #snapshotId = :snapshotId AND #privateAssetId = :privateAssetId AND #sourceType = :sourceType AND #sourceRecordId = :sourceRecordId AND (#status = :processing OR #status = :ready)",
+              "#ownerId = :ownerId AND #snapshotId = :snapshotId AND #privateAssetId = :privateAssetId AND #sourceType = :sourceType AND #sourceRecordId = :sourceRecordId AND (attribute_not_exists(#moderationStatus) OR #moderationStatus = :moderationClear) AND (#status = :processing OR #status = :ready)",
             UpdateExpression: ledgerUpdate,
             ExpressionAttributeNames: ledgerNames,
             ExpressionAttributeValues: { ...ledgerValues, ":processing": { S: "processing" } }
@@ -1160,7 +1170,8 @@ export const handler: Schema["processPublicPassportImage"]["functionHandler"] = 
         "sourceRecordId",
         "publicImageKey",
         "publicImageAltText",
-        "status"
+        "status",
+        "moderationStatus"
       ]),
       publicImageAssetId
     );

@@ -6,16 +6,16 @@ Last updated: September 5, 2026
 
 Phase 2G adds a safe reporting and moderation lifecycle for the one processed Equipment Passport cover that may render on saved Public Passport detail. It must exist and pass hosted adversarial testing before image rendering is considered for Discover cards or public profile pages.
 
-This document is planning only. It does not add a report target, schema field, Lambda, storage permission, public button, moderation control, image action, notification, or runtime behavior.
+Phase 2G.1 now provides schema and delivery-contract guardrails only. It does not add a report command/button, moderation review UI, moderator action, notification, audit log, or broader image rendering.
 
 ## Current boundary
 
 Today:
 
 - `PublicPassportImage` receives only a public snapshot id and renders only on saved Public Passport detail.
-- `resolvePublicPassportImage` returns a 60-second, non-cacheable URL only when the public snapshot, public profile visibility, source passport, `ready` public-image ledger row, canonical derivative key, safe alt text, and S3 object all agree.
-- `PublicImageAsset` is owner-readable only. It contains private candidate and source linkage and must not become generally moderator-readable.
-- Signed-in users can report public snapshots and comments through the existing `Report` model. `ReportTargetType` does not yet include `public_image`.
+- `resolvePublicPassportImage` returns a 60-second, non-cacheable URL only when the public snapshot, public profile visibility, source passport, `ready` public-image ledger row, non-blocked moderation state, canonical derivative key, safe alt text, and S3 object all agree.
+- `PublicImageAsset` is owner-readable and client-nonwritable. Phase 2G.1 adds an independent owner-readable `clear | hidden | removed` moderation state plus bounded lifecycle timestamps/reason metadata, but does not broaden moderator access to the full ledger.
+- Signed-in users can report public snapshots and comments through the existing `Report` model. `ReportTargetType` now reserves `public_image`, and `Report.publicImageAssetId` is a protected generation binding that reporters cannot populate or update. Report owners retain read/delete authorization so existing generated report responses remain compatible, but no current UI displays the value.
 - Admins and moderators can read report metadata and update only `Report.status`. That status change does not hide, delete, or mutate content.
 - Owner removal, derivative-aware Unpublish, and remove-first replacement use backend-controlled detachment and preserve the private original.
 - Discover cards, public profile cards, and target photos remain image-free.
@@ -69,7 +69,7 @@ Recommended representation:
 - `Report.targetId = publicPassportSnapshotId`, because it is already a public route identifier; and
 - a new backend-written `Report.publicImageAssetId` (name subject to schema review) binds the report to the immutable processed generation.
 
-The generation field should be unreadable to public/API-key clients and ordinary users other than any minimum reporter-owned confirmation required by the product. Moderation UI should normally receive it only as an internal backend comparison, not render it. A custom moderator projection is safer than broad `PublicImageAsset` group read.
+The generation field is unreadable to public/API-key clients and other users. The report owner has minimum read/delete authorization so existing generated model responses remain compatible, but the product UI should not render it. Moderation UI should normally use it only as an internal backend comparison. A custom moderator projection is safer than broad `PublicImageAsset` group read.
 
 Using only the snapshot id is insufficient: an owner can legitimately replace an image before review, and an old report must continue to identify the old generation without authorizing action against the replacement.
 
@@ -214,30 +214,33 @@ Every unavailable public response remains generic and non-cacheable and contains
 - Owners retain full access to their private original and may delete it through its separate private lifecycle. Moderators never gain private access.
 - An owner notification/appeal workflow is deferred. A future notification should be in-app, bounded, and omit reporter/moderator identity and private report details.
 
-## Data model plan
+## Data model foundation
 
-No schema changes are made by this planning task. Phase 2G.1 should evaluate the smallest safe form of the following.
+Phase 2G.1 implements only the smallest fields that can remain safe before report and moderation commands exist. It adds no model with wider access and no client mutation for moderation state.
 
 ### Report
 
-- Extend `ReportTargetType` with `public_image`.
+- `ReportTargetType` includes `public_image`.
 - Continue using `targetId` for the safe public snapshot id.
-- Add a backend-written immutable reported-generation binding such as `publicImageAssetId`, with field authorization that does not expose it publicly or allow reporter/client writes.
-- Add an index suitable for target type/snapshot/generation and status review without public reads.
-- Prefer the dedicated report command so reporter identity, initial status, generation binding, normalization, and idempotency are server-controlled.
+- `Report.publicImageAssetId` reserves the backend-written immutable reported-generation binding. Its field authorization permits `admin`/`moderator` read and report-owner read/delete while denying reporter create/update and all public/API-key access. No current UI displays or accepts it.
+- The existing direct reporter-owned model create path is not the supported way to create a `public_image` report because it cannot establish the protected generation binding. Any unbound row must be treated as unavailable/non-actionable. Phase 2G.2 must add the dedicated report command so reporter identity, initial status, binding, normalization, and idempotency are server-controlled.
+- A new report index is deferred until the Phase 2G.2 command and Phase 2G.3 queue access patterns are finalized; adding a speculative index now would not make unbound reports safe.
 
 ### PublicImageAsset
 
-Keep processing lifecycle `status` separate from a proposed moderation state:
+Processing lifecycle `status` remains separate from the implemented moderation state:
 
 - `moderationStatus`: `clear`, `hidden`, or `removed`;
 - `hiddenAt`, `removedAt`, and `lastReportAt`;
-- internal `hiddenBy`/`removedBy` only if an append-only audit model is not yet available; and
 - bounded `moderationReason` suitable for owner-safe display only when policy allows.
+
+`hiddenBy` and `removedBy` are intentionally not added to the owner-readable ledger. Actor identity belongs in the future protected `ModerationActionLog` rather than an owner-visible field.
+
+`reported` is intentionally not a moderation status. Reports and their `open | reviewed | dismissed | action_needed` workflow remain separate records, while `lastReportAt` can support protected queue prioritization later. This prevents report creation or report-status changes from implicitly changing public delivery.
 
 Do not grant group read access to the whole model. A backend resolver/action may use attribute-limited IAM and return a safe custom projection.
 
-The public resolver must eventually require both lifecycle `status = ready` and exact moderation `clear`. Existing rows need a deliberate backfill/deployment sequence before changing that fail-closed predicate; missing moderation state must not become a permanent implicit allow.
+The processor initializes new or safely reprocessed rows to `moderationStatus = clear` and refuses to reuse a generation with any other non-empty moderation state. The public resolver permits `clear` and temporarily permits a missing value for legacy pre-2G.1 rows; it returns the same generic unavailable result for `hidden`, `removed`, or unknown values. Before Phase 2G.4 can write moderation actions, existing eligible rows must be backfilled to `clear` and the temporary missing-value compatibility path must be removed so delivery requires exact `clear`.
 
 Add a protected source/snapshot lookup or moderation-hold record so the processor can reject reprocessing after a moderator action even if the owner unpublishes and creates a new public snapshot. The hold should be clearable only by a separate audited admin/moderator decision.
 
@@ -311,9 +314,9 @@ Do not store S3 keys, URLs, private candidate/source ids, filenames, alt text, i
 
 ### Phase 2G.1: schema and contract foundation
 
-- Threat-model and finalize public-image target identity, immutable generation binding, moderation status, hold persistence, indexes, migration/backfill, safe result codes, and field authorization.
-- Add schema/custom types and backend resource definitions only after review.
-- Keep resolver behavior fail closed throughout deployment; do not broaden full-ledger moderator reads.
+- **Implemented:** reserve `public_image`, protect `Report.publicImageAssetId`, add the separate owner-readable/client-nonwritable moderation fields, initialize new processing rows to `clear`, and make delivery unavailable for blocked or unknown moderation states.
+- **Deferred:** the report command, report/queue indexes, durable cross-generation moderation hold, legacy-row backfill, moderator projection/action, and audit model.
+- Keep full-ledger moderator access unavailable; Phase 2G.3 must use a purpose-built safe projection.
 
 ### Phase 2G.2: public image reporting on detail only
 
@@ -364,7 +367,7 @@ Do not store S3 keys, URLs, private candidate/source ids, filenames, alt text, i
 
 ## Deferred and out of scope
 
-- All Phase 2G schema, Lambda, IAM, UI, report-target, action, and audit implementation;
+- Phase 2G.2-2G.6 report Lambda/IAM, UI, indexes, moderator projection/action, cleanup orchestration, notification, and audit implementation;
 - automated report-count hiding or other brigading-sensitive enforcement;
 - broad moderator access to private records or the full public/private image ledgers;
 - owner notification center, appeal, warning, suspension, or account action;
@@ -374,4 +377,3 @@ Do not store S3 keys, URLs, private candidate/source ids, filenames, alt text, i
 - target-photo publishing or moderation;
 - galleries, feeds/follows, direct messaging, marketplace behavior, or account deletion; and
 - calculators, scope outputs, hold recommendations, field corrections, sight-in instructions, or aiming/adjustment guidance.
-

@@ -7,10 +7,11 @@ import { verifyPrivateImage } from "../functions/verify-private-image/resource.t
 // TODO: Wire mock-data screens to generated AppSync clients after the sandbox
 // produces amplify_outputs.json. Until then, this schema is the backend contract.
 const schema = a.schema({
-  ReportTargetType: a.enum(["passport", "session", "public_passport", "comment"]),
+  ReportTargetType: a.enum(["passport", "session", "public_passport", "comment", "public_image"]),
   ReportStatus: a.enum(["open", "reviewed", "dismissed", "action_needed"]),
   PublicImageAssetSourceType: a.enum(["equipment_cover"]),
   PublicImageAssetStatus: a.enum(["draft", "processing", "ready", "failed", "removed"]),
+  PublicImageModerationStatus: a.enum(["clear", "hidden", "removed"]),
   PublicImageCleanupStatus: a.enum(["removed", "not_attached", "cleanup_pending", "failed"]),
   PublicImageDeliveryStatus: a.enum(["available", "unavailable"]),
   PrivateImageAssetSourceType: a.enum(["equipment_cover", "range_session_target"]),
@@ -439,6 +440,25 @@ const schema = a.schema({
       status: a.ref("PublicImageAssetStatus").required(),
       processingErrorCode: a.string(),
       consentConfirmedAt: a.datetime(),
+      // Moderation state is independent from processing lifecycle state. These
+      // fields remain owner-readable but client-nonwritable; future moderator
+      // access must use a deliberately limited backend projection rather than
+      // broad group read access to this ledger.
+      moderationStatus: a
+        .ref("PublicImageModerationStatus")
+        .authorization((allow) => [allow.ownerDefinedIn("ownerId").to(["read"])]),
+      hiddenAt: a
+        .datetime()
+        .authorization((allow) => [allow.ownerDefinedIn("ownerId").to(["read"])]),
+      removedAt: a
+        .datetime()
+        .authorization((allow) => [allow.ownerDefinedIn("ownerId").to(["read"])]),
+      moderationReason: a
+        .string()
+        .authorization((allow) => [allow.ownerDefinedIn("ownerId").to(["read"])]),
+      lastReportAt: a
+        .datetime()
+        .authorization((allow) => [allow.ownerDefinedIn("ownerId").to(["read"])]),
       createdAt: a.datetime(),
       updatedAt: a.datetime()
     })
@@ -502,6 +522,16 @@ const schema = a.schema({
         .id()
         .required()
         .authorization((allow) => [allow.ownerDefinedIn("reporterId").to(["create", "read", "delete"]), allow.groups(["admin", "moderator"]).to(["read"])]),
+      // Only the future report command may bind a public-image report to the
+      // exact processed generation. Reporters may read it on their own report
+      // so generated create/read responses remain compatible, but cannot
+      // create or update it. It is never public/API-key readable.
+      publicImageAssetId: a
+        .id()
+        .authorization((allow) => [
+          allow.ownerDefinedIn("reporterId").to(["read", "delete"]),
+          allow.groups(["admin", "moderator"]).to(["read"])
+        ]),
       reason: a
         .string()
         .required()
