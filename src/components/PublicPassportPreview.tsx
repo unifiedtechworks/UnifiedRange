@@ -76,6 +76,7 @@ export function PublicPassportPreview({ passportId }: { passportId?: string }) {
   const cleanupRequestIdRef = useRef(0);
   const unpublishRequestIdRef = useRef(0);
   const replacementRequestIdRef = useRef(0);
+  const loadedPrivateCoverPhotoKeyRef = useRef("");
   const snapshotMutationInFlightRef = useRef(false);
   const publicImageProcessingInFlightRef = useRef(false);
   const replacementFlowActiveRef = useRef(false);
@@ -83,6 +84,7 @@ export function PublicPassportPreview({ passportId }: { passportId?: string }) {
   const cleanupContextKey = authState.status === "signed-in"
     ? `${passportId ?? ""}:${authState.userSub}:${authState.ownerKey}`
     : `${passportId ?? ""}:${authState.status}`;
+  const replacementContextKey = `${cleanupContextKey}:${record?.privateCoverPhotoKey ?? ""}`;
 
   const handleImageProcessingStateChange = useCallback((isProcessing: boolean) => {
     publicImageProcessingInFlightRef.current = isProcessing;
@@ -120,6 +122,7 @@ export function PublicPassportPreview({ passportId }: { passportId?: string }) {
     setIsPublicImageCleanupPending(false);
 
     if (!passportId) {
+      loadedPrivateCoverPhotoKeyRef.current = "";
       setRecord(null);
       setSnapshot(null);
       setHasPreparedPublicImage(false);
@@ -131,6 +134,7 @@ export function PublicPassportPreview({ passportId }: { passportId?: string }) {
     const demoPassport = getPassportById(passportId);
 
     if (demoPassport) {
+      loadedPrivateCoverPhotoKeyRef.current = "";
       setRecord(null);
       setSnapshot(null);
       setHasPreparedPublicImage(false);
@@ -144,6 +148,7 @@ export function PublicPassportPreview({ passportId }: { passportId?: string }) {
     }
 
     if (authState.status !== "signed-in") {
+      loadedPrivateCoverPhotoKeyRef.current = "";
       setRecord(null);
       setSnapshot(null);
       setHasPreparedPublicImage(false);
@@ -173,6 +178,7 @@ export function PublicPassportPreview({ passportId }: { passportId?: string }) {
       }
 
       if (passportResult.data) {
+        loadedPrivateCoverPhotoKeyRef.current = passportResult.data.privateCoverPhotoKey ?? "";
         setRecord(passportResult.data);
         const loadedSnapshot = snapshotResult.data[0] ?? null;
         const loadedSnapshotHasImage = Boolean(loadedSnapshot?.publicImageAssetId || loadedSnapshot?.publicImageKey);
@@ -182,12 +188,12 @@ export function PublicPassportPreview({ passportId }: { passportId?: string }) {
         setState("saved");
         return loadedSnapshot;
       }
-    } catch (loadError) {
+    } catch {
       if (previewRequestIdRef.current !== requestId) {
         return null;
       }
 
-      console.error("Unable to load public preview", loadError);
+      console.error("Unable to load public preview");
       setError("This saved passport could not be loaded for public preview.");
     }
 
@@ -196,6 +202,7 @@ export function PublicPassportPreview({ passportId }: { passportId?: string }) {
     }
 
     setRecord(null);
+    loadedPrivateCoverPhotoKeyRef.current = "";
     setSnapshot(null);
     setHasPreparedPublicImage(false);
     setState("missing");
@@ -217,6 +224,13 @@ export function PublicPassportPreview({ passportId }: { passportId?: string }) {
   }, [loadPreview]);
 
   useEffect(() => {
+    return () => {
+      cleanupRequestIdRef.current += 1;
+      unpublishRequestIdRef.current += 1;
+    };
+  }, [cleanupContextKey]);
+
+  useEffect(() => {
     const resetReplacementState = window.setTimeout(() => {
       replacementFlowActiveRef.current = false;
       replacementCleanupPendingRef.current = false;
@@ -225,11 +239,9 @@ export function PublicPassportPreview({ passportId }: { passportId?: string }) {
 
     return () => {
       window.clearTimeout(resetReplacementState);
-      cleanupRequestIdRef.current += 1;
-      unpublishRequestIdRef.current += 1;
       replacementRequestIdRef.current += 1;
     };
-  }, [cleanupContextKey]);
+  }, [replacementContextKey]);
 
   async function handlePublish(passport: EquipmentPassport, { forImageProcessing = false }: { forImageProcessing?: boolean } = {}) {
     if (
@@ -270,8 +282,8 @@ export function PublicPassportPreview({ passportId }: { passportId?: string }) {
       setSnapshot(result.data);
       setMessage(forImageProcessing ? "Sanitized text/setup snapshot saved before image processing." : snapshot ? "Public snapshot updated." : "Public snapshot published.");
       return result.data.id;
-    } catch (publishError) {
-      console.error("Unable to publish sanitized public passport snapshot", publishError);
+    } catch {
+      console.error("Unable to publish sanitized public passport snapshot");
       setError("The public snapshot could not be published. Check the saved passport fields and try again.");
       return null;
     } finally {
@@ -504,6 +516,7 @@ export function PublicPassportPreview({ passportId }: { passportId?: string }) {
     }
 
     const snapshotId = snapshot.id;
+    const privateCoverPhotoKeyAtStart = record?.privateCoverPhotoKey ?? "";
     const replacementRequestId = replacementRequestIdRef.current + 1;
     replacementRequestIdRef.current = replacementRequestId;
     let keepReplacementReady = false;
@@ -542,6 +555,11 @@ export function PublicPassportPreview({ passportId }: { passportId?: string }) {
 
       if (!refreshedSnapshot) {
         setError("The public snapshot changed while replacement was starting. Refresh Public Preview before trying again. Your private original was not changed.");
+        return;
+      }
+
+      if (loadedPrivateCoverPhotoKeyRef.current !== privateCoverPhotoKeyAtStart) {
+        setError("The private equipment cover changed while replacement was starting. The old public image remains detached and the sanitized text/setup remains published. Review and verify the current private cover before starting replacement again.");
         return;
       }
 
@@ -819,7 +837,7 @@ function PublicPreviewContent({
                 onProcessingStateChange={onImageProcessingStateChange}
               />
             ) : null}
-            <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+            <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
               <button type="button" onClick={onPublish} disabled={arePublishChangesDisabled} className="inline-flex justify-center rounded-md bg-ink px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60">
                 {isProcessingPublicImage ? "Preparing public-safe image..." : isPublishing ? "Saving..." : existingSnapshotId ? "Update public snapshot" : "Publish public snapshot"}
               </button>

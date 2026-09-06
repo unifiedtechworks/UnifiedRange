@@ -255,7 +255,11 @@ export function PublicPassportImageConsentPanel({
 
       if (!publicPassportSnapshotId) {
         setProcessingState("failed");
-        setProcessingMessage("The sanitized text/setup snapshot could not be saved, so the image was not processed.");
+        setProcessingMessage(
+          isReplacingPublicImage
+            ? "The sanitized text/setup snapshot could not be updated, so the replacement image was not processed. The old public image remains detached, and you can retry without changing your private original."
+            : "The sanitized text/setup snapshot could not be saved, so the image was not processed."
+        );
         return;
       }
 

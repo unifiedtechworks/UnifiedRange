@@ -304,7 +304,7 @@ Logs and metrics should use fixed event names and bounded failure/reason codes. 
 - [x] Call the existing cleanup operation with only the snapshot id and continue only after `removed`, `not_attached`, or detach-confirmed `cleanup_pending`.
 - [x] Reuse the existing current-candidate validation, private preview, full safety checklist, bounded alt text, and narrow processor contract.
 - [x] Keep the sanitized text/setup published and the private original unchanged across cleanup and processing outcomes.
-- [x] Block overlapping mutations and invalidate route/account/source-stale cleanup and processing responses.
+- [x] Block overlapping mutations, compare the refreshed current private-cover key with the source captured before cleanup, and invalidate replacement when the route, account, or source changes; candidate and processing requests use the same source-aware fail-closed behavior.
 - [ ] Complete hosted positive, cleanup-pending, failure, recovery, retry, cancel, and stale-navigation checks.
 
 Atomic prepare-and-cutover replacement remains a future option. The implemented flow intentionally creates a text-only interval and never restores the old derivative automatically.

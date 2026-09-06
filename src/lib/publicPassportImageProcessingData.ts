@@ -105,6 +105,10 @@ export function getPublicImageProcessingFailureMessage(code: PublicImageProcessi
     return "Public sharing is not currently available for this account. Review profile visibility and username ownership.";
   }
 
+  if (code === "state_changed") {
+    return "The public snapshot or image changed while processing. Refresh Public Preview and confirm the new current cover is uploaded and verified before retrying.";
+  }
+
   if (
     code === "unsupported_content_type" ||
     code === "file_too_large" ||
