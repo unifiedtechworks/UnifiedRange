@@ -1,6 +1,6 @@
 # Phase 2F Public Image Lifecycle Cleanup Plan
 
-Last updated: September 5, 2026
+Last updated: September 6, 2026
 
 ## Purpose and current boundary
 
@@ -18,6 +18,7 @@ Phase 2F.1 implements the backend cleanup foundation, Phase 2F.2 adds the first 
 - Public Preview shows **Remove public image** only to the signed-in owner when a prepared derivative is attached. It sends only the snapshot id, refreshes to text-only state, and never deletes the private original.
 - The hardened UI holds one synchronous operation guard across snapshot saving, the full image processor request, owner removal, replacement cleanup, and derivative-aware unpublish, so publishing, processing, removal, replacement, and unpublishing cannot overlap.
 - Cleanup, unpublish, replacement, and processing responses carry in-memory request generations tied to the route, source, and authenticated owner context as appropriate. Context changes invalidate those generations before any late result can reload or overwrite a newer Public Preview.
+- Phase 2G.4 separately lets Cognito `admin`/`moderator` users hide or remove the current attached derivative. It reuses the detach-first/canonical-cleanup invariants without invoking or broadening the owner cleanup action and has no private source access.
 - Image-bearing Unpublish calls `removePublicPassportImage` with only the snapshot id, waits for confirmed detachment, and only then deletes the sanitized text/setup snapshot.
 - **Replace public image** calls the same snapshot-id-only cleanup first and continues to the existing consent/processor flow only after `removed`, `not_attached`, or detach-confirmed `cleanup_pending`. Atomic replacement remains unavailable.
 - Phase 2G.1 adds a separate `clear | hidden | removed` moderation state. Existing owner cleanup continues to update processing/lifecycle cleanup fields only; it neither impersonates a moderator nor clears a moderation hold. A future moderator action remains a separate group-authorized command.
@@ -320,9 +321,11 @@ Atomic prepare-and-cutover replacement remains a future option. The implemented 
 
 ### Phase 2F.6: image reporting and moderation
 
-- Add a typed public-image report path.
-- Add group-authorized hide/remove actions, quarantine only if policy requires it, and protected audit history.
-- Verify moderators cannot access private originals or private image records.
+- [x] Add a typed detail-only public-image report path and metadata-only group-gated review card.
+- [x] Add a separately group-authorized current-snapshot Hide/Remove action that derives the canonical asset/object, detaches delivery first, and preserves the private original/public text.
+- [x] Keep moderators unable to access private originals or private image records.
+- [ ] Replace generation-unbound reports/current-route review with trusted report binding and an exact-generation safe projection.
+- [ ] Add a durable cross-generation hold, append-only audit, notification/appeal policy, and reconciliation; quarantine only if an approved policy requires it.
 
 ### Phase 2F.7: release validation
 
@@ -346,10 +349,10 @@ Atomic prepare-and-cutover replacement remains a future option. The implemented 
 
 ## Explicitly out of scope
 
-The current Phase 2F.1-2F.4 release does not implement:
+The current Phase 2F/2G.4 release does not implement:
 
 - atomic prepare-and-cutover replacement, queues, streams, or scheduled reconciliation;
-- moderator lifecycle state or audit models;
+- trusted report-generation binding, exact-generation moderator preview, durable cross-generation moderation holds, audit/notification, or lifecycle reconciliation;
 - Discover or public profile image rendering;
 - target-photo publishing or cleanup as public media;
 - galleries, feeds/follows, marketplace behavior, or account deletion; or

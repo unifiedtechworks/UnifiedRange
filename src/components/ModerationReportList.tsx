@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { PublicImageModerationActionPanel } from "@/components/PublicImageModerationActionPanel";
 import { useModerationReports } from "@/hooks/useModerationReports";
 import { isPendingReportStatus, reportStatuses, type ReportStatus } from "@/lib/moderationAccess";
 import { getReporterPrimaryLabel, shortInternalId, type ReporterIdentity } from "@/lib/moderationReporterIdentity";
@@ -48,7 +49,17 @@ function getPublicPassportReviewHref(publicPassportSnapshotId: string) {
 }
 
 export function ModerationReportList() {
-  const { state, reports, reporterIdentities, pendingCount, error, identityWarning, updateReportStatus } = useModerationReports();
+  const {
+    state,
+    reports,
+    reporterIdentities,
+    pendingCount,
+    error,
+    identityWarning,
+    reloadReports,
+    updateReportStatus,
+    moderatePublicImage
+  } = useModerationReports();
 
   if (state === "loading") {
     return <p className="rounded-md border border-ink/10 bg-white p-4 text-sm text-ink/65 shadow-soft">Loading reports...</p>;
@@ -141,7 +152,13 @@ export function ModerationReportList() {
                       <ReportDetail label="Updated" value={formatDate(report.updatedAt)} />
                       <ReportDetail label="Report ID" value={report.id} />
                     </dl>
-                    {isPublicImageReport ? <PublicImageReportReviewContext publicPassportSnapshotId={report.targetId} /> : null}
+                    {isPublicImageReport ? (
+                      <PublicImageReportReviewContext
+                        publicPassportSnapshotId={report.targetId}
+                        moderatePublicImage={moderatePublicImage}
+                        reloadReports={reloadReports}
+                      />
+                    ) : null}
                     {report.details ? (
                       <div className="mt-4 rounded-md border border-ink/10 bg-paper p-4">
                         <p className="text-sm font-semibold text-ink">Details</p>
@@ -222,7 +239,15 @@ function ReportStatusControl({
   );
 }
 
-function PublicImageReportReviewContext({ publicPassportSnapshotId }: { publicPassportSnapshotId: string }) {
+function PublicImageReportReviewContext({
+  publicPassportSnapshotId,
+  moderatePublicImage,
+  reloadReports
+}: {
+  publicPassportSnapshotId: string;
+  moderatePublicImage: ReturnType<typeof useModerationReports>["moderatePublicImage"];
+  reloadReports: ReturnType<typeof useModerationReports>["reloadReports"];
+}) {
   const reviewHref = getPublicPassportReviewHref(publicPassportSnapshotId);
 
   return (
@@ -235,16 +260,23 @@ function PublicImageReportReviewContext({ publicPassportSnapshotId }: { publicPa
         Changing report status does not hide or remove the image. Image hide/remove actions are planned for a later phase, and this generation-unbound report cannot drive an image action.
       </p>
       {reviewHref ? (
-        <Link
-          href={reviewHref}
-          prefetch={false}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-3 inline-flex rounded-md border border-moss/25 bg-white px-3 py-2 text-sm font-semibold text-moss"
-        >
-          Open public setup
-          <span className="sr-only"> in a new tab</span>
-        </Link>
+        <>
+          <Link
+            href={reviewHref}
+            prefetch={false}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-3 inline-flex rounded-md border border-moss/25 bg-white px-3 py-2 text-sm font-semibold text-moss"
+          >
+            Open public setup
+            <span className="sr-only"> in a new tab</span>
+          </Link>
+          <PublicImageModerationActionPanel
+            publicPassportSnapshotId={publicPassportSnapshotId}
+            moderatePublicImage={moderatePublicImage}
+            onActionComplete={reloadReports}
+          />
+        </>
       ) : (
         <p className="mt-3 text-xs font-semibold text-ink/55">The public setup link is unavailable for this report.</p>
       )}

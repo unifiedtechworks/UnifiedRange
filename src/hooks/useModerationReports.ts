@@ -7,6 +7,10 @@ import { useAuthUser } from "@/hooks/useAuthUser";
 import { configureAmplifyClient, getAuthErrorMessage, isAuthTokenClearedError } from "@/lib/amplifyClient";
 import { countPendingReports, hasModerationAccess, reportStatuses, sortModerationReports, type ReportStatus } from "@/lib/moderationAccess";
 import { buildReporterIdentityMap, type ReporterIdentity } from "@/lib/moderationReporterIdentity";
+import {
+  moderatePublicPassportImage,
+  type PublicImageModerationAction
+} from "@/lib/publicImageModerationData";
 
 export type ModerationReportRecord = Schema["Report"]["type"];
 export type ModerationReportState = "loading" | "signed-out" | "access-denied" | "ready" | "error";
@@ -129,6 +133,21 @@ export function useModerationReports() {
     [authState.status, canAccessModeration, client, loadReports]
   );
 
+  const moderatePublicImage = useCallback(
+    async (publicPassportSnapshotId: string, action: PublicImageModerationAction, reason: string) => {
+      if (authState.status !== "signed-in" || !canAccessModeration) {
+        return { status: "failed" as const };
+      }
+
+      return moderatePublicPassportImage(client, {
+        publicPassportSnapshotId,
+        action,
+        reason
+      });
+    },
+    [authState.status, canAccessModeration, client]
+  );
+
   return {
     state,
     reports,
@@ -138,6 +157,7 @@ export function useModerationReports() {
     pendingCount: countPendingReports(reports),
     canAccessModeration,
     reloadReports: loadReports,
-    updateReportStatus
+    updateReportStatus,
+    moderatePublicImage
   };
 }

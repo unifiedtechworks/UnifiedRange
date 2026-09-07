@@ -1,4 +1,5 @@
 import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
+import { moderatePublicPassportImage } from "../functions/moderate-public-passport-image/resource.ts";
 import { processPublicPassportImage } from "../functions/process-public-passport-image/resource.ts";
 import { removePublicPassportImage } from "../functions/remove-public-passport-image/resource.ts";
 import { resolvePublicPassportImage } from "../functions/resolve-public-passport-image/resource.ts";
@@ -12,6 +13,8 @@ const schema = a.schema({
   PublicImageAssetSourceType: a.enum(["equipment_cover"]),
   PublicImageAssetStatus: a.enum(["draft", "processing", "ready", "failed", "removed"]),
   PublicImageModerationStatus: a.enum(["clear", "hidden", "removed"]),
+  PublicImageModerationAction: a.enum(["hide", "remove"]),
+  PublicImageModerationActionStatus: a.enum(["hidden", "removed", "not_attached", "cleanup_pending", "failed"]),
   PublicImageCleanupStatus: a.enum(["removed", "not_attached", "cleanup_pending", "failed"]),
   PublicImageDeliveryStatus: a.enum(["available", "unavailable"]),
   PrivateImageAssetSourceType: a.enum(["equipment_cover", "range_session_target"]),
@@ -44,6 +47,12 @@ const schema = a.schema({
     failureCode: a.string()
   }),
 
+  ModeratePublicPassportImageResult: a.customType({
+    actionStatus: a.ref("PublicImageModerationActionStatus").required(),
+    moderationStatus: a.ref("PublicImageModerationStatus"),
+    failureCode: a.string()
+  }),
+
   verifyPrivateImageAsset: a
     .mutation()
     .arguments({ privateImageAssetId: a.id().required() })
@@ -69,6 +78,17 @@ const schema = a.schema({
     .returns(a.ref("RemovePublicPassportImageResult"))
     .authorization((allow) => [allow.authenticated()])
     .handler(a.handler.function(removePublicPassportImage)),
+
+  moderatePublicPassportImage: a
+    .mutation()
+    .arguments({
+      publicPassportSnapshotId: a.id().required(),
+      action: a.ref("PublicImageModerationAction").required(),
+      reason: a.string()
+    })
+    .returns(a.ref("ModeratePublicPassportImageResult"))
+    .authorization((allow) => [allow.groups(["admin", "moderator"])])
+    .handler(a.handler.function(moderatePublicPassportImage)),
 
   resolvePublicPassportImage: a
     .query()

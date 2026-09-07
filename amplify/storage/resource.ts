@@ -1,4 +1,5 @@
 import { defineStorage } from "@aws-amplify/backend";
+import { moderatePublicPassportImage } from "../functions/moderate-public-passport-image/resource.ts";
 import { processPublicPassportImage } from "../functions/process-public-passport-image/resource.ts";
 import { removePublicPassportImage } from "../functions/remove-public-passport-image/resource.ts";
 import { resolvePublicPassportImage } from "../functions/resolve-public-passport-image/resource.ts";
@@ -19,6 +20,7 @@ export const storage = defineStorage({
     "public/passports/{snapshot_id}/cover/*": [
       allow.resource(processPublicPassportImage).to(["get", "write", "delete"]),
       allow.resource(removePublicPassportImage).to(["delete"]),
+      allow.resource(moderatePublicPassportImage).to(["delete"]),
       allow.resource(resolvePublicPassportImage).to(["get"])
     ]
   })

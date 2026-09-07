@@ -2,7 +2,7 @@
 
 ## Status
 
-Phase 1 data guardrails were added on August 5, 2026. Phase 2A private source registration, Phase 2B trusted private source verification, and the Phase 2C backend derivative foundation were added on August 9, 2026. Phase 2D owner consent UI was added on August 18, 2026. Phase 2E.1 adds the backend-only `resolvePublicPassportImage` delivery query, and Phase 2E.2 adds detail-only rendering through that resolver. Phase 2F.1 adds the owner-authorized `removePublicPassportImage` cleanup mutation, a snapshot-indexed ledger retry path, and processor/removal concurrency guards. Phase 2F.2 wires that contract to an owner-only Public Preview remove action, Phase 2F.3 makes Unpublish derivative-aware, and Phase 2F.4 adds remove-first replacement. Phase 2G.1 adds only moderation/report schema contracts and delivery enforcement; it does not add reporting or moderation UI/actions. The schema contains a non-public, client-read-only `PublicImageAsset` workflow ledger, backend-reserved public snapshot projection fields, an owner-only `PrivateImageAsset` candidate registry, verification/processing/cleanup operations, and a public-safe delivery resolver.
+Phase 1 data guardrails were added on August 5, 2026. Phase 2A private source registration, Phase 2B trusted private source verification, and the Phase 2C backend derivative foundation were added on August 9, 2026. Phase 2D owner consent UI was added on August 18, 2026. Phase 2E.1 adds the backend-only `resolvePublicPassportImage` delivery query, and Phase 2E.2 adds detail-only rendering through that resolver. Phase 2F adds owner cleanup, derivative-aware Unpublish, and remove-first replacement. Phase 2G.1 adds moderation/report schema contracts and delivery enforcement, Phase 2G.2 adds detail-only image reporting, Phase 2G.3 adds metadata-only review, and Phase 2G.4 adds a separately group-authorized current-derivative hide/remove mutation. The schema contains a non-public, client-read-only `PublicImageAsset` workflow ledger, backend-reserved public snapshot projection fields, an owner-only `PrivateImageAsset` candidate registry, verification/processing/cleanup/moderation operations, and a public-safe delivery resolver.
 
 Phase 2E.2 renders one eligible processed equipment-cover derivative on a saved Public Passport detail page. The component supplies only the route's snapshot ID to Phase 2E.1 and receives a 60-second non-cacheable URL only after the public snapshot, ready asset, allowed moderation state, Equipment Passport public flag, account visibility, safe alt text, exact derivative path, and S3 object all agree. The derivative namespace remains unreadable directly through Amplify Storage; the processor can read/write/delete, the resolver can read, and the cleanup Lambda can delete only the public derivative prefix. Owner removal, derivative-aware Unpublish, and remove-first replacement are available only in Public Preview. Discover/profile rendering, target-photo processing, atomic replacement, and automatic publishing remain unavailable.
 
@@ -20,10 +20,12 @@ This design refines the product boundary in [PUBLIC_IMAGE_PUBLISHING_PLAN.md](PU
 - `PublicImageAsset` stores no private S3 key and is not API-key readable. Owners may read their own future workflow records, but current clients cannot create, update, or delete them.
 - `PublicImageAsset.moderationStatus`, `hiddenAt`, `removedAt`, `moderationReason`, and `lastReportAt` are owner-readable and client-nonwritable. Actor identity fields are intentionally absent pending a protected audit model.
 - `ReportTargetType` reserves `public_image`. `Report.publicImageAssetId` cannot be supplied or updated by a reporter or accessed publicly; report owners retain read/delete authorization for generated-operation compatibility, and `admin`/`moderator` groups may read it. Phase 2G.2 adds a detail-only snapshot-level report form without populating or rendering this field. A future trusted report command must establish the binding before image actions can use a report.
+- `moderatePublicPassportImage` accepts only a persistent public snapshot id, `hide | remove`, and optional bounded owner-safe reason. AppSync and the Lambda both require Cognito `admin`/`moderator` group membership. The function derives and conditionally validates the current canonical `ready + clear + equipment_cover` asset; no client supplies an asset/source/owner id, key, path, URL, filename, or bytes.
+- Hide atomically detaches the snapshot image projection and marks the asset hidden while retaining the processed derivative. Remove detaches first, marks the asset removed, deletes only its canonical public object, and supports idempotent missing-object and bounded cleanup-pending retries. Both preserve report status, sanitized public text/setup, and every private record/original.
 - `PublicPassportSnapshot.publicImageAssetId`, `publicImageKey`, and `publicImageAltText` are readable by the owner and public API, but client create/update authorization is intentionally absent.
 - The legacy `PublicPassportSnapshot.coverPhotoUrl` field received the same create/update guard and is no longer mapped into saved public UI data.
 - `buildPublicPassportSnapshotInput` continues to omit every image field.
-- `amplify/storage/resource.ts` grants the verifier read access only to the two existing private prefixes. It grants the processor private-equipment read plus get/write/delete on the exact derivative namespace. No client or guest read/write rule exists for that namespace.
+- `amplify/storage/resource.ts` grants the verifier read access only to the two existing private prefixes. It grants the processor private-equipment read plus get/write/delete on the exact derivative namespace, the owner cleanup/moderation functions delete-only access there, and the resolver get-only access. No client or guest read/write rule exists for that namespace.
 - `PrivateImageAsset` now records owner-private upload candidates for Equipment Passport covers and Range Session target photos. Its key, filename, type, size, and source relationship have no public/API-key access.
 - The upload client performs defense-in-depth validation of the saved source owner, Cognito owner aliases, source-record path segment, Storage identity segment, generated filename, type, and size before registration.
 - Browser validation does not establish trust. The Phase 2B Lambda receives only a candidate id, derives the caller's Identity Pool identity from AppSync IAM resolver identity, binds the protected Cognito `sub`, re-reads the saved source, validates the exact path and object metadata, and alone writes bounded verification fields.
@@ -444,13 +446,16 @@ If deployed AppSync identity integration does not provide the expected trusted I
 - Rate-limit active jobs per owner and snapshot.
 - Validate input length and enum values before invoking processing.
 
+The Phase 2G.4 moderation mutation is separate from owner processing/removal. Its AppSync authorization permits only Cognito `admin`/`moderator` groups, and the Lambda repeats that group check. Its only identifying input is the public snapshot id; it does not accept report/image ledger ids, owner/source ids, keys, paths, URLs, filenames, tokens, or image bytes.
+
 ### Data authorization
 
 - Owner may request processing/removal only for their own snapshot and source records.
 - Owner may read their private workflow state, but may not directly approve an asset or attach a derivative key.
 - Processor function may read the required private records, mutate the workflow ledger, and mutate only server-managed public projection fields.
 - API-key readers may read only the projected derivative key/alt text from an eligible public snapshot.
-- Admin/moderator may later hide/remove a derivative through a separate audited action; report-status permission alone must not imply image-removal permission.
+- Admin/moderator may hide/remove the current derivative only through the separate Phase 2G.4 mutation. Report-status permission remains a separate GraphQL field authorization and never implies or triggers image removal.
+- Phase 2G.4 does not grant admins/moderators generated-model access to `PublicImageAsset`, private records, or `PrivateImageAsset`.
 
 ### S3/IAM policy
 
@@ -465,7 +470,7 @@ The Phase 2C processor role receives only:
 
 If the private key contains a dynamic identity segment that IAM cannot safely constrain per invocation, application-level trusted registration and owner checks are mandatory and should be reinforced with separate access points/buckets where practical.
 
-Public/guest principals still have no direct derivative Storage access. Phase 2E.1 grants only the delivery Lambda `get` access on the derivative prefix so it can validate `HeadObject` and sign an exact `GetObject`; that role receives no list, write, copy, tag, delete, or private-prefix permission.
+Public/guest principals still have no direct derivative Storage access. Phase 2E.1 grants only the delivery Lambda `get` access on the derivative prefix so it can validate `HeadObject` and sign an exact `GetObject`; that role receives no list, write, copy, tag, delete, or private-prefix permission. Phase 2G.4 grants its moderation function delete-only access to `public/passports/{snapshot_id}/cover/*`; it receives no get/list/write/copy/tag permission and no private-prefix permission.
 
 ## Public rendering contract
 
@@ -482,7 +487,9 @@ Public snapshot APIs may expose the public derivative key because the derivative
 
 ## Moderation design
 
-Phase 2G.1 reserves the dedicated `public_image` report target whose client-visible `targetId` is the public snapshot id. The protected `Report.publicImageAssetId` field is reserved to bind the report to the immutable `PublicImageAsset.id` generation current at submission, so a stale report cannot action a replacement. The reporter cannot populate or update that field; minimum owner read/delete authorization preserves existing generated model-operation compatibility, but no product UI renders it. Phase 2G.2 uses the existing reporter-owned model path and intentionally leaves the field unset because the resolver does not expose it and no trusted report mutation exists. Such reports are useful for metadata/status review but never actionable for image hide/remove. A future backend command must safely establish the binding. The browser never supplies the asset id, private source id, or S3 key.
+Phase 2G.1 reserves the dedicated `public_image` report target whose client-visible `targetId` is the public snapshot id. The protected `Report.publicImageAssetId` field is reserved to bind the report to the immutable `PublicImageAsset.id` generation current at submission, so a future exact-generation action cannot affect a replacement. The reporter cannot populate or update that field; minimum owner read/delete authorization preserves existing generated model-operation compatibility, but no product UI renders it. Phase 2G.2 uses the existing reporter-owned model path and intentionally leaves the field unset because the resolver exposes no ledger id and no trusted report mutation exists.
+
+Phase 2G.4 therefore does not pretend the report is an immutable binding. Its UI requires a fresh review of the linked current public setup and calls a current-snapshot action with only the snapshot id, action, and bounded reason. The backend re-reads the currently attached projection/asset, derives the canonical path, and conditionally detaches it. A concurrent projection change fails closed. An older report can still be presented beside a later already-attached replacement, so trusted report binding, exact-generation review/action, and a durable cross-generation hold remain required before broader image rendering.
 
 Processing lifecycle states remain:
 
@@ -503,6 +510,8 @@ Moderation must:
 - leave the owner's private source unchanged;
 - keep report status independent from derivative availability;
 - record actor, reason code, asset ID, snapshot ID, and timestamp without storing private image content in the audit event.
+
+Phase 2G.4 implements separate authorization, detach-first revocation, private-source preservation, and report-status independence. It writes only the existing bounded owner-readable moderation reason/timestamps on the ledger. Lambda logs contain fixed event names, action/status, and bounded failure codes only; they omit ids, keys, URLs, filenames, alt text, reason content, report/profile data, credentials, and raw AWS errors. Append-only actor/action audit, report-generation binding, durable moderation holds, and notification/appeal policy remain Phase 2G.5 work.
 
 ## Failure, rollback, and reconciliation
 
@@ -669,9 +678,11 @@ Alarms should cover sustained processing failures, metadata-verification failure
 - [x] Reserve `public_image`, a reporter-nonwritable immutable asset-generation binding, and separate client-nonwritable moderation fields.
 - [x] Initialize new processing rows to `clear`, reject blocked generations in the processor, and return generic unavailable delivery for hidden/removed/unknown moderation states while retaining a temporary legacy-null compatibility path.
 - [x] Add the Phase 2G.2 detail-only signed-in image report form using bounded snapshot-level report data and no ledger identifier.
+- [x] Add Phase 2G.3 metadata-only moderator review with a sanitized public-detail link and no embedded resolver/ledger reads.
 - [ ] Replace the interim direct report path with a trusted snapshot-id-only command that validates current eligibility and writes the protected immutable generation binding.
-- [ ] Backfill eligible legacy rows to `clear` and remove the resolver's temporary missing-value compatibility before moderator actions can write state.
-- [ ] Add audited admin/moderator hide/remove action that preserves private originals.
+- [ ] Backfill eligible legacy rows to `clear` so Phase 2G.4 can act on them, then remove the resolver's temporary missing-value compatibility.
+- [x] Add the Phase 2G.4 group-authorized current-snapshot hide/remove action with detach-first revocation, canonical public-object cleanup, private-original preservation, and bounded UI/result/log contracts.
+- [ ] Replace the current-snapshot convention with exact reported-generation targeting, a durable cross-generation hold, and append-only action audit.
 - [ ] Test caches and signed-out visibility after remove/unpublish.
 
 ### Phase 5: lifecycle integration

@@ -1,8 +1,8 @@
 # UnifiedRange Manual QA Checklist
 
-Last updated: September 5, 2026
+Last updated: September 6, 2026
 
-Use this checklist for a complete hosted-development release review. It starts from the current MVP, including Phase 2A owner-only `PrivateImageAsset` candidate registration, Phase 2B trusted private source verification, the Phase 2C derivative processor, the Phase 2D owner-only equipment-cover consent UI, Phase 2E detail-only public derivative delivery/rendering, the Phase 2F.1 backend cleanup primitive, the Phase 2F.2 owner-only Public Preview removal control, Phase 2F.3 derivative-aware Unpublish, and Phase 2F.4 owner-facing remove-first replacement. It does not assume that atomic replacement, Discover/profile image rendering, account deletion/export, username sign-in, notifications, or destructive moderation actions exist.
+Use this checklist for a complete hosted-development release review. It starts from the current MVP, including Phase 2A owner-only `PrivateImageAsset` candidate registration, Phase 2B trusted private source verification, the Phase 2C derivative processor, the Phase 2D owner-only equipment-cover consent UI, Phase 2E detail-only public derivative delivery/rendering, Phase 2F owner cleanup/unpublish/remove-first replacement, Phase 2G detail-only reporting/review, and the Phase 2G.4 admin/moderator current-image hide/remove action. It does not assume that atomic replacement, Discover/profile image rendering, trusted report-generation binding, cross-generation moderation holds, audit/notification, account deletion/export, or username sign-in exists.
 
 ## Test session record
 
@@ -601,7 +601,7 @@ Phase 2F.1 provides the owner-authorized backend primitive, Phase 2F.2 wires its
 - [ ] Confirm there is no **Report image** button, image moderation card, safe moderator preview, hide/remove control, moderation notification, or Discover/public-profile image rendering.
 - [ ] As an owner, read an owned `PublicImageAsset` after newly processing or safely reprocessing a cover and confirm `moderationStatus` is `clear`. Confirm the owner cannot create/update/delete moderation fields or set `hidden`/`removed` through generated model operations.
 - [ ] As another normal user, API-key client, moderator, and admin, confirm the full `PublicImageAsset` ledger cannot be listed/read unless that Cognito identity is itself the record owner. No role gains private source access.
-- [ ] Confirm a normal reporter cannot populate or update `Report.publicImageAssetId` and no current UI displays or accepts it. The report owner may read/delete the opaque binding for generated-operation compatibility, while other users and API-key clients cannot read it. Treat any manually created `public_image` report without a backend binding as non-actionable.
+- [ ] Confirm a normal reporter cannot populate or update `Report.publicImageAssetId` and no current UI displays or accepts it. The report owner may read/delete the opaque binding for generated-operation compatibility, while other users and API-key clients cannot read it. Treat any manually created `public_image` report without a backend binding as unable to prove an exact reported generation.
 - [ ] Confirm an eligible legacy asset with no `moderationStatus` still resolves during the temporary compatibility window. Reprocess it and confirm the backend initializes `clear` without changing its private source.
 - [ ] In an isolated disposable sandbox only, set a ledger row to `hidden`, `removed`, and an invalid/unknown value through trusted backend tooling. Confirm `resolvePublicPassportImage` always returns the same generic unavailable shape, issues no URL, and exposes no moderation reason, actor, asset id, key, or technical detail.
 - [ ] In the same isolated fixture, try to process a hidden/removed generation again. Confirm the processor returns a bounded failure, does not overwrite the moderation state, and does not attach or restore a derivative.
@@ -620,7 +620,7 @@ Phase 2F.1 provides the owner-authorized backend primitive, Phase 2F.2 wires its
 - [ ] Expire/sign out the session or force a mutation failure. Confirm the UI shows one bounded retry message and no raw GraphQL, Lambda, AWS, key, URL, id, token, or stack detail.
 - [ ] Change routes while submission is pending. Confirm a late response does not update the new route or expose report/image internals.
 - [ ] As admin/moderator, confirm the metadata queue shows a distinct public-image report card and sanitized public setup link while remaining image-free. It must not expose ledger/private data or offer hide/remove actions.
-- [ ] Confirm `Report.publicImageAssetId` remains unset. Record this report as generation-unbound and non-actionable until a trusted backend binding command is implemented.
+- [ ] Confirm `Report.publicImageAssetId` remains unset. Record this report as generation-unbound and unable to prove an exact reported generation until a trusted backend binding command is implemented; any Phase 2G.4 action is explicitly against the freshly reviewed current snapshot image.
 
 ### Phase 2G.3 moderator review support — run after frontend deployment
 
@@ -635,18 +635,29 @@ Phase 2F.1 provides the owner-authorized backend primitive, Phase 2F.2 wires its
 - [ ] Confirm no embedded preview, image hide/remove action, auto-hide behavior, notification, suspension, destructive content control, Discover image, public-profile image, or target-photo publishing was added.
 - [ ] Repeat at mobile and desktop widths. Confirm long reasons/details and technical references wrap without horizontal scrolling.
 
-### Future Phase 2G image reporting/moderation — not runnable yet
+### Phase 2G.4 current public-image moderation action — run after backend and frontend deployment
 
-Follow the [Phase 2G Public Image Moderation Plan](PUBLIC_IMAGE_PHASE_2G_MODERATION_PLAN.md) after its backend and UI phases are implemented.
+- [ ] Use a disposable `public_image` report whose current public setup has an eligible processed cover. Sign in separately as Moderator and Admin; confirm **Hide public image** and **Remove public image** appear only on valid persistent public-image report cards.
+- [ ] Open the linked public setup immediately before acting. Confirm the UI explicitly says the report is generation-unbound and the action targets the currently attached image, not necessarily the image originally reported.
+- [ ] Inspect the mutation variables. Confirm they contain only `publicPassportSnapshotId`, `action = hide | remove`, and an optional normalized owner-safe reason. Confirm no report binding, image asset/source/owner id, S3 key/path, URL, filename, image bytes, or private field is sent.
+- [ ] Enter a reason over 240 characters and reasons containing a URL or Storage path. Confirm they fail locally or return a bounded failure without echoing input or infrastructure detail.
+- [ ] Confirm the action requires explicit acknowledgement and cannot overlap a second action from the same panel.
+- [ ] Hide the current image. Confirm the public projection detaches, the resolver returns generic unavailable, sanitized text/setup stays published, and the private original remains owner-private and unchanged.
+- [ ] Repeat Hide after refresh. Confirm `hidden` or safe `not_attached` behavior without a raw error. Then choose Remove and confirm the retained processed derivative transitions to removed and is deleted without private-prefix access.
+- [ ] Prepare another disposable derivative and test Remove directly. Confirm delivery detaches first. Delete the public object using approved sandbox tooling and retry; confirm missing-object cleanup is idempotent success.
+- [ ] Force or simulate S3 delete/finalization failure in an isolated sandbox. Confirm `cleanup_pending` explains delivery is already detached and can be retried safely.
+- [ ] Race owner remove/unpublish/replacement against a moderator action. Confirm conditional checks produce bounded failure/cleanup state, do not delete a newly attached different generation, and never restore the old projection.
+- [ ] Test private/unpublished/missing snapshot, mismatched projection, ambiguous multiple cleanup candidates, non-ready/unknown/legacy-missing moderation state, demo/sample id, and target-photo-like input. Confirm safe `not_attached`/`failed` responses and no existence-sensitive details or multi-generation deletion.
+- [ ] Confirm an open report alone does not hide an image, the image action does not alter `Report.status`, and each status change remains explicit.
+- [ ] Invoke the custom mutation as a normal signed-in user and signed-out/API-key client. Confirm AppSync denies it. Confirm direct `PublicImageAsset` writes remain unavailable to normal users and moderators.
+- [ ] Inspect moderation UI/DOM/network/browser storage/console and CloudWatch logs. Confirm no private/public key or path, URL, asset/source/owner id, filename, alt text, reason content, reporter/private profile data, token, or raw AWS error is logged or displayed beyond the permitted bounded UI copy.
+- [ ] Confirm Discover/public profile cards remain image-free and target photos remain excluded.
 
-- [ ] Migrate image reporting to a trusted snapshot-id-only backend command; confirm it binds the exact immutable generation without any client-supplied asset/source/owner id, key, URL, filename, or image bytes.
-- [ ] Confirm signed-out, duplicate, rapid, missing, hidden, removed, superseded, private-account, unpublished, demo/sample, and target-photo report attempts fail safely without becoming an existence oracle.
-- [ ] Replace an image after reporting it. Confirm the old report remains bound to the old immutable generation and cannot preview, hide, or remove the replacement.
-- [ ] Confirm an open report alone does not hide an image and report status changes never mutate image availability.
-- [ ] After trusted generation binding and a purpose-built projection exist, confirm exact-generation moderator preview shows only the processed public derivative and safe report/public metadata, never private originals, private image ledgers, private keys, owner private fields, or target photos.
-- [ ] Hide/remove the reported image through the separate group-authorized action. Confirm the public image projection detaches, no new URL is issued, public text/setup remains, and the private original is unchanged.
-- [ ] Force cleanup pending and concurrent owner lifecycle actions. Confirm bounded retry behavior, no stale/newer derivative deletion, and no raw infrastructure detail.
-- [ ] Confirm normal users cannot read moderation projections or invoke image actions and Discover/public profile cards remain image-free.
+### Future Phase 2G hardening — not runnable yet
+
+- [ ] Migrate image reporting to a trusted snapshot-id-only backend command that binds the exact immutable generation without client-supplied internal fields.
+- [ ] Replace the current-snapshot review convention with an exact-generation safe projection/preview; confirm an old report cannot action a later replacement.
+- [ ] Add a durable cross-generation moderation hold, append-only audit, notification/appeal policy, and cleanup reconciliation before expanding image surfaces.
 
 ## 14. Public profiles
 
@@ -760,16 +771,17 @@ Visitor, normal User B, Moderator, and Admin.
 - [ ] Sign in as Admin and repeat one status update.
 - [ ] Attempt a status update as normal User B through the UI and, if an approved QA client is available, directly through the data operation.
 - [ ] Confirm metadata other than `Report.status` is read-only for moderator/admin workflows.
-- [ ] Confirm no delete, hide, suspend, account action, public-image action, or reported-content mutation control exists.
+- [ ] For non-image targets, confirm no delete, hide, suspend, account action, or reported-content mutation control exists. For `public_image`, confirm only the separate current-derivative Hide/Remove panel exists.
+- [ ] Inspect the linked current public setup, acknowledge the generation-unbound warning, and exercise Hide/Remove with disposable data using the Phase 2G.4 checklist above.
 
 ### Expected results
 
 - [ ] Moderation routes and navigation are available only to `admin`/`moderator` group members.
 - [ ] Supported statuses persist after refresh and update only the report workflow.
 - [ ] Pending count uses missing/open status only.
-- [ ] Normal users cannot read the moderation queue or update report status.
+- [ ] Normal users cannot read the moderation queue, update report status, or invoke the image moderation mutation.
 - [ ] Status changes never change the reported public content.
-- [ ] Public-image report status changes never hide/remove the derivative and cannot act on a generation-unbound report.
+- [ ] Public-image report status changes never hide/remove the derivative. The separate current-snapshot action never silently rewrites report status.
 
 ### Privacy and safety checks
 
@@ -777,6 +789,7 @@ Visitor, normal User B, Moderator, and Admin.
 - [ ] Reporter internal IDs are never used as public identity.
 - [ ] Moderator group membership does not grant access to another owner’s `PrivateImageAsset` registry or private originals.
 - [ ] Public-image cards do not reveal public derivative URLs/keys, `PublicImageAsset` fields, content-owner/source IDs, original filenames, or target-photo data.
+- [ ] Hide/Remove preserves the private original and public text/setup; its Lambda has no private-record or private-prefix permission.
 
 ## 18. Mobile and responsive sweep
 
