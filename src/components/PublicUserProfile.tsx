@@ -7,7 +7,11 @@ import type { Schema } from "../../amplify/data/resource";
 import { PageHeader } from "@/components/PageHeader";
 import { PublicPassportCard } from "@/components/PublicPassportCard";
 import { configureAmplifyClient } from "@/lib/amplifyClient";
-import { recordToSanitizedPublicPassport, type PublicPassportSnapshotRecord } from "@/lib/publicPassportSnapshotData";
+import {
+  publicPassportSnapshotPublicSelection,
+  recordToSanitizedPublicPassport,
+  type PublicPassportSnapshotPublicRecord
+} from "@/lib/publicPassportSnapshotData";
 import { normalizeUsername } from "@/lib/userProfileData";
 import type { PublicUserProfileRecord } from "@/lib/publicUserProfileData";
 
@@ -20,7 +24,7 @@ export function PublicUserProfile({ username }: { username?: string }) {
   }, []);
   const [state, setState] = useState<PublicProfileState>("loading");
   const [profile, setProfile] = useState<PublicUserProfileRecord | null>(null);
-  const [setups, setSetups] = useState<PublicPassportSnapshotRecord[]>([]);
+  const [setups, setSetups] = useState<PublicPassportSnapshotPublicRecord[]>([]);
 
   const loadProfile = useCallback(async () => {
     const normalizedUsername = normalizeUsername(username ?? "");
@@ -51,7 +55,8 @@ export function PublicUserProfile({ username }: { username?: string }) {
 
       const setupResult = await client.models.PublicPassportSnapshot.list({
         filter: { ownerId: { eq: profileResult.data.ownerId } },
-        authMode: "apiKey"
+        authMode: "apiKey",
+        selectionSet: publicPassportSnapshotPublicSelection
       });
       if (setupResult.errors?.length) {
         throw new Error(setupResult.errors.map((item) => item.message).join(" "));

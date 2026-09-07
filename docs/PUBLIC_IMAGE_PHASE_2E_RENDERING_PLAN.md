@@ -148,7 +148,7 @@ For current data, `ready` is the only deliverable `PublicImageAssetStatus`. `dra
 
 ## Public API shape and field exposure
 
-The resolver means public clients do not need direct API-key reads of `publicImageKey` or `publicImageAssetId`. Phase 2E.1 keeps the current field authorization unchanged because existing generated public snapshot operations still select those fields; changing field authorization without narrowing those selection sets could break the current public text pages. Public UI mapping continues to omit them. Tighten this authorization only with a coordinated public-query selection review.
+The resolver means public clients do not need direct API-key reads of `publicImageKey` or `publicImageAssetId`. Phase 2G.5 completes the coordinated selection review: Discover, public profile, and public detail snapshot reads now request an explicit sanitized field set, while raw image projection fields are owner-readable only. Public text pages remain functional and public/API-key clients cannot query the raw generation id, key, or projection alt-text field.
 
 The new custom query is a schema/backend change. If direct public projection reads are retained temporarily, public UI code must continue to ignore the key and must never pass it to a generic Storage helper.
 
@@ -252,7 +252,7 @@ A future audited moderator action should detach delivery or set a dedicated hidd
 
 Public image reporting is not part of the first detail rendering slice. Before images expand beyond the controlled detail page:
 
-- keep the Phase 2G.2 detail-only report form limited to the public snapshot id, then replace its generation-unbound model write with a trusted backend command that populates the Phase 2G.1 immutable-generation field—never accept a client-supplied public/private asset id, source ID, or S3 key;
+- keep the Phase 2G.2 detail-only report form limited to the public snapshot id, reason, and details through the Phase 2G.5 trusted backend command that populates the immutable-generation field—never accept a client-supplied public/private asset id, source ID, or S3 key;
 - show moderators only the processed public derivative and report metadata;
 - add an audited hide/remove command with separate authorization;
 - make `reviewed` or `dismissed` report status independent from image availability;
@@ -293,7 +293,7 @@ The browser receives only a temporary URL for the processed public JPEG and safe
 - [x] Give the resolver read-only, attribute-limited access to the public snapshot, public image ledger, authoritative visibility/source records, and exact public derivative objects.
 - [x] Add strict projection/ledger/key/status/visibility/object checks.
 - [x] Return only availability, a 60-second URL, safe alt text, expiry, zero cache seconds, or one generic unavailable result.
-- [x] Review removal of API-key access from raw public image key/asset projection fields; retain it temporarily until generated public snapshot selection sets are narrowed safely.
+- [x] Remove API-key access from raw public image key/asset projection fields after narrowing every generated public snapshot query to the explicit sanitized selection in Phase 2G.5.
 - [x] Add bounded no-sensitive-value logs.
 - [x] Add a snapshot-ID-only developer harness that validates the response allowlist, 60-second URL, bounded JPEG, and non-cacheable headers without printing sensitive or delivery values.
 - [ ] Add deployment-level rate/abuse monitoring after the public query is exercised in sandbox/hosted development.

@@ -1,8 +1,35 @@
+import type { SelectionSet } from "aws-amplify/data";
 import type { Schema } from "../../amplify/data/resource";
 import { allowedPublicPassportFields, hiddenPublicPassportFields } from "@/lib/sanitizePublicPassport";
 import type { EquipmentPassport, EquipmentType, PublicRangeSessionSummary, PublicTargetPhotoPlaceholder, SanitizedPublicPassport } from "@/types";
 
 export type PublicPassportSnapshotRecord = Schema["PublicPassportSnapshot"]["type"];
+
+export const publicPassportSnapshotPublicSelection = [
+  "id",
+  "ownerId",
+  "equipmentPassportId",
+  "title",
+  "equipmentType",
+  "manufacturer",
+  "model",
+  "category",
+  "caliber",
+  "opticOrSightSummary",
+  "projectileSummary",
+  "useCaseTags",
+  "publicNotes",
+  "publicStats",
+  "publicRangeSessions",
+  "publicPhotoPlaceholders",
+  "createdAt",
+  "updatedAt"
+] as const;
+
+export type PublicPassportSnapshotPublicRecord = SelectionSet<
+  PublicPassportSnapshotRecord,
+  typeof publicPassportSnapshotPublicSelection
+>;
 
 type PublicPassportSnapshotInput = {
   ownerId: string;
@@ -108,7 +135,7 @@ export function buildPublicPassportSnapshotInput(passport: EquipmentPassport, ow
   return omitUndefined(input);
 }
 
-export function recordToSanitizedPublicPassport(record: PublicPassportSnapshotRecord, owner?: { username: string; displayName?: string }): SanitizedPublicPassport {
+export function recordToSanitizedPublicPassport(record: PublicPassportSnapshotPublicRecord, owner?: { username: string; displayName?: string }): SanitizedPublicPassport {
   return {
     id: record.id,
     equipmentPassportId: record.equipmentPassportId,

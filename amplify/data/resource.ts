@@ -1,4 +1,5 @@
 import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
+import { createPublicImageReport } from "../functions/create-public-image-report/resource.ts";
 import { moderatePublicPassportImage } from "../functions/moderate-public-passport-image/resource.ts";
 import { processPublicPassportImage } from "../functions/process-public-passport-image/resource.ts";
 import { removePublicPassportImage } from "../functions/remove-public-passport-image/resource.ts";
@@ -15,6 +16,7 @@ const schema = a.schema({
   PublicImageModerationStatus: a.enum(["clear", "hidden", "removed"]),
   PublicImageModerationAction: a.enum(["hide", "remove"]),
   PublicImageModerationActionStatus: a.enum(["hidden", "removed", "not_attached", "cleanup_pending", "failed"]),
+  PublicImageReportSubmissionStatus: a.enum(["submitted", "failed"]),
   PublicImageCleanupStatus: a.enum(["removed", "not_attached", "cleanup_pending", "failed"]),
   PublicImageDeliveryStatus: a.enum(["available", "unavailable"]),
   PrivateImageAssetSourceType: a.enum(["equipment_cover", "range_session_target"]),
@@ -50,6 +52,11 @@ const schema = a.schema({
   ModeratePublicPassportImageResult: a.customType({
     actionStatus: a.ref("PublicImageModerationActionStatus").required(),
     moderationStatus: a.ref("PublicImageModerationStatus"),
+    failureCode: a.string()
+  }),
+
+  CreatePublicImageReportResult: a.customType({
+    submissionStatus: a.ref("PublicImageReportSubmissionStatus").required(),
     failureCode: a.string()
   }),
 
@@ -89,6 +96,17 @@ const schema = a.schema({
     .returns(a.ref("ModeratePublicPassportImageResult"))
     .authorization((allow) => [allow.groups(["admin", "moderator"])])
     .handler(a.handler.function(moderatePublicPassportImage)),
+
+  createPublicImageReport: a
+    .mutation()
+    .arguments({
+      publicPassportSnapshotId: a.id().required(),
+      reason: a.string().required(),
+      details: a.string()
+    })
+    .returns(a.ref("CreatePublicImageReportResult"))
+    .authorization((allow) => [allow.authenticated()])
+    .handler(a.handler.function(createPublicImageReport)),
 
   resolvePublicPassportImage: a
     .query()
@@ -419,22 +437,23 @@ const schema = a.schema({
       projectileSummary: a.string(),
       useCaseTags: a.string().array(),
       publicNotes: a.string(),
-      // Reserved public-image projection fields. Owners and API-key clients may
-      // read them, and owners may still delete the whole snapshot, but normal
-      // client create/update operations cannot populate them. A future backend
-      // processing resource must receive explicit field-level write access.
+      // Backend-managed public-image projection fields. Only the owner may read
+      // them through generated model operations; public clients receive image
+      // delivery through the guarded resolver and never receive raw ids/keys.
+      // Owners may still delete the whole snapshot, but normal client
+      // create/update operations cannot populate these fields.
       coverPhotoUrl: a
         .string()
-        .authorization((allow) => [allow.ownerDefinedIn("ownerId").to(["read", "delete"]), allow.publicApiKey().to(["read"])]),
+        .authorization((allow) => [allow.ownerDefinedIn("ownerId").to(["read", "delete"])]),
       publicImageAssetId: a
         .id()
-        .authorization((allow) => [allow.ownerDefinedIn("ownerId").to(["read", "delete"]), allow.publicApiKey().to(["read"])]),
+        .authorization((allow) => [allow.ownerDefinedIn("ownerId").to(["read", "delete"])]),
       publicImageKey: a
         .string()
-        .authorization((allow) => [allow.ownerDefinedIn("ownerId").to(["read", "delete"]), allow.publicApiKey().to(["read"])]),
+        .authorization((allow) => [allow.ownerDefinedIn("ownerId").to(["read", "delete"])]),
       publicImageAltText: a
         .string()
-        .authorization((allow) => [allow.ownerDefinedIn("ownerId").to(["read", "delete"]), allow.publicApiKey().to(["read"])]),
+        .authorization((allow) => [allow.ownerDefinedIn("ownerId").to(["read", "delete"])]),
       publicStats: a.json(),
       publicRangeSessions: a.json(),
       publicPhotoPlaceholders: a.json(),
@@ -542,10 +561,11 @@ const schema = a.schema({
         .id()
         .required()
         .authorization((allow) => [allow.ownerDefinedIn("reporterId").to(["create", "read", "delete"]), allow.groups(["admin", "moderator"]).to(["read"])]),
-      // Only the future report command may bind a public-image report to the
-      // exact processed generation. Reporters may read it on their own report
-      // so generated create/read responses remain compatible, but cannot
-      // create or update it. It is never public/API-key readable.
+      // Only the backend-controlled public-image report command may bind a
+      // report to the exact processed generation. Reporters may read it on
+      // their own report so generated read/delete operations remain
+      // compatible, but cannot create or update it. It is never public/API-key
+      // readable.
       publicImageAssetId: a
         .id()
         .authorization((allow) => [

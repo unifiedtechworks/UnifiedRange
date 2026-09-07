@@ -13,7 +13,11 @@ import { ReportContentButton } from "@/components/ReportContentButton";
 import { Tag } from "@/components/Tag";
 import { getSanitizedPublicPassportById } from "@/data/publicDiscovery";
 import { configureAmplifyClient } from "@/lib/amplifyClient";
-import { recordToSanitizedPublicPassport, type PublicPassportSnapshotRecord } from "@/lib/publicPassportSnapshotData";
+import {
+  publicPassportSnapshotPublicSelection,
+  recordToSanitizedPublicPassport,
+  type PublicPassportSnapshotPublicRecord
+} from "@/lib/publicPassportSnapshotData";
 import { publicIdentityByOwner, type PublicUserIdentity } from "@/lib/publicUserProfileData";
 import type { SanitizedPublicPassport } from "@/types";
 
@@ -25,7 +29,7 @@ export function PublicPassportDetail({ publicPassportId }: { publicPassportId?: 
     return generateClient<Schema>();
   }, []);
   const [state, setState] = useState<DetailState>("loading");
-  const [record, setRecord] = useState<PublicPassportSnapshotRecord | null>(null);
+  const [record, setRecord] = useState<PublicPassportSnapshotPublicRecord | null>(null);
   const [owner, setOwner] = useState<PublicUserIdentity | undefined>();
   const [error, setError] = useState("");
   const loadRequestIdRef = useRef(0);
@@ -56,7 +60,10 @@ export function PublicPassportDetail({ publicPassportId }: { publicPassportId?: 
     }
 
     try {
-      const result = await client.models.PublicPassportSnapshot.get({ id: publicPassportId }, { authMode: "apiKey" });
+      const result = await client.models.PublicPassportSnapshot.get(
+        { id: publicPassportId },
+        { authMode: "apiKey", selectionSet: publicPassportSnapshotPublicSelection }
+      );
 
       if (loadRequestIdRef.current !== requestId) {
         return;

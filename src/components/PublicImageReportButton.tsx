@@ -4,7 +4,7 @@ import { generateClient } from "aws-amplify/data";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Schema } from "../../amplify/data/resource";
-import { useAuthUser, type AuthUserState } from "@/hooks/useAuthUser";
+import { useAuthUser } from "@/hooks/useAuthUser";
 import { configureAmplifyClient } from "@/lib/amplifyClient";
 import {
   normalizePublicImageReportDetails,
@@ -33,17 +33,12 @@ export function PublicImageReportButton({ publicPassportSnapshotId }: { publicPa
     <SignedInPublicImageReportButton
       key={`${publicPassportSnapshotId}:${authState.username}`}
       publicPassportSnapshotId={publicPassportSnapshotId}
-      authState={authState}
     />
   );
 }
 
-function SignedInPublicImageReportButton({
-  publicPassportSnapshotId,
-  authState
-}: {
+function SignedInPublicImageReportButton({ publicPassportSnapshotId }: {
   publicPassportSnapshotId: string;
-  authState: Extract<AuthUserState, { status: "signed-in" }>;
 }) {
   const client = useMemo(() => {
     configureAmplifyClient();
@@ -87,7 +82,6 @@ function SignedInPublicImageReportButton({
 
     const result = await submitPublicImageReport(client, {
       publicPassportSnapshotId,
-      reporterId: authState.username,
       reason,
       details: normalizedDetails.value
     });
@@ -107,6 +101,11 @@ function SignedInPublicImageReportButton({
 
     if (result.status === "invalid" && result.detailsError) {
       setDetailsError(result.detailsError);
+      return;
+    }
+
+    if (result.status === "unavailable") {
+      setError("This public image changed or is no longer available to report. Refresh the page and try again.");
       return;
     }
 

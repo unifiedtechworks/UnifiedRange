@@ -191,7 +191,7 @@ Private image deletion is not currently part of Phase 2F implementation. When ad
 
 ## Moderation and reporting plan
 
-Image reporting and moderator actions remain future work. Phase 2G.1 reserves the `public_image` report target, a protected immutable-generation binding, and separate client-nonwritable image moderation fields. It does not add the trusted report command or any moderator action, and existing report-status updates still do not authorize content or image mutation.
+Phase 2G now provides detail-only reporting, a trusted exact-generation report binding action, metadata-only review, and a separate current-image moderator action. Report-status updates still do not authorize content or image mutation, and exact-generation moderation action/audit remain future work.
 
 The implementation-ready continuation of this section is [Phase 2G Public Image Moderation and Reporting Plan](PUBLIC_IMAGE_PHASE_2G_MODERATION_PLAN.md).
 
@@ -325,7 +325,7 @@ Atomic prepare-and-cutover replacement remains a future option. The implemented 
 - [x] Add a typed detail-only public-image report path and metadata-only group-gated review card.
 - [x] Add a separately group-authorized current-snapshot Hide/Remove action that derives the canonical asset/object, detaches delivery first, and preserves the private original/public text.
 - [x] Keep moderators unable to access private originals or private image records.
-- [ ] Replace generation-unbound reports/current-route review with trusted report binding and an exact-generation safe projection.
+- [x] Replace product-generated unbound reports with trusted report binding; retain current-route review until an exact-generation safe projection/action is implemented.
 - [ ] Add a durable cross-generation hold, append-only audit, notification/appeal policy, and reconciliation; quarantine only if an approved policy requires it.
 
 ### Phase 2F.7: release validation
@@ -353,7 +353,7 @@ Atomic prepare-and-cutover replacement remains a future option. The implemented 
 The current Phase 2F/2G.4 release does not implement:
 
 - atomic prepare-and-cutover replacement, queues, streams, or scheduled reconciliation;
-- trusted report-generation binding, exact-generation moderator preview, durable cross-generation moderation holds, audit/notification, or lifecycle reconciliation;
+- exact-generation moderator preview/action, durable cross-generation moderation holds, audit/notification, or lifecycle reconciliation;
 - Discover or public profile image rendering;
 - target-photo publishing or cleanup as public media;
 - galleries, feeds/follows, marketplace behavior, or account deletion; or

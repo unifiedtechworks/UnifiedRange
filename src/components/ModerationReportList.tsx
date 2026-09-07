@@ -7,6 +7,8 @@ import { useModerationReports } from "@/hooks/useModerationReports";
 import { isPendingReportStatus, reportStatuses, type ReportStatus } from "@/lib/moderationAccess";
 import { getReporterPrimaryLabel, shortInternalId, type ReporterIdentity } from "@/lib/moderationReporterIdentity";
 
+const publicImageAssetIdPattern = /^img-[0-9a-f]{40}$/;
+
 function formatDate(value?: string | null) {
   if (!value) {
     return "Unknown";
@@ -129,6 +131,8 @@ export function ModerationReportList() {
         <div className="space-y-4">
           {reports.map((report) => {
             const isPublicImageReport = report.targetType === "public_image";
+            const publicImageAssetId = isPublicImageReport ? report.publicImageAssetId?.trim() ?? "" : "";
+            const isGenerationBound = publicImageAssetIdPattern.test(publicImageAssetId);
 
             return (
               <article key={report.id} className="rounded-md border border-ink/10 bg-white p-4 shadow-soft sm:p-5">
@@ -138,6 +142,11 @@ export function ModerationReportList() {
                       <span className={`rounded-md px-3 py-1 text-xs font-semibold ${getStatusClass(report.status)}`}>{getStatusLabel(report.status)}</span>
                       <span className="text-xs font-semibold text-moss">Report {shortInternalId(report.id)}</span>
                       {isPublicImageReport ? <span className="rounded-md bg-moss/10 px-3 py-1 text-xs font-semibold text-moss">Public image report</span> : null}
+                      {isPublicImageReport ? (
+                        <span className={`rounded-md px-3 py-1 text-xs font-semibold ${isGenerationBound ? "bg-field text-ink" : "bg-amber-100 text-amber-900"}`}>
+                          {isGenerationBound ? "Generation-bound report" : "Legacy/unbound report"}
+                        </span>
+                      ) : null}
                     </div>
                     <h3 className="mt-3 break-words text-lg font-bold text-ink sm:text-xl">{report.reason}</h3>
                     <dl className="mt-4 grid min-w-0 gap-3 text-sm sm:grid-cols-2 xl:grid-cols-3">
@@ -147,6 +156,9 @@ export function ModerationReportList() {
                       ) : (
                         <ReportDetail label="Target ID" value={report.targetId} />
                       )}
+                      {isPublicImageReport && publicImageAssetId ? (
+                        <ReportDetail label="Image generation ref" value={shortInternalId(publicImageAssetId)} />
+                      ) : null}
                       <ReporterDetail reporterId={report.reporterId} identity={reporterIdentities[report.reporterId]} />
                       <ReportDetail label="Created" value={formatDate(report.createdAt)} />
                       <ReportDetail label="Updated" value={formatDate(report.updatedAt)} />
@@ -155,6 +167,7 @@ export function ModerationReportList() {
                     {isPublicImageReport ? (
                       <PublicImageReportReviewContext
                         publicPassportSnapshotId={report.targetId}
+                        isGenerationBound={isGenerationBound}
                         moderatePublicImage={moderatePublicImage}
                         reloadReports={reloadReports}
                       />
@@ -241,10 +254,12 @@ function ReportStatusControl({
 
 function PublicImageReportReviewContext({
   publicPassportSnapshotId,
+  isGenerationBound,
   moderatePublicImage,
   reloadReports
 }: {
   publicPassportSnapshotId: string;
+  isGenerationBound: boolean;
   moderatePublicImage: ReturnType<typeof useModerationReports>["moderatePublicImage"];
   reloadReports: ReturnType<typeof useModerationReports>["reloadReports"];
 }) {
@@ -257,7 +272,15 @@ function PublicImageReportReviewContext({
         This report concerns the public image attached to a sanitized public setup. Use the public setup link to review what public visitors can currently see.
       </p>
       <p className="mt-2 text-xs leading-5 text-ink/60">
-        Changing report status does not hide or remove the image. Image hide/remove actions are planned for a later phase, and this generation-unbound report cannot drive an image action.
+        {isGenerationBound
+          ? "Generation-bound reports refer to the image generation that was public when the report was submitted."
+          : "Legacy/unbound reports do not identify the exact image generation that was public when they were submitted."}
+      </p>
+      <p className="mt-2 text-xs leading-5 text-ink/60">
+        If the owner replaced the image later, moderators should review the current public setup before acting. The existing image action remains current-snapshot scoped and does not automatically act on the bound historical generation.
+      </p>
+      <p className="mt-2 text-xs leading-5 text-ink/60">
+        Changing report status does not hide or remove the image, and image actions do not change report status.
       </p>
       {reviewHref ? (
         <>

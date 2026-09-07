@@ -6,7 +6,11 @@ import type { Schema } from "../../amplify/data/resource";
 import { PublicPassportCard } from "@/components/PublicPassportCard";
 import { sanitizedPublicPassports } from "@/data/publicDiscovery";
 import { configureAmplifyClient } from "@/lib/amplifyClient";
-import { recordToSanitizedPublicPassport, type PublicPassportSnapshotRecord } from "@/lib/publicPassportSnapshotData";
+import {
+  publicPassportSnapshotPublicSelection,
+  recordToSanitizedPublicPassport,
+  type PublicPassportSnapshotPublicRecord
+} from "@/lib/publicPassportSnapshotData";
 import { publicIdentityByOwner, type PublicUserProfileRecord } from "@/lib/publicUserProfileData";
 import type { EquipmentType, SanitizedPublicPassport } from "@/types";
 
@@ -99,7 +103,7 @@ export function DiscoverPublicPassportList() {
     return generateClient<Schema>();
   }, []);
   const [state, setState] = useState<DiscoverState>("loading");
-  const [records, setRecords] = useState<PublicPassportSnapshotRecord[]>([]);
+  const [records, setRecords] = useState<PublicPassportSnapshotPublicRecord[]>([]);
   const [publicProfiles, setPublicProfiles] = useState<PublicUserProfileRecord[]>([]);
   const [error, setError] = useState("");
   const [filters, setFilters] = useState<DiscoverFilters>(emptyFilters);
@@ -110,7 +114,10 @@ export function DiscoverPublicPassportList() {
 
     try {
       const [result, profileResult] = await Promise.all([
-        client.models.PublicPassportSnapshot.list({ authMode: "apiKey" }),
+        client.models.PublicPassportSnapshot.list({
+          authMode: "apiKey",
+          selectionSet: publicPassportSnapshotPublicSelection
+        }),
         client.models.PublicUserProfileSnapshot.list({ authMode: "apiKey" })
       ]);
 

@@ -2,6 +2,7 @@ import { defineBackend } from "@aws-amplify/backend";
 import { PolicyStatement } from "aws-cdk-lib/aws-iam";
 import { auth } from "./auth/resource.ts";
 import { data } from "./data/resource.ts";
+import { createPublicImageReport } from "./functions/create-public-image-report/resource.ts";
 import { moderatePublicPassportImage } from "./functions/moderate-public-passport-image/resource.ts";
 import { processPublicPassportImage } from "./functions/process-public-passport-image/resource.ts";
 import { removePublicPassportImage } from "./functions/remove-public-passport-image/resource.ts";
@@ -12,6 +13,7 @@ import { storage } from "./storage/resource.ts";
 const backend = defineBackend({
   auth,
   data,
+  createPublicImageReport,
   moderatePublicPassportImage,
   processPublicPassportImage,
   removePublicPassportImage,
@@ -26,11 +28,13 @@ const equipmentPassportTable = backend.data.resources.tables.EquipmentPassport;
 const rangeSessionTable = backend.data.resources.tables.RangeSession;
 const publicPassportSnapshotTable = backend.data.resources.tables.PublicPassportSnapshot;
 const publicImageAssetTable = backend.data.resources.tables.PublicImageAsset;
+const reportTable = backend.data.resources.tables.Report;
 const userProfileTable = backend.data.resources.tables.UserProfile;
 const usernameReservationTable = backend.data.resources.tables.UsernameReservation;
 const imageDeliveryLambda = backend.resolvePublicPassportImage.resources.lambda;
 const imageCleanupLambda = backend.removePublicPassportImage.resources.lambda;
 const imageModerationLambda = backend.moderatePublicPassportImage.resources.lambda;
+const publicImageReportLambda = backend.createPublicImageReport.resources.lambda;
 
 function restrictDynamoAttributes(attributes: string[]) {
   return {
@@ -62,6 +66,13 @@ backend.removePublicPassportImage.addEnvironment("PUBLIC_IMAGE_ASSET_SNAPSHOT_IN
 backend.moderatePublicPassportImage.addEnvironment("PUBLIC_PASSPORT_SNAPSHOT_TABLE_NAME", publicPassportSnapshotTable.tableName);
 backend.moderatePublicPassportImage.addEnvironment("PUBLIC_IMAGE_ASSET_TABLE_NAME", publicImageAssetTable.tableName);
 backend.moderatePublicPassportImage.addEnvironment("PUBLIC_IMAGE_ASSET_SNAPSHOT_INDEX_NAME", "publicImageAssetsBySnapshotId");
+
+backend.createPublicImageReport.addEnvironment("REPORT_TABLE_NAME", reportTable.tableName);
+backend.createPublicImageReport.addEnvironment("PUBLIC_PASSPORT_SNAPSHOT_TABLE_NAME", publicPassportSnapshotTable.tableName);
+backend.createPublicImageReport.addEnvironment("PUBLIC_IMAGE_ASSET_TABLE_NAME", publicImageAssetTable.tableName);
+backend.createPublicImageReport.addEnvironment("EQUIPMENT_PASSPORT_TABLE_NAME", equipmentPassportTable.tableName);
+backend.createPublicImageReport.addEnvironment("USER_PROFILE_TABLE_NAME", userProfileTable.tableName);
+backend.createPublicImageReport.addEnvironment("USER_PROFILE_OWNER_INDEX_NAME", "userProfilesByOwnerId");
 
 imageModerationLambda.addToRolePolicy(
   new PolicyStatement({
@@ -179,6 +190,133 @@ imageModerationLambda.addToRolePolicy(
       "removedAt",
       "moderationReason",
       "processingErrorCode",
+      "updatedAt"
+    ])
+  })
+);
+
+publicImageReportLambda.addToRolePolicy(
+  new PolicyStatement({
+    actions: ["dynamodb:GetItem"],
+    resources: [publicPassportSnapshotTable.tableArn],
+    conditions: restrictDynamoAttributes([
+      "id",
+      "ownerId",
+      "equipmentPassportId",
+      "publicImageAssetId",
+      "publicImageKey",
+      "publicImageAltText"
+    ])
+  })
+);
+
+publicImageReportLambda.addToRolePolicy(
+  new PolicyStatement({
+    actions: ["dynamodb:GetItem"],
+    resources: [publicImageAssetTable.tableArn],
+    conditions: restrictDynamoAttributes([
+      "id",
+      "ownerId",
+      "publicPassportSnapshotId",
+      "sourceType",
+      "sourceRecordId",
+      "publicImageKey",
+      "publicImageAltText",
+      "status",
+      "moderationStatus"
+    ])
+  })
+);
+
+publicImageReportLambda.addToRolePolicy(
+  new PolicyStatement({
+    actions: ["dynamodb:GetItem"],
+    resources: [equipmentPassportTable.tableArn],
+    conditions: restrictDynamoAttributes(["id", "ownerId", "isPublic"])
+  })
+);
+
+publicImageReportLambda.addToRolePolicy(
+  new PolicyStatement({
+    actions: ["dynamodb:Query"],
+    resources: [`${userProfileTable.tableArn}/index/userProfilesByOwnerId`],
+    conditions: restrictDynamoAttributes(["id", "ownerId", "username", "accountVisibility"])
+  })
+);
+
+publicImageReportLambda.addToRolePolicy(
+  new PolicyStatement({
+    actions: ["dynamodb:GetItem"],
+    resources: [userProfileTable.tableArn],
+    conditions: restrictDynamoAttributes(["id", "ownerId", "username", "accountVisibility"])
+  })
+);
+
+publicImageReportLambda.addToRolePolicy(
+  new PolicyStatement({
+    actions: ["dynamodb:ConditionCheckItem"],
+    resources: [publicPassportSnapshotTable.tableArn],
+    conditions: restrictDynamoTransactionAttributes([
+      "id",
+      "ownerId",
+      "equipmentPassportId",
+      "publicImageAssetId",
+      "publicImageKey",
+      "publicImageAltText"
+    ])
+  })
+);
+
+publicImageReportLambda.addToRolePolicy(
+  new PolicyStatement({
+    actions: ["dynamodb:ConditionCheckItem"],
+    resources: [equipmentPassportTable.tableArn],
+    conditions: restrictDynamoTransactionAttributes(["id", "ownerId", "isPublic"])
+  })
+);
+
+publicImageReportLambda.addToRolePolicy(
+  new PolicyStatement({
+    actions: ["dynamodb:ConditionCheckItem"],
+    resources: [userProfileTable.tableArn],
+    conditions: restrictDynamoTransactionAttributes(["id", "ownerId", "username", "accountVisibility"])
+  })
+);
+
+publicImageReportLambda.addToRolePolicy(
+  new PolicyStatement({
+    actions: ["dynamodb:UpdateItem"],
+    resources: [publicImageAssetTable.tableArn],
+    conditions: restrictDynamoTransactionAttributes([
+      "id",
+      "ownerId",
+      "publicPassportSnapshotId",
+      "sourceType",
+      "sourceRecordId",
+      "publicImageKey",
+      "publicImageAltText",
+      "status",
+      "moderationStatus",
+      "lastReportAt",
+      "updatedAt"
+    ])
+  })
+);
+
+publicImageReportLambda.addToRolePolicy(
+  new PolicyStatement({
+    actions: ["dynamodb:PutItem"],
+    resources: [reportTable.tableArn],
+    conditions: restrictDynamoTransactionAttributes([
+      "id",
+      "reporterId",
+      "targetType",
+      "targetId",
+      "publicImageAssetId",
+      "reason",
+      "details",
+      "status",
+      "createdAt",
       "updatedAt"
     ])
   })
