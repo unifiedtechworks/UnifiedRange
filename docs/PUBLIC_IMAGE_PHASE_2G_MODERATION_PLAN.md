@@ -1,12 +1,12 @@
 # Phase 2G Public Image Moderation and Reporting Plan
 
-Last updated: September 5, 2026
+Last updated: September 6, 2026
 
 ## Purpose
 
 Phase 2G adds a safe reporting and moderation lifecycle for the one processed Equipment Passport cover that may render on saved Public Passport detail. It must exist and pass hosted adversarial testing before image rendering is considered for Discover cards or public profile pages.
 
-Phase 2G.1 provides schema and delivery-contract guardrails. Phase 2G.2 adds the first detail-only **Report image** UI using the existing reporter-owned `Report` create path and the safe public snapshot id. Because no trusted binding command exists and the delivery resolver intentionally withholds ledger ids, these first reports are generation-unbound and must remain non-actionable. No dedicated image review UI, moderator action, notification, audit log, or broader image rendering exists.
+Phase 2G.1 provides schema and delivery-contract guardrails. Phase 2G.2 adds the first detail-only **Report image** UI using the existing reporter-owned `Report` create path and the safe public snapshot id. Phase 2G.3 makes those reports understandable in the existing group-gated moderation queue and links reviewers to the current sanitized public setup without embedding an image or reading an image ledger. Because no trusted binding command exists and the delivery resolver intentionally withholds ledger ids, these first reports are generation-unbound and must remain non-actionable. No moderator image action, exact-generation preview, notification, audit log, or broader image rendering exists.
 
 ## Current boundary
 
@@ -16,7 +16,7 @@ Today:
 - `resolvePublicPassportImage` returns a 60-second, non-cacheable URL only when the public snapshot, public profile visibility, source passport, `ready` public-image ledger row, non-blocked moderation state, canonical derivative key, safe alt text, and S3 object all agree.
 - `PublicImageAsset` is owner-readable and client-nonwritable. Phase 2G.1 adds an independent owner-readable `clear | hidden | removed` moderation state plus bounded lifecycle timestamps/reason metadata, but does not broaden moderator access to the full ledger.
 - Signed-in users can report public snapshots and comments through the existing `Report` model. When an eligible derivative finishes loading on saved Public Passport detail, Phase 2G.2 also offers **Report image** and stores `targetType = public_image` with the safe public snapshot id. `Report.publicImageAssetId` remains unset because the browser cannot safely bind it.
-- Admins and moderators can read report metadata and update only `Report.status`. That status change does not hide, delete, or mutate content.
+- Admins and moderators can read report metadata and update only `Report.status`. Public-image reports receive a distinct safe card and a link to the existing public setup route. That status change does not hide, delete, or mutate content or images.
 - Owner removal, derivative-aware Unpublish, and remove-first replacement use backend-controlled detachment and preserve the private original.
 - Discover cards, public profile cards, and target photos remain image-free.
 
@@ -105,7 +105,7 @@ Signed-out visitors may view an eligible public derivative but cannot submit a r
 
 ## Moderator/admin review projection
 
-Create a group-authorized query such as `getPublicImageModerationCase(reportId)` or a purpose-built queue projection. Do not add `admin`/`moderator` read authorization to the full `PublicImageAsset` model.
+Phase 2G.3 intentionally uses only the existing group-authorized `Report` metadata plus a link to the sanitized public setup route. It does not embed the image, invoke the delivery resolver from moderation, or read `PublicImageAsset`. After trusted exact-generation report binding exists, add a group-authorized query such as `getPublicImageModerationCase(reportId)` or a purpose-built queue projection. Do not add `admin`/`moderator` read authorization to the full `PublicImageAsset` model.
 
 The safe review result may contain:
 
@@ -226,7 +226,7 @@ Phase 2G.1 implements only the smallest fields that can remain safe before repor
 - Continue using `targetId` for the safe public snapshot id.
 - `Report.publicImageAssetId` reserves the backend-written immutable reported-generation binding. Its field authorization permits `admin`/`moderator` read and report-owner read/delete while denying reporter create/update and all public/API-key access. No current UI displays or accepts it.
 - Phase 2G.2 temporarily uses the direct reporter-owned model create path for snapshot-level image reports because it cannot establish the protected generation binding. Every such unbound row must be treated as unavailable/non-actionable by future image preview/action code. A later backend hardening phase must add the dedicated report command so reporter identity, initial status, binding, normalization, and idempotency are server-controlled.
-- A new report index is deferred until the trusted binding command and Phase 2G.3 queue access patterns are finalized; adding a speculative index now would not make unbound reports safe.
+- A new report index is deferred until the trusted binding command and later exact-generation review access patterns are finalized; adding a speculative index now would not make unbound reports safe.
 
 ### PublicImageAsset
 
@@ -298,8 +298,9 @@ Do not store S3 keys, URLs, private candidate/source ids, filenames, alt text, i
 
 ### Moderation reports
 
-- Add a `public_image` report card/section within the existing group-gated queue.
-- Show the safe review projection and exact reported-generation preview only while available.
+- **Implemented in Phase 2G.3:** show a distinct `public_image` report card within the existing group-gated queue, including the safe public snapshot reference, reason/details, reporter identity, dates, and report status.
+- **Implemented in Phase 2G.3:** link to the existing sanitized public setup route so reviewers can inspect what public visitors currently see. Do not embed an image, invoke an image resolver from moderation, or expose workflow-ledger data.
+- After trusted binding exists, show a purpose-built safe review projection and exact reported-generation preview only while available.
 - Keep the existing status selector separate from **Hide public image** and **Remove public image**.
 - Require confirmation for image actions and a bounded reason. **Remove** should communicate permanence for the public derivative and preservation of the private original.
 - Show removing, hidden, removed, superseded, cleanup-pending, failed, and retry states without raw errors or identifiers.
@@ -318,7 +319,7 @@ Do not store S3 keys, URLs, private candidate/source ids, filenames, alt text, i
 
 - **Implemented:** reserve `public_image`, protect `Report.publicImageAssetId`, add the separate owner-readable/client-nonwritable moderation fields, initialize new processing rows to `clear`, and make delivery unavailable for blocked or unknown moderation states.
 - **Deferred:** the report command, report/queue indexes, durable cross-generation moderation hold, legacy-row backfill, moderator projection/action, and audit model.
-- Keep full-ledger moderator access unavailable; Phase 2G.3 must use a purpose-built safe projection.
+- Keep full-ledger moderator access unavailable; Phase 2G.3 uses existing report metadata and a public-route link, while any later exact-generation preview must use a purpose-built safe projection.
 
 ### Phase 2G.2: public image reporting on detail only
 
@@ -329,10 +330,10 @@ Do not store S3 keys, URLs, private candidate/source ids, filenames, alt text, i
 
 ### Phase 2G.3: admin/moderator review UI
 
-- Add the group-authorized safe review projection bound to report id and exact image generation.
-- Add public-image report cards and safe processed-derivative preview.
-- Preserve current friendly reporter identity and report-status workflow.
-- Do not add image mutation until review/auth/privacy QA passes.
+- **Implemented:** add distinct public-image report cards to the existing group-gated queue with a human-friendly target label, muted public snapshot reference, reason/details, safe reporter identity, timestamps, and report status.
+- **Implemented:** provide an external-tab link to the current sanitized Public Passport detail page. Moderation does not embed the derivative, call private models, invoke the public image resolver, or expose keys, paths, ledger fields, content-owner identifiers, source identifiers, filenames, or private profile data.
+- **Implemented:** retain pending sorting/counting and the `open | reviewed | dismissed | action_needed` workflow; status changes remain metadata-only and show bounded failures.
+- **Limitation:** the report remains snapshot-bound and generation-unbound. Exact-generation preview, trusted relation state, and every image mutation stay deferred until backend report binding and a purpose-built review projection exist.
 
 ### Phase 2G.4: backend-controlled moderator hide/remove
 
@@ -369,7 +370,7 @@ Do not store S3 keys, URLs, private candidate/source ids, filenames, alt text, i
 
 ## Deferred and out of scope
 
-- trusted report-binding Lambda/IAM, indexes, moderator projection/action UI, cleanup orchestration, notification, and audit implementation;
+- trusted report-binding Lambda/IAM, indexes, exact-generation moderator projection/action UI, cleanup orchestration, notification, and audit implementation;
 - automated report-count hiding or other brigading-sensitive enforcement;
 - broad moderator access to private records or the full public/private image ledgers;
 - owner notification center, appeal, warning, suspension, or account action;

@@ -265,7 +265,7 @@ No public-image report UI or destructive moderation action is part of the curren
 
 - Follow [PUBLIC_IMAGE_PHASE_2G_MODERATION_PLAN.md](PUBLIC_IMAGE_PHASE_2G_MODERATION_PLAN.md) for exact-generation public-image reports, safe moderator preview, separate audited hide/remove actions, cleanup, and private-original preservation.
 - Phase 2G.1 is implemented: the schema reserves the report target/binding and separate moderation state, new processing rows initialize to `clear`, blocked states cannot be delivered or reprocessed, and legacy rows retain a temporary missing-status compatibility path until a controlled backfill.
-- Phase 2G.2 detail-only report UI is implemented with snapshot-level, generation-unbound reports. A trusted binding command, Phase 2G.3 safe moderator image projection/UI, and Phase 2G.4 moderator hide/remove remain unavailable.
+- Phase 2G.2 detail-only report UI is implemented with snapshot-level, generation-unbound reports. Phase 2G.3 adds metadata-only moderator cards and a sanitized public-detail link without resolving an image or reading a ledger. A trusted binding command, exact-generation moderator projection/preview, and Phase 2G.4 moderator hide/remove remain unavailable.
 - Test unpublish, replacement, account-visibility changes, account lifecycle behavior, cache invalidation, and orphan cleanup.
 - Consider Discover/public profile rendering only after detail delivery, lifecycle, accessibility, and moderation tests pass.
 

@@ -55,7 +55,8 @@ Report reasons:
 - Phase 2G.1 reserves a `public_image` report target and a backend-only immutable image-generation binding. Phase 2G.2 adds **Report image** only beside a successfully loaded derivative on saved Public Passport detail. Signed-in users submit an allow-listed reason and bounded optional details against the safe public snapshot id; signed-out visitors receive a sign-in prompt.
 - Phase 2G.2 intentionally does not expose an asset id or add a trusted binding command, so these initial reports have no immutable-generation binding and must remain non-actionable for future image hide/remove. Report submission does not automatically hide or remove an image.
 - The public-image ledger now has a separate client-nonwritable `clear | hidden | removed` moderation state. The delivery resolver returns generic unavailable for blocked or unknown states, while a temporary missing-state compatibility path supports pre-2G.1 rows until controlled backfill.
-- Dedicated public-image review UI and moderator/admin image actions remain unimplemented. The existing queue may show the report's safe metadata and status workflow, but moderators receive no public-image preview, broad ledger access, or private-original access. Planned safe projection, immutable-generation checks, private-original preservation, and audited actions are documented in the [Phase 2G Public Image Moderation Plan](PUBLIC_IMAGE_PHASE_2G_MODERATION_PLAN.md).
+- Phase 2G.3 gives `admin`/`moderator` users a distinct public-image report card with the public snapshot reference, safe report/reporter metadata, status workflow, and a link to the current sanitized public setup. Moderation does not embed the image, call the public image resolver, or read the public/private image ledgers.
+- Public-image report status remains workflow metadata only. Changing it does not hide/remove the image, and the generation-unbound report cannot drive an image action. Exact-generation preview, trusted binding, private-original preservation checks, and audited Phase 2G.4 actions remain planned in the [Phase 2G Public Image Moderation Plan](PUBLIC_IMAGE_PHASE_2G_MODERATION_PLAN.md).
 - Public social features must not expose private passport fields, private images, owner private details, marketplace activity, or direct messaging.
 
 ## Admin Review States
@@ -63,6 +64,7 @@ Report reasons:
 - Current stored statuses: `open`, `reviewed`, `dismissed`, `action_needed`.
 - Missing or `open` status counts as pending in the moderation UI.
 - Report metadata other than `status` remains immutable to moderators through field-level authorization.
+- Public-image review links open only the same sanitized Public Passport detail route available to public visitors; they are not privileged image-delivery links.
 - Destructive content actions, warnings, and suspensions require separate future workflows and are not implied by report status.
 
 ## Default Public Safety Behavior

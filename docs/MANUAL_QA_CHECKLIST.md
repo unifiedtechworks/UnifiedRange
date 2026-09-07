@@ -619,8 +619,21 @@ Phase 2F.1 provides the owner-authorized backend primitive, Phase 2F.2 wires its
 - [ ] Confirm success is friendly, the same rendered view does not offer an immediate duplicate submission, and the image remains publicly available because reports do not auto-hide.
 - [ ] Expire/sign out the session or force a mutation failure. Confirm the UI shows one bounded retry message and no raw GraphQL, Lambda, AWS, key, URL, id, token, or stack detail.
 - [ ] Change routes while submission is pending. Confirm a late response does not update the new route or expose report/image internals.
-- [ ] As admin/moderator, confirm the existing metadata queue can show the `public_image` target and update report workflow status only. It must not render the image, expose ledger/private data, or offer hide/remove actions.
+- [ ] As admin/moderator, confirm the metadata queue shows a distinct public-image report card and sanitized public setup link while remaining image-free. It must not expose ledger/private data or offer hide/remove actions.
 - [ ] Confirm `Report.publicImageAssetId` remains unset. Record this report as generation-unbound and non-actionable until a trusted backend binding command is implemented.
+
+### Phase 2G.3 moderator review support — run after frontend deployment
+
+- [ ] Sign in as both a Moderator and an Admin and open `/moderation/reports`. Confirm each `public_image` report participates in existing pending sorting/counting and has a **Public image report** badge plus a human-friendly **Public image** target label.
+- [ ] Confirm the card shows the short report reference, muted public snapshot ID, reason, optional details, safe reporter identity, created/updated dates, full report ID, and current workflow status.
+- [ ] Select **Open public setup**. Confirm it opens the exact sanitized `/discover/passports/[publicPassportSnapshotId]` detail in a new tab and shows only what a public visitor can currently see. If the snapshot is no longer public, confirm the normal public not-found state appears.
+- [ ] Inspect Network while the moderation list loads. Confirm moderation does not call `resolvePublicPassportImage`, read `PublicImageAsset`/`PrivateImageAsset`, request S3 objects, or embed an image/URL.
+- [ ] Exercise `open`, `reviewed`, `dismissed`, and `action_needed`. Confirm status persists, missing/open alone count as pending, and the public setup/image remains unchanged after every status update.
+- [ ] Force a status-update failure. Confirm the card shows a bounded retry-safe message without GraphQL, Lambda, AWS, ID, key, URL, token, or stack details.
+- [ ] With an invalid legacy/sample target fixture only if one already exists, confirm no public setup link is produced and the card shows a safe unavailable-link message without attempting another route or data source.
+- [ ] Confirm the card and linked public route reveal no private original, private/public S3 key or path, derivative URL, image-ledger data, content-owner/source ID, original filename, target-photo data, email, legal name, city/state, or private profile/record fields.
+- [ ] Confirm no embedded preview, image hide/remove action, auto-hide behavior, notification, suspension, destructive content control, Discover image, public-profile image, or target-photo publishing was added.
+- [ ] Repeat at mobile and desktop widths. Confirm long reasons/details and technical references wrap without horizontal scrolling.
 
 ### Future Phase 2G image reporting/moderation — not runnable yet
 
@@ -630,7 +643,7 @@ Follow the [Phase 2G Public Image Moderation Plan](PUBLIC_IMAGE_PHASE_2G_MODERAT
 - [ ] Confirm signed-out, duplicate, rapid, missing, hidden, removed, superseded, private-account, unpublished, demo/sample, and target-photo report attempts fail safely without becoming an existence oracle.
 - [ ] Replace an image after reporting it. Confirm the old report remains bound to the old immutable generation and cannot preview, hide, or remove the replacement.
 - [ ] Confirm an open report alone does not hide an image and report status changes never mutate image availability.
-- [ ] Confirm moderator/admin review shows only the processed public derivative and safe report/public metadata, never private originals, private image ledgers, private keys, owner private fields, or target photos.
+- [ ] After trusted generation binding and a purpose-built projection exist, confirm exact-generation moderator preview shows only the processed public derivative and safe report/public metadata, never private originals, private image ledgers, private keys, owner private fields, or target photos.
 - [ ] Hide/remove the reported image through the separate group-authorized action. Confirm the public image projection detaches, no new URL is issued, public text/setup remains, and the private original is unchanged.
 - [ ] Force cleanup pending and concurrent owner lifecycle actions. Confirm bounded retry behavior, no stale/newer derivative deletion, and no raw infrastructure detail.
 - [ ] Confirm normal users cannot read moderation projections or invoke image actions and Discover/public profile cards remain image-free.
@@ -738,6 +751,8 @@ Visitor, normal User B, Moderator, and Admin.
 - [ ] Sign in as Moderator and confirm Moderation navigation and pending badge appear.
 - [ ] Open `/moderation` and `/moderation/reports`.
 - [ ] Confirm the test report shows target type/id, reason, details, timestamps, and current status as intended.
+- [ ] For a `public_image` report, confirm the target label reads **Public image**, the snapshot ID is a muted technical reference, and **Open public setup** links only to the existing sanitized public detail route in a new tab.
+- [ ] Confirm the moderation list does not embed or resolve an image and does not read public/private image-ledger records.
 - [ ] Confirm reporter identity prefers `@username`, then safe display name where available, with a shortened fallback if no profile can be resolved.
 - [ ] Confirm the full internal reporter ID remains only in the muted technical detail line.
 - [ ] Change a report through `open`, `reviewed`, `dismissed`, and `action_needed`, refreshing after each change.
@@ -754,12 +769,14 @@ Visitor, normal User B, Moderator, and Admin.
 - [ ] Pending count uses missing/open status only.
 - [ ] Normal users cannot read the moderation queue or update report status.
 - [ ] Status changes never change the reported public content.
+- [ ] Public-image report status changes never hide/remove the derivative and cannot act on a generation-unbound report.
 
 ### Privacy and safety checks
 
 - [ ] Moderation cards do not show reporter email, first/last name, city/state, private profile fields, private records, private S3 keys, private images, or target photos.
 - [ ] Reporter internal IDs are never used as public identity.
 - [ ] Moderator group membership does not grant access to another owner’s `PrivateImageAsset` registry or private originals.
+- [ ] Public-image cards do not reveal public derivative URLs/keys, `PublicImageAsset` fields, content-owner/source IDs, original filenames, or target-photo data.
 
 ## 18. Mobile and responsive sweep
 
