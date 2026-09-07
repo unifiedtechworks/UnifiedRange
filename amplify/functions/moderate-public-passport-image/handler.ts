@@ -446,30 +446,34 @@ async function finalizeRemovedAsset(asset: PublicImageAsset, expectedKey: string
     );
     return true;
   } catch {
-    const latest = readPublicImageAsset(
-      await getItem(publicImageAssetTableName, asset.id, [
-        "id",
-        "ownerId",
-        "publicPassportSnapshotId",
-        "sourceType",
-        "sourceRecordId",
-        "publicImageKey",
-        "publicImageAltText",
-        "status",
-        "moderationStatus",
-        "updatedAt"
-      ]),
-      asset.id
-    );
+    try {
+      const latest = readPublicImageAsset(
+        await getItem(publicImageAssetTableName, asset.id, [
+          "id",
+          "ownerId",
+          "publicPassportSnapshotId",
+          "sourceType",
+          "sourceRecordId",
+          "publicImageKey",
+          "publicImageAltText",
+          "status",
+          "moderationStatus",
+          "updatedAt"
+        ]),
+        asset.id
+      );
 
-    return Boolean(
-      latest &&
-        latest.ownerId === asset.ownerId &&
-        latest.publicPassportSnapshotId === asset.publicPassportSnapshotId &&
-        latest.status === "removed" &&
-        latest.moderationStatus === "removed" &&
-        !latest.publicImageKey
-    );
+      return Boolean(
+        latest &&
+          latest.ownerId === asset.ownerId &&
+          latest.publicPassportSnapshotId === asset.publicPassportSnapshotId &&
+          latest.status === "removed" &&
+          latest.moderationStatus === "removed" &&
+          !latest.publicImageKey
+      );
+    } catch {
+      return false;
+    }
   }
 }
 

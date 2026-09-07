@@ -21,7 +21,8 @@ Phase 2F.1 implements the backend cleanup foundation, Phase 2F.2 adds the first 
 - Phase 2G.4 separately lets Cognito `admin`/`moderator` users hide or remove the current attached derivative. It reuses the detach-first/canonical-cleanup invariants without invoking or broadening the owner cleanup action and has no private source access.
 - Image-bearing Unpublish calls `removePublicPassportImage` with only the snapshot id, waits for confirmed detachment, and only then deletes the sanitized text/setup snapshot.
 - **Replace public image** calls the same snapshot-id-only cleanup first and continues to the existing consent/processor flow only after `removed`, `not_attached`, or detach-confirmed `cleanup_pending`. Atomic replacement remains unavailable.
-- Phase 2G.1 adds a separate `clear | hidden | removed` moderation state. Existing owner cleanup continues to update processing/lifecycle cleanup fields only; it neither impersonates a moderator nor clears a moderation hold. A future moderator action remains a separate group-authorized command.
+- Phase 2G adds a separate `clear | hidden | removed` moderation state and group-authorized current-derivative action. Existing owner cleanup continues to update processing/lifecycle cleanup fields only; it neither impersonates a moderator nor clears a moderation hold. A moderator-hidden derivative is intentionally outside owner cleanup after detachment.
+- If an owner unpublishes a hidden snapshot before moderator Remove, the public snapshot and resolver remain unavailable, but the current snapshot-id action will not guess which detached generation to delete. Protected orphan reconciliation/exact-generation binding remains required to clean that retained derivative safely.
 - Discover cards and public profile cards remain image-free.
 - Range Session target photos remain private and ineligible.
 

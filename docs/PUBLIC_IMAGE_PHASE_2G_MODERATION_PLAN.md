@@ -171,6 +171,8 @@ Use the same detach-first checks, mark the public asset lifecycle/moderation sta
 
 Detaching the projection stops new resolver URLs immediately. An already-issued S3 URL can remain valid for its remaining lifetime, currently at most 60 seconds. **Remove** attempts exact-object deletion after detachment and reports `cleanup_pending` if that cleanup cannot complete. **Hide** intentionally retains the processed derivative, so it relies on projection detachment plus the resolver's moderation-state check for new requests; previously issued URLs retain the same bounded residual lifetime. A future proxy or CloudFront design could provide stronger immediate revocation if policy requires it.
 
+If a hidden snapshot is later unpublished before a moderator explicitly chooses Remove, the current snapshot-id action no longer has a live snapshot from which to derive the hidden generation. It returns the same safe no-attachment result and does not guess an object key or delete across generations. The retained derivative remains unreachable through the public resolver, but protected orphan reconciliation or exact-generation moderation binding is required to delete it later. This is an intentional fail-closed lifecycle limitation, not permission for owner cleanup to erase a moderation-retained object.
+
 ## Report status interaction
 
 Keep the current workflow states:
@@ -333,7 +335,7 @@ Do not store S3 keys, URLs, private candidate/source ids, filenames, alt text, i
 - **Implemented:** add distinct public-image report cards to the existing group-gated queue with a human-friendly target label, muted public snapshot reference, reason/details, safe reporter identity, timestamps, and report status.
 - **Implemented:** provide an external-tab link to the current sanitized Public Passport detail page. Moderation does not embed the derivative, call private models, invoke the public image resolver, or expose keys, paths, ledger fields, content-owner identifiers, source identifiers, filenames, or private profile data.
 - **Implemented:** retain pending sorting/counting and the `open | reviewed | dismissed | action_needed` workflow; status changes remain metadata-only and show bounded failures.
-- **Limitation:** the report remains snapshot-bound and generation-unbound. Exact-generation preview, trusted relation state, and every image mutation stay deferred until backend report binding and a purpose-built review projection exist.
+- **Limitation:** the report remains snapshot-bound and generation-unbound. Phase 2G.4 can act only on the freshly reviewed current snapshot image; exact-generation preview, trusted relation state, and report-bound image mutation stay deferred until backend report binding and a purpose-built review projection exist.
 
 ### Phase 2G.4: backend-controlled moderator hide/remove
 
@@ -341,8 +343,11 @@ Do not store S3 keys, URLs, private candidate/source ids, filenames, alt text, i
 - **Implemented:** derive and validate the current attached asset/canonical key server-side; reject demo/sample ids, target photos, missing/unknown moderation state, projection mismatches, ambiguous multi-generation cleanup, non-ready assets, and concurrent state changes with bounded results.
 - **Implemented:** Hide atomically detaches delivery and marks the current asset hidden while retaining the derivative; Remove detaches first, marks removed, deletes only the canonical public object, and supports idempotent/cleanup-pending retry behavior.
 - **Implemented:** add confirmed UI controls only to valid `public_image` moderation cards. Client input contains no asset/source/owner id, key, path, URL, filename, or image bytes.
+- **Implemented:** pin the client mutation to Cognito user-pool authorization rather than relying on the app's default auth mode; AppSync and the Lambda still enforce `admin`/`moderator` membership independently.
 - **Implemented:** preserve `Report.status`, the public text snapshot, private source records, and private original. The function has no private-table or private-prefix permission.
+- **Implemented:** if final ledger confirmation fails after detach/delete, return retry-safe `cleanup_pending` instead of leaking a transient DynamoDB failure as an ambiguous raw error.
 - **Limitation:** the report remains generation-unbound, so this is a current-snapshot action. Conditional writes protect against concurrent replacement, but exact reported-generation targeting and a durable cross-generation moderation hold remain Phase 2G.5 work.
+- **Limitation:** Hide retains the processed derivative. If the owner unpublishes the now-text-only snapshot before moderator Remove, delivery remains unavailable but deletion requires later protected orphan reconciliation because the snapshot-id action will not guess a detached generation.
 - **Deployment gate:** eligible rows require `moderationStatus = clear`; legacy missing-state rows fail closed until controlled backfill/reprocess. Run hosted moderator/admin authorization and lifecycle tests before relying on the action.
 
 ### Phase 2G.5: lifecycle cleanup and audit hardening

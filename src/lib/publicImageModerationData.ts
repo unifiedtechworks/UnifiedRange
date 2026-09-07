@@ -62,11 +62,14 @@ export async function moderatePublicPassportImage(
   }
 
   try {
-    const result = await client.mutations.moderatePublicPassportImage({
-      publicPassportSnapshotId: snapshotId,
-      action: input.action,
-      reason: reason.value || undefined
-    });
+    const result = await client.mutations.moderatePublicPassportImage(
+      {
+        publicPassportSnapshotId: snapshotId,
+        action: input.action,
+        reason: reason.value || undefined
+      },
+      { authMode: "userPool" }
+    );
     const actionStatus = result.data?.actionStatus;
 
     if (result.errors?.length || !actionStatus || !allowedStatuses.has(actionStatus)) {
