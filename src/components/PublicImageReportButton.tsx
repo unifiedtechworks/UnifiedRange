@@ -14,7 +14,13 @@ import {
   type PublicImageReportReason
 } from "@/lib/publicImageReportData";
 
-export function PublicImageReportButton({ publicPassportSnapshotId }: { publicPassportSnapshotId: string }) {
+export function PublicImageReportButton({
+  publicPassportSnapshotId,
+  validateCurrentImage
+}: {
+  publicPassportSnapshotId: string;
+  validateCurrentImage: () => Promise<boolean>;
+}) {
   const { authState } = useAuthUser();
 
   if (authState.status === "loading") {
@@ -33,12 +39,14 @@ export function PublicImageReportButton({ publicPassportSnapshotId }: { publicPa
     <SignedInPublicImageReportButton
       key={`${publicPassportSnapshotId}:${authState.username}`}
       publicPassportSnapshotId={publicPassportSnapshotId}
+      validateCurrentImage={validateCurrentImage}
     />
   );
 }
 
-function SignedInPublicImageReportButton({ publicPassportSnapshotId }: {
+function SignedInPublicImageReportButton({ publicPassportSnapshotId, validateCurrentImage }: {
   publicPassportSnapshotId: string;
+  validateCurrentImage: () => Promise<boolean>;
 }) {
   const client = useMemo(() => {
     configureAmplifyClient();
@@ -79,6 +87,17 @@ function SignedInPublicImageReportButton({ publicPassportSnapshotId }: {
     setIsSaving(true);
     setError("");
     setDetailsError("");
+
+    const imageIsStillCurrent = await validateCurrentImage();
+    if (!mountedRef.current || submissionIdRef.current !== submissionId) {
+      return;
+    }
+
+    if (!imageIsStillCurrent) {
+      setIsSaving(false);
+      setError("This public image changed or is no longer available to report. Refresh the page and review the current image before trying again.");
+      return;
+    }
 
     const result = await submitPublicImageReport(client, {
       publicPassportSnapshotId,
@@ -139,6 +158,9 @@ function SignedInPublicImageReportButton({ publicPassportSnapshotId }: {
           </p>
           <p className="mt-2 text-xs leading-5 text-ink/55">
             A report starts a review. It does not automatically hide or remove the image. Do not include private information, links, or storage paths in your report.
+          </p>
+          <p className="mt-2 text-xs leading-5 text-ink/55">
+            The app checks that this is still the current public image before submitting. If it changed, refresh and review the replacement first.
           </p>
 
           <label className="mt-3 block">

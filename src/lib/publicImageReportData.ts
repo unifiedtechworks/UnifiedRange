@@ -27,6 +27,10 @@ function normalizePersistentId(value: string) {
 }
 
 export function normalizePublicImageReportDetails(value: string) {
+  if (value.length > publicImageReportDetailsMaxLength) {
+    return { value: "", error: `Keep details to ${publicImageReportDetailsMaxLength} characters or fewer.` };
+  }
+
   const normalized = value
     .normalize("NFKC")
     .replace(/[\u0000-\u001f\u007f\u200b-\u200f\u202a-\u202e\u2060-\u206f]/g, " ")

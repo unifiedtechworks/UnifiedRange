@@ -133,6 +133,7 @@ export function ModerationReportList() {
             const isPublicImageReport = report.targetType === "public_image";
             const publicImageAssetId = isPublicImageReport ? report.publicImageAssetId?.trim() ?? "" : "";
             const isGenerationBound = publicImageAssetIdPattern.test(publicImageAssetId);
+            const hasUnrecognizedBinding = Boolean(publicImageAssetId) && !isGenerationBound;
 
             return (
               <article key={report.id} className="rounded-md border border-ink/10 bg-white p-4 shadow-soft sm:p-5">
@@ -144,7 +145,11 @@ export function ModerationReportList() {
                       {isPublicImageReport ? <span className="rounded-md bg-moss/10 px-3 py-1 text-xs font-semibold text-moss">Public image report</span> : null}
                       {isPublicImageReport ? (
                         <span className={`rounded-md px-3 py-1 text-xs font-semibold ${isGenerationBound ? "bg-field text-ink" : "bg-amber-100 text-amber-900"}`}>
-                          {isGenerationBound ? "Generation-bound report" : "Legacy/unbound report"}
+                          {isGenerationBound
+                            ? "Generation-bound report"
+                            : hasUnrecognizedBinding
+                              ? "Unrecognized generation binding"
+                              : "Legacy/unbound report"}
                         </span>
                       ) : null}
                     </div>
@@ -156,7 +161,7 @@ export function ModerationReportList() {
                       ) : (
                         <ReportDetail label="Target ID" value={report.targetId} />
                       )}
-                      {isPublicImageReport && publicImageAssetId ? (
+                      {isPublicImageReport && isGenerationBound ? (
                         <ReportDetail label="Image generation ref" value={shortInternalId(publicImageAssetId)} />
                       ) : null}
                       <ReporterDetail reporterId={report.reporterId} identity={reporterIdentities[report.reporterId]} />
@@ -168,6 +173,7 @@ export function ModerationReportList() {
                       <PublicImageReportReviewContext
                         publicPassportSnapshotId={report.targetId}
                         isGenerationBound={isGenerationBound}
+                        hasUnrecognizedBinding={hasUnrecognizedBinding}
                         moderatePublicImage={moderatePublicImage}
                         reloadReports={reloadReports}
                       />
@@ -255,11 +261,13 @@ function ReportStatusControl({
 function PublicImageReportReviewContext({
   publicPassportSnapshotId,
   isGenerationBound,
+  hasUnrecognizedBinding,
   moderatePublicImage,
   reloadReports
 }: {
   publicPassportSnapshotId: string;
   isGenerationBound: boolean;
+  hasUnrecognizedBinding: boolean;
   moderatePublicImage: ReturnType<typeof useModerationReports>["moderatePublicImage"];
   reloadReports: ReturnType<typeof useModerationReports>["reloadReports"];
 }) {
@@ -274,7 +282,9 @@ function PublicImageReportReviewContext({
       <p className="mt-2 text-xs leading-5 text-ink/60">
         {isGenerationBound
           ? "Generation-bound reports refer to the image generation that was public when the report was submitted."
-          : "Legacy/unbound reports do not identify the exact image generation that was public when they were submitted."}
+          : hasUnrecognizedBinding
+            ? "This report has unrecognized generation metadata. Treat it as unbound and do not rely on it to identify a reported generation."
+            : "Legacy/unbound reports do not identify the exact image generation that was public when they were submitted."}
       </p>
       <p className="mt-2 text-xs leading-5 text-ink/60">
         If the owner replaced the image later, moderators should review the current public setup before acting. The existing image action remains current-snapshot scoped and does not automatically act on the bound historical generation.

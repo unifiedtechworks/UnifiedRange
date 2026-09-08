@@ -138,7 +138,7 @@ export function PublicImageModerationActionPanel({
               : "Remove detaches public delivery first, marks the derivative removed, and then deletes only the processed public object."}
           </p>
           <p className="mt-2 text-xs leading-5 text-ink/60">
-            Review the linked public setup immediately before confirming. Reports are not yet bound to an immutable image generation, so a changed image must be reviewed again.
+            Review the linked public setup immediately before confirming. New reports identify the generation seen at submission, but this action intentionally targets only the image currently attached to the snapshot. A changed image must be reviewed again.
           </p>
 
           <label className="mt-3 block">

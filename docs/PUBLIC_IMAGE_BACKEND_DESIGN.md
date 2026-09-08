@@ -679,7 +679,7 @@ Alarms should cover sustained processing failures, metadata-verification failure
 - [x] Initialize new processing rows to `clear`, reject blocked generations in the processor, and return generic unavailable delivery for hidden/removed/unknown moderation states while retaining a temporary legacy-null compatibility path.
 - [x] Add the Phase 2G.2 detail-only signed-in image report form using bounded snapshot-level report data and no ledger identifier.
 - [x] Add Phase 2G.3 metadata-only moderator review with a sanitized public-detail link and no embedded resolver/ledger reads.
-- [ ] Replace the interim direct report path with a trusted snapshot-id-only command that validates current eligibility and writes the protected immutable generation binding.
+- [x] Replace the interim direct report path with `createPublicImageReport`, a trusted snapshot-id-only command that validates current eligibility and writes the protected immutable generation binding.
 - [ ] Backfill eligible legacy rows to `clear` so Phase 2G.4 can act on them, then remove the resolver's temporary missing-value compatibility.
 - [x] Add the Phase 2G.4 group-authorized current-snapshot hide/remove action with detach-first revocation, canonical public-object cleanup, private-original preservation, and bounded UI/result/log contracts.
 - [ ] Replace the current-snapshot convention with exact reported-generation targeting, a durable cross-generation hold, and append-only action audit.

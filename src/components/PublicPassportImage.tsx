@@ -6,6 +6,7 @@ import type { Schema } from "../../amplify/data/resource";
 import { PublicImageReportButton } from "@/components/PublicImageReportButton";
 import { configureAmplifyClient } from "@/lib/amplifyClient";
 import {
+  isSamePublicPassportImageDelivery,
   loadPublicPassportImageDelivery,
   type PublicPassportImageDelivery
 } from "@/lib/publicPassportImageDeliveryData";
@@ -66,6 +67,7 @@ export function PublicPassportImage({ publicPassportSnapshotId }: { publicPasspo
 
     const timeout = window.setTimeout(() => {
       if (requestIdRef.current === delivery.requestId) {
+        requestIdRef.current += 1;
         setDelivery(null);
         setState("unavailable");
       }
@@ -73,6 +75,20 @@ export function PublicPassportImage({ publicPassportSnapshotId }: { publicPasspo
 
     return () => window.clearTimeout(timeout);
   }, [delivery, state]);
+
+  const validateRenderedImage = useCallback(async () => {
+    if (state !== "loaded" || !delivery || delivery.snapshotId !== publicPassportSnapshotId) {
+      return false;
+    }
+
+    const renderedRequestId = delivery.requestId;
+    const refreshed = await loadPublicPassportImageDelivery(client, publicPassportSnapshotId);
+
+    return (
+      requestIdRef.current === renderedRequestId &&
+      isSamePublicPassportImageDelivery(delivery, refreshed)
+    );
+  }, [client, delivery, publicPassportSnapshotId, state]);
 
   if (state === "unavailable") {
     return null;
@@ -120,6 +136,7 @@ export function PublicPassportImage({ publicPassportSnapshotId }: { publicPasspo
               event.currentTarget.naturalWidth > processedImageMaxDimension ||
               event.currentTarget.naturalHeight > processedImageMaxDimension
             ) {
+              requestIdRef.current += 1;
               setDelivery(null);
               setState("unavailable");
               return;
@@ -132,6 +149,7 @@ export function PublicPassportImage({ publicPassportSnapshotId }: { publicPasspo
               return;
             }
 
+            requestIdRef.current += 1;
             setDelivery(null);
             setState("unavailable");
           }}
@@ -141,7 +159,11 @@ export function PublicPassportImage({ publicPassportSnapshotId }: { publicPasspo
       <figcaption className="flex min-w-0 flex-col gap-3 border-t border-ink/10 px-4 py-3 text-xs leading-5 text-ink/55 lg:flex-row lg:items-start lg:justify-between">
         <span className="min-w-0">User-approved processed public image. Private originals and image metadata are not shown.</span>
         {state === "loaded" ? (
-          <PublicImageReportButton key={publicPassportSnapshotId} publicPassportSnapshotId={publicPassportSnapshotId} />
+          <PublicImageReportButton
+            key={publicPassportSnapshotId}
+            publicPassportSnapshotId={publicPassportSnapshotId}
+            validateCurrentImage={validateRenderedImage}
+          />
         ) : null}
       </figcaption>
     </figure>

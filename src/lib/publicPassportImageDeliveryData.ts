@@ -20,6 +20,31 @@ export type PublicPassportImageDelivery =
   | { status: "available"; imageUrl: string; altText: string }
   | { status: "unavailable" };
 
+export function isSamePublicPassportImageDelivery(
+  rendered: PublicPassportImageDelivery,
+  refreshed: PublicPassportImageDelivery
+) {
+  if (rendered.status !== "available" || refreshed.status !== "available") {
+    return false;
+  }
+
+  try {
+    const renderedUrl = new URL(rendered.imageUrl);
+    const refreshedUrl = new URL(refreshed.imageUrl);
+
+    // Signatures and expiration timestamps change on every resolver call. The
+    // already-validated origin/path identifies the processed generation
+    // without passing a key, URL, or asset id into report submission.
+    return (
+      renderedUrl.origin === refreshedUrl.origin &&
+      renderedUrl.pathname === refreshedUrl.pathname &&
+      rendered.altText === refreshed.altText
+    );
+  } catch {
+    return false;
+  }
+}
+
 function normalizePersistentId(value: string) {
   const normalized = value.trim();
   return persistentIdPattern.test(normalized) && !nonPersistentIdPattern.test(normalized) ? normalized : "";

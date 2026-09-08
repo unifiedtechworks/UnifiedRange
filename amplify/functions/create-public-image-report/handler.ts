@@ -17,7 +17,6 @@ const nonPersistentIdPattern = /^(?:(?:demo|sample)(?:[-_]|$)|(?:passport|sessio
 const forbiddenTechnicalContentPattern = /(?:\b(?:s3|https?|data|blob):\/\/|\bwww\.|\b(?:private|public)[\\/](?:equipment|targets|passports)[\\/])/i;
 const publicAltTextMaxLength = 140;
 const detailsMaxLength = 500;
-const detailsRawMaxLength = 2_000;
 const reporterIdMaxLength = 160;
 const allowedReasons = new Set([
   "unsafe content",
@@ -142,7 +141,10 @@ function normalizeDetails(value: unknown) {
   if (value === undefined || value === null || value === "") {
     return "";
   }
-  if (typeof value !== "string" || value.length > detailsRawMaxLength) {
+  // Enforce the public contract against the raw request as well as the
+  // normalized value. Otherwise an over-limit string made mostly of stripped
+  // controls or collapsed whitespace could become short enough to pass.
+  if (typeof value !== "string" || value.length > detailsMaxLength) {
     throw new ReportCreationFailure("invalid_request");
   }
 

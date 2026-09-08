@@ -1,6 +1,6 @@
 # Phase 2G Public Image Moderation and Reporting Plan
 
-Last updated: September 6, 2026
+Last updated: September 7, 2026
 
 ## Purpose
 
@@ -15,7 +15,7 @@ Today:
 - `PublicPassportImage` receives only a public snapshot id and renders only on saved Public Passport detail.
 - `resolvePublicPassportImage` returns a 60-second, non-cacheable URL only when the public snapshot, public profile visibility, source passport, `ready` public-image ledger row, non-blocked moderation state, canonical derivative key, safe alt text, and S3 object all agree.
 - `PublicImageAsset` is owner-readable and client-nonwritable. Phase 2G.1 adds an independent owner-readable `clear | hidden | removed` moderation state plus bounded lifecycle timestamps/reason metadata, but does not broaden moderator access to the full ledger.
-- Signed-in users can report public snapshots and comments through the existing `Report` model. When an eligible derivative finishes loading on saved Public Passport detail, Phase 2G.2 also offers **Report image** and stores `targetType = public_image` with the safe public snapshot id. `Report.publicImageAssetId` remains unset because the browser cannot safely bind it.
+- Signed-in users can report public snapshots and comments through the existing `Report` model. When an eligible derivative finishes loading on saved Public Passport detail, **Report image** uses the Phase 2G.5 `createPublicImageReport` mutation. The browser supplies only the safe public snapshot id, an allow-listed reason, and bounded optional details; the backend derives `targetType = public_image`, reporter identity, and the exact current `PublicImageAsset` generation.
 - Admins and moderators can read report metadata and update only `Report.status`. Public-image reports receive a distinct safe card and a link to the existing public setup route. Report status remains metadata-only.
 - Phase 2G.4 exposes **Hide public image** and **Remove public image** only on those group-gated public-image report cards. The client sends only the public snapshot id, `hide | remove`, and an optional bounded owner-safe reason. The backend derives every ledger/storage identifier and conditionally acts only on the currently attached canonical `equipment_cover` derivative.
 - Owner removal, derivative-aware Unpublish, and remove-first replacement use backend-controlled detachment and preserve the private original.
@@ -24,35 +24,35 @@ Today:
 ## Non-negotiable safety invariants
 
 1. A browser reports an image by public snapshot id. It never supplies a private/public S3 key, URL, owner id, source record id, private image asset id, destination path, filename, or image bytes.
-2. The target design binds a report to the exact public image generation current at submission time. Until that backend command exists, a report must never be treated as proof that its originally reported generation remains current; the Phase 2G.4 reviewer must freshly inspect the current public setup.
+2. Every report produced by the supported image-report UI is bound by the backend to the exact eligible public image generation current when its transaction commits. Historical/direct-model rows without a binding remain legacy/unbound. The Phase 2G.4 reviewer must still freshly inspect the current public setup because its action is current-snapshot scoped, not report-generation scoped.
 3. Moderator UI receives a deliberately limited projection. It never reads `PrivateImageAsset`, the private Equipment Passport, or the full `PublicImageAsset` ledger model directly.
 4. Hide/remove revokes new delivery before or atomically with any asynchronous object cleanup. The public snapshot text/setup remains published unless a separate content workflow changes it.
 5. The owner-private original is never deleted, copied into moderation storage, exposed, or made readable to a moderator by an image action.
 6. `range_session_target`, WebP candidates, demo/sample data, stale candidates, and all non-`equipment_cover` sources remain ineligible.
 7. Report status and image availability are separate state machines. `reviewed`, `dismissed`, or `action_needed` never implicitly hides, restores, or removes an image.
-8. The current snapshot action conditionally revalidates the attached projection/asset and rejects a concurrent change. Preventing an older report from being used against a later already-attached replacement requires the deferred immutable report binding and exact-generation review flow.
+8. The current snapshot action conditionally revalidates the attached projection/asset and rejects a concurrent change. The report binding preserves which generation was reported, but preventing an old report card from being used to initiate an action against a later replacement still requires the deferred exact-generation review/action flow.
 9. Public and moderation failures are bounded and fail closed. Logs contain fixed event names and reason codes, not ids, keys, URLs, filenames, alt text, report details, profile data, or tokens.
 10. There is no fallback to a private image under any failure, missing-object, hidden, removed, private-account, or unpublished state.
 
-## Recommended report contract
+## Implemented report contract
 
 ### Public input
 
-Add a dedicated authenticated backend command rather than letting the browser construct a `public_image` Report row directly:
+The supported product flow uses a dedicated authenticated backend command rather than letting the browser construct a `public_image` Report row directly:
 
 ```text
-reportPublicPassportImage(
+createPublicImageReport(
   publicPassportSnapshotId,
   reason,
   optional bounded details
 )
 ```
 
-The command should derive reporter identity from Cognito and accept no reporter id, public image asset id, source id, owner id, key, URL, filename, or image bytes. Keep the existing reporter-owned model create path for existing non-image reports until it is intentionally migrated.
+The command derives reporter identity from Cognito and accepts no reporter id, public image asset id, source id, owner id, key, URL, filename, or image bytes. The existing reporter-owned model create path remains for non-image reports; manually created or historical unbound `public_image` rows are treated as legacy data rather than proof of a generation.
 
-Phase 2G.2 does not implement this command. Its constrained interim UI submits only the existing model fields: current Cognito reporter id, `targetType = public_image`, public snapshot id, allow-listed reason, normalized optional details, `status = open`, and creation time. It never obtains or submits an image asset id, key, path, URL, owner/source id, filename, target-photo data, or image bytes. This preserves privacy but does not establish immutable generation binding.
+Historically, Phase 2G.2 used a constrained direct model create and could not establish immutable generation binding. Phase 2G.5 replaced that product path. Those older rows remain clearly labeled legacy/unbound and continue through the metadata/status workflow.
 
-Server validation should:
+Server validation now:
 
 1. normalize and validate the persistent public snapshot id;
 2. verify the snapshot is public and currently projects one eligible image;
@@ -60,9 +60,9 @@ Server validation should:
 4. require `sourceType = equipment_cover`, lifecycle `status = ready`, moderation availability, canonical derivative path, and matching snapshot/asset fields;
 5. derive the authenticated reporter owner key and prevent caller-supplied identity;
 6. normalize a server allow-listed reason and bounded details; and
-7. create an idempotent report bound to both the safe public snapshot id and exact immutable image generation.
+7. transactionally create a report bound to both the safe public snapshot id and exact immutable image generation while updating `lastReportAt`.
 
-Return only a bounded result such as `submitted`, `already_reported`, `unavailable`, or `failed`, plus the reporter-owned report id only if the client needs it. Missing, hidden, removed, foreign, and malformed targets should share an unavailable response where practical so the action is not an existence oracle.
+The mutation returns only `submitted | failed` plus a bounded failure code and never returns a report id, asset id, key, or other internal identifier. Missing, hidden, removed, foreign, and malformed targets collapse to bounded unavailable/failure behavior so the action does not become an existence oracle. Durable duplicate suppression, idempotency, and rate limiting remain deferred.
 
 ### Report target identity
 
@@ -149,7 +149,7 @@ moderatePublicPassportImage(
 
 The action must be authorized directly to Cognito `admin`/`moderator` groups. Do not broaden `removePublicPassportImage`, impersonate the owner, or let normal users update moderation fields.
 
-The client sends the public snapshot id because current reports contain no protected generation binding. It must not send a report binding, asset id, owner id, source id, key, path, URL, filename, or image bytes. The backend resolves the current snapshot projection and current ledger asset, validates exact owner/source/alt/key agreement plus `ready + clear + equipment_cover`, derives the canonical derivative path, and uses conditional writes to reject concurrent changes.
+The moderation action client sends only the public snapshot id because the Phase 2G.4 action remains deliberately current-snapshot scoped even when the report has a protected generation binding. It must not send or consume that report binding, an asset id, owner id, source id, key, path, URL, filename, or image bytes. The backend resolves the current snapshot projection and current ledger asset, validates exact owner/source/alt/key agreement plus `ready + clear + equipment_cover`, derives the canonical derivative path, and uses conditional writes to reject concurrent changes.
 
 This remains deliberately narrower than an exact-generation action. Phase 2G.5 provides immutable report binding, but the UI still warns the reviewer to inspect the linked current public setup immediately before confirming. A stale report is not automatically associated with a replacement. A future phase must add an exact-generation safe projection/action plus a durable hold/audit workflow.
 
@@ -305,7 +305,7 @@ Do not store S3 keys, URLs, private candidate/source ids, filenames, alt text, i
 - **Implemented in Phase 2G.4:** show separate **Hide public image** and **Remove public image** controls on valid persistent public-image report cards only. The existing status selector stays independent.
 - **Implemented in Phase 2G.4:** require explicit confirmation and accept an optional 240-character owner-safe reason that rejects URLs/storage paths. **Remove** communicates deletion of only the processed derivative and preservation of the private original/text snapshot.
 - **Implemented in Phase 2G.4:** show applying, hidden, removed, not-attached, cleanup-pending, and failed states without raw errors or identifiers.
-- Reviewers must inspect the linked current public setup immediately before acting. After trusted binding exists, replace this convention with a purpose-built safe exact-generation projection/preview.
+- Reviewers must inspect the linked current public setup immediately before acting. The trusted report binding is implemented, but a purpose-built safe exact-generation projection/preview/action must replace this convention before report-bound moderation is claimed.
 - Do not add delete/suspend/private-record controls.
 
 ### Owner Public Preview
