@@ -1,10 +1,16 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import localFont from "next/font/local";
 import type { ReactNode } from "react";
 import { AppShell } from "@/components/AppShell";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = localFont({
+  src: "./fonts/InterVariable.woff2",
+  display: "swap",
+  weight: "100 900",
+  style: "normal",
+  fallback: ["Arial", "sans-serif"]
+});
 
 export const metadata: Metadata = {
   title: "UnifiedRange",
