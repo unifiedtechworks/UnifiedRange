@@ -232,7 +232,7 @@ A scheduled reconciler should detect and repair:
 - an asset whose account is private or source record is no longer eligible; and
 - abandoned processing/staging objects older than a bounded threshold.
 
-Orphan discovery may require tightly scoped list permission on the public derivative prefix. Give that permission only to the reconciler, not the public resolver, browser, or ordinary owner action. Reconciliation should never infer or expose a private path from a public key.
+The first reconciler must use trusted ledger/task indexes and exact Head/Delete calls, not live bucket listing or a table scan. If ledgerless-object discovery is later required, use protected S3 Inventory in a separate offline audit role and create reviewed exact-key tasks; do not grant `ListBucket` to the application reconciler, public resolver, browser, or ordinary owner action. Reconciliation must never infer or expose a private path from a public key. See [Phase 2H Public Image Reconciliation Plan](PUBLIC_IMAGE_PHASE_2H_RECONCILIATION_PLAN.md).
 
 ## Concurrency and rollback rules
 
@@ -316,9 +316,10 @@ Atomic prepare-and-cutover replacement remains a future option. The implemented 
 
 ### Phase 2F.5: lifecycle hooks and reconciliation
 
-- Integrate account-private and private-source deletion/replacement events.
-- Add durable retries, dead-letter handling, metrics, and scheduled orphan reconciliation.
-- Test missing records/objects and partially completed operations.
+- Follow the protected recovery architecture in [Phase 2H Public Image Reconciliation Plan](PUBLIC_IMAGE_PHASE_2H_RECONCILIATION_PLAN.md).
+- Start with one-snapshot-at-a-time admin reconciliation, then add protected cleanup tasks and a bounded exact-key worker.
+- Integrate account-private and private-source deletion/replacement events only after durable task and evidence-retention rules exist.
+- Keep hidden, possibly reported, legacy-unknown, ledgerless, and ambiguous generations out of automatic deletion.
 
 ### Phase 2F.6: image reporting and moderation
 
@@ -350,7 +351,7 @@ Atomic prepare-and-cutover replacement remains a future option. The implemented 
 
 ## Explicitly out of scope
 
-The current Phase 2F/2G.4 release does not implement:
+The current Phase 2F/2G.4 release does not implement (Phase 2H now documents the proposed recovery design only):
 
 - atomic prepare-and-cutover replacement, queues, streams, or scheduled reconciliation;
 - exact-generation moderator preview/action, durable cross-generation moderation holds, audit/notification, or lifecycle reconciliation;

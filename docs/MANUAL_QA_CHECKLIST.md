@@ -524,7 +524,7 @@ Account type: User B with disposable prepared public-image data, Visitor, and op
 - [ ] Confirm image-load failure or URL expiry removes the image quietly while the complete sanitized text detail remains usable and no technical error is shown.
 - [ ] Test narrow mobile widths and long safe alt text. Confirm the loading/image card never causes horizontal scrolling, and the caption remains readable.
 
-Phase 2F.1 provides the owner-authorized backend primitive, Phase 2F.2 wires its explicit owner-only Public Preview removal control, Phase 2F.3 composes cleanup with owner-scoped snapshot deletion for derivative-aware unpublish, and Phase 2F.4 composes cleanup with the existing consent/processor flow for remove-first replacement. Atomic replacement, account/private-source cleanup, durable reconciliation, and moderator hide/remove remain deferred. Follow [Phase 2F Public Image Lifecycle Cleanup Plan](PUBLIC_IMAGE_PHASE_2F_LIFECYCLE_CLEANUP_PLAN.md).
+Phase 2F.1 provides the owner-authorized backend primitive, Phase 2F.2 wires its explicit owner-only Public Preview removal control, Phase 2F.3 composes cleanup with owner-scoped snapshot deletion for derivative-aware unpublish, and Phase 2F.4 composes cleanup with the existing consent/processor flow for remove-first replacement. Phase 2G.4 provides current-snapshot moderator/admin Hide/Remove. Atomic replacement, account/private-source hooks, durable reconciliation, exact-generation moderation actions, and audit/holds remain deferred. Follow [Phase 2F Public Image Lifecycle Cleanup Plan](PUBLIC_IMAGE_PHASE_2F_LIFECYCLE_CLEANUP_PLAN.md) and [Phase 2H Public Image Reconciliation Plan](PUBLIC_IMAGE_PHASE_2H_RECONCILIATION_PLAN.md).
 
 ### Phase 2F.1 backend cleanup — run after backend redeploy
 
@@ -677,6 +677,22 @@ Phase 2F.1 provides the owner-authorized backend primitive, Phase 2F.2 wires its
 
 - [ ] Replace the current-snapshot review convention with an exact-generation safe projection/preview; confirm an old report cannot action a later replacement.
 - [ ] Add a durable cross-generation moderation hold, append-only audit, notification/appeal policy, and cleanup reconciliation before expanding image surfaces.
+
+### Future Phase 2H protected reconciliation — not runnable yet
+
+Follow [Phase 2H Public Image Reconciliation Plan](PUBLIC_IMAGE_PHASE_2H_RECONCILIATION_PLAN.md). These checks become runnable only after a separately requested backend implementation and redeploy.
+
+- [ ] Confirm the first operator action is admin-only in both AppSync and Lambda. Normal users, moderators, signed-out visitors, and API-key callers must not invoke it or read cleanup tasks/audit.
+- [ ] Confirm the request accepts only one persistent `publicPassportSnapshotId` plus an allow-listed `inspect | apply` mode. It must not accept a key, path, URL, asset/owner/source id, filename, image bytes, arbitrary destination, or private record identifier.
+- [ ] Retry owner and moderator `cleanup_pending` fixtures. Confirm the worker derives and deletes at most one exact canonical public derivative, treats a missing object as idempotent success, and conditionally clears the retained ledger key.
+- [ ] Confirm a current `ready + clear` derivative remains attached after client timeout and is never misclassified as an orphan.
+- [ ] Confirm an expired failed-processing rollback object is eligible only when it is unprojected and exact. A current processing lease must remain untouched.
+- [ ] Confirm a snapshot projection pointing to a missing, removed, or hidden generation is detached transactionally and the public page stays safely text-only with no private fallback.
+- [ ] Confirm hidden, possibly reported, legacy-missing moderation state, duplicate, malformed, ledgerless, and ambiguous generations return retained/manual-review and cause no object deletion.
+- [ ] Race reconciliation against replacement, removal, Unpublish, and moderation. A newer projection or lifecycle revision must make the stale action fail closed without deleting the new generation.
+- [ ] Confirm account-private and source-revoked hooks deny new delivery before cleanup, enqueue only trusted exact generations, and never republish when eligibility later returns.
+- [ ] Confirm the scheduled worker, when added, queries only protected due tasks with bounded batches/retries and uses no live bucket listing, table scan, wildcard delete, or private-prefix permission.
+- [ ] Inspect responses, operator UI, CloudWatch, metrics, task rows, and dead letters. Confirm no key, URL, snapshot/asset/owner/source id, filename, alt text, report content, profile data, token, or raw AWS error is exposed.
 
 ## 14. Public profiles
 

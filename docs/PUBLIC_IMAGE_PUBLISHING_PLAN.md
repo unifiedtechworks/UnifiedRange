@@ -172,7 +172,7 @@ Unpublishing a Public Passport must make its public image unavailable with the t
 3. Delete the public derivative through an idempotent backend cleanup job.
 4. Preserve the private original and its private record unless the owner separately deletes it through the private workflow.
 
-The same boundary applies to **Remove public image**, account-visibility changes to private, account lifecycle processing, and moderator removal. If object deletion is asynchronous, public authorization or delivery state must deny access immediately rather than relying solely on UI hiding. Scheduled reconciliation should remove orphan public objects and detect references to missing objects.
+The same boundary applies to **Remove public image**, account-visibility changes to private, account lifecycle processing, and moderator removal. If object deletion is asynchronous, public authorization or delivery state must deny access immediately rather than relying solely on UI hiding. [Phase 2H Public Image Reconciliation Plan](PUBLIC_IMAGE_PHASE_2H_RECONCILIATION_PLAN.md) recommends an admin-first hybrid: recover a known snapshot/generation through exact trusted state first, then add protected cleanup tasks and a bounded list-free worker. Hidden, possibly reported, legacy-unknown, ledgerless, and ambiguous generations must not be swept automatically.
 
 Deleting or replacing a private original should not silently leave an unmanaged public derivative. The product must clearly define whether the already-consented derivative remains published or is removed; the privacy-first default is to remove it and require a new explicit selection.
 
@@ -180,7 +180,7 @@ Deleting or replacing a private original should not silently leave an unmanaged 
 
 Public images must participate in reporting without exposing their private source:
 
-- Phase 2G.1 reserves `public_image` with the safe public snapshot id as `targetId` and a separate reporter-nonwritable immutable asset-generation binding. Phase 2G.2 provides the first supported detail-only report form but leaves that protected field unset. A future backend report command remains required before reports can safely drive image actions.
+- Phase 2G.1 reserves `public_image` with the safe public snapshot id as `targetId` and a separate reporter-nonwritable immutable asset-generation binding. Phase 2G.2 provides the first supported detail-only report form, and Phase 2G.5 now routes it through a trusted backend command that writes the exact current generation binding.
 - Let signed-in users report personal information, threats/harm, harassment, illegal hunting, unsafe content, sales/marketplace activity, or other policy violations.
 - Show admins/moderators the public derivative and report metadata only. Do not grant access to the private original through the moderation card.
 - Phase 2G.4 provides a separately group-authorized current-derivative hide/remove action without deleting the owner's private image. Append-only audit and exact reported-generation targeting remain future hardening.
@@ -226,11 +226,11 @@ Public-image reporting, metadata review, and current-derivative hide/remove now 
 - JPEG and PNG sources are decoded under stricter 6 MB, 12-megapixel, and dimension bounds; animated PNG, malformed data, mismatched metadata, WebP, and unsupported types fail closed. Valid input is auto-oriented, flattened, resized to at most 1600 pixels, and re-encoded as a JPEG no larger than 2 MB.
 - The processor uses pinned portable JavaScript image codecs to avoid architecture-specific native Lambda artifacts; decoded-byte limits, strict format inspection, and independent derivative inspection are required regardless of library choice.
 - The generated JPEG is independently inspected for dimensions and metadata-bearing JPEG segments before it can be attached. The destination is content-addressed and backend-generated under `public/passports/{snapshotId}/cover/`.
-- The destination path grants get/write/delete only to the processor. No guest, API-key, signed-in browser, moderator, or admin Storage access was added, so the derivative is not publicly deliverable today.
+- At the Phase 2C boundary, the destination path granted get/write/delete only to the processor. Phase 2E later added get-only resolver access; no guest, API-key, signed-in browser, moderator, or admin receives direct Storage access.
 - The processor alone may write the non-public `PublicImageAsset` ledger and guarded snapshot projection fields. Conditional/transactional writes prevent stale ownership or visibility state from being attached, and a newly written object is deleted if finalization fails.
 - Failure-state writes are bound to the exact active attempt, projection finalization compares the prior asset/key/alt state, and structured logs omit workflow IDs, identities, keys, filenames, URLs, tokens, and record content.
 - A developer-only script documented in [PHASE_2C_PROCESSOR_TESTING.md](PHASE_2C_PROCESSOR_TESTING.md) can invoke the deployed mutation using a short-lived matching Cognito ID token, the two opaque record IDs, optional alt text, and an exact confirmation phrase. It accepts no Storage key, destination, owner ID, or source record ID.
-- Hosted same-owner success and adversarial integration fixtures are still required. Phase 2F.1 provides explicit backend removal for the current derivative, Phase 2F.2 provides its owner-only Public Preview control, and Phase 2F.3 composes that cleanup with owner-scoped snapshot deletion for derivative-aware unpublish; superseded-derivative cleanup, replacement, and scheduled orphan reconciliation remain future lifecycle work.
+- Hosted same-owner success and adversarial integration fixtures are still required. Phase 2F.1 provides explicit backend removal for the current derivative, Phase 2F.2 provides its owner-only Public Preview control, Phase 2F.3 composes cleanup with owner-scoped snapshot deletion for derivative-aware unpublish, and Phase 2F.4 provides remove-first replacement. Protected orphan reconciliation remains planned in Phase 2H.
 
 ### Phase 2D: owner consent UI
 
@@ -269,6 +269,13 @@ Public-image reporting, metadata review, and current-derivative hide/remove now 
 - Exact-generation moderator projection/action, a cross-generation moderation hold, append-only audit, notification/appeal policy, and durable reconciliation remain unavailable. Legacy unbound reports stay reviewable/status-editable, and legacy assets without exact `moderationStatus = clear` fail closed for Phase 2G.4 until controlled backfill/reprocess.
 - Test unpublish, replacement, account-visibility changes, account lifecycle behavior, cache invalidation, and orphan cleanup.
 - Consider Discover/public profile rendering only after detail delivery, lifecycle, accessibility, and moderation tests pass.
+
+### Phase 2H: protected orphan reconciliation planning
+
+- Planning is documented in [PUBLIC_IMAGE_PHASE_2H_RECONCILIATION_PLAN.md](PUBLIC_IMAGE_PHASE_2H_RECONCILIATION_PLAN.md); no runtime, schema, storage, IAM, schedule, or UI change exists yet.
+- Recommended first implementation is an admin-only, one-snapshot `inspect/apply` action that re-derives trusted ledger state and can delete at most one exact canonical public derivative.
+- Add protected cleanup tasks, bounded retries, metrics, dead-letter handling, and a list-free worker only after the manual classifier and report/evidence hold rules are validated.
+- Keep hidden, possibly reported, legacy-unknown, ledgerless, and ambiguous generations out of automatic deletion. Target photos and private originals remain completely outside reconciliation.
 
 ### Phase 5: release gates
 

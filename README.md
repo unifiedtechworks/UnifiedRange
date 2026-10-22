@@ -108,6 +108,8 @@ Phase 2G.1 reserves `public_image`, a reporter-nonwritable immutable asset-gener
 
 Phase 2G.5 replaces the interim direct public-image report create with `createPublicImageReport`. The signed-in browser sends only the public snapshot id, allow-listed reason, and bounded optional details. Raw and normalized details are both capped at 500 characters. Before submission, the detail UI re-resolves delivery and stops if the rendered generation changed or disappeared. The Lambda then derives reporter identity and the exact current `ready + clear + equipment_cover` generation, revalidates the public snapshot/source/profile graph, and transactionally writes `Report.publicImageAssetId` plus `PublicImageAsset.lastReportAt`. Concurrent replacement, removal, unpublish, or visibility changes during backend validation/commit fail closed. Existing rows without a binding remain reviewable legacy/unbound reports, while malformed bindings are shown as unrecognized and never trusted. The Phase 2G.4 action is still current-snapshot scoped, so reviewers must inspect the current public setup before acting; exact-generation preview/action, cross-generation holds, audit, notifications, and lifecycle reconciliation remain unimplemented. Moderators have no broad image-ledger, private-record, or private-original access. See [Phase 2G Public Image Moderation Plan](docs/PUBLIC_IMAGE_PHASE_2G_MODERATION_PLAN.md).
 
+Phase 2H is a docs-only protected reconciliation plan for non-deliverable orphan derivatives and incomplete cleanup. It recommends an admin-only, one-snapshot `inspect/apply` action first, then protected cleanup tasks and a bounded list-free worker. Hidden, possibly reported, legacy-unknown, ledgerless, and ambiguous generations fail closed for manual review; no reconciler, schedule, new schema, IAM grant, or product UI exists yet. See [Phase 2H Public Image Reconciliation Plan](docs/PUBLIC_IMAGE_PHASE_2H_RECONCILIATION_PLAN.md).
+
 Public API snapshot reads now use an explicit sanitized selection and cannot read `coverPhotoUrl`, `publicImageAssetId`, `publicImageKey`, or `publicImageAltText` through generated model operations. Public detail obtains only a short-lived processed derivative URL and safe alt text from `resolvePublicPassportImage`; no raw image key or generation id is returned publicly.
 
 The moderation client explicitly uses Cognito user-pool authorization, while AppSync and the Lambda independently enforce `admin`/`moderator` membership. Hide preserves the processed derivative but stops new resolver delivery. If the owner later unpublishes that detached snapshot before moderator Remove, the action fails closed rather than guessing an old generation; the derivative remains non-deliverable and awaits protected reconciliation. Remove/finalization failures after detachment return bounded retry-safe cleanup state, never raw AWS details.
@@ -504,7 +506,7 @@ The hosted-development web app uses:
 - Domain types in `src/types`
 - Responsive app navigation for dashboard, passports, projectiles/ammo, optics/sights, range sessions, maintenance, hunting readiness, discovery, and settings
 
-The live backend boundary covers Cognito auth, owner-scoped records, private S3 images, owner-only private image candidates with trusted source verification, sanitized public snapshots, public identity snapshots, social actions, detail-only processed public-image delivery, generation-bound public-image reporting, owner image lifecycle controls, and group-gated report/public-image moderation. Broader public-image surfaces, exact-generation moderation actions, durable moderation audit/holds, account lifecycle execution, and secure username sign-in remain planned work.
+The live backend boundary covers Cognito auth, owner-scoped records, private S3 images, owner-only private image candidates with trusted source verification, sanitized public snapshots, public identity snapshots, social actions, detail-only processed public-image delivery, generation-bound public-image reporting, owner image lifecycle controls, and group-gated report/public-image moderation. Protected orphan reconciliation is planned but not implemented. Broader public-image surfaces, exact-generation moderation actions, durable moderation audit/holds, account lifecycle execution, and secure username sign-in remain planned work.
 
 ## Project Docs
 
@@ -522,7 +524,8 @@ Start here:
 10. `docs/AMPLIFY_HOSTING_DEPLOYMENT.md`
 11. `docs/PUBLIC_IMAGE_PUBLISHING_PLAN.md`
 12. `docs/PUBLIC_IMAGE_BACKEND_DESIGN.md`
-13. `docs/ACCOUNT_DATA_LIFECYCLE_PLAN.md`
-14. `docs/USERNAME_SIGN_IN_PLAN.md`
-15. `docs/FEATURE_BACKLOG.md`
-16. `tasks/001-project-bootstrap.md`
+13. `docs/PUBLIC_IMAGE_PHASE_2H_RECONCILIATION_PLAN.md`
+14. `docs/ACCOUNT_DATA_LIFECYCLE_PLAN.md`
+15. `docs/USERNAME_SIGN_IN_PLAN.md`
+16. `docs/FEATURE_BACKLOG.md`
+17. `tasks/001-project-bootstrap.md`

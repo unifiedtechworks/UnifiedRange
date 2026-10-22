@@ -363,9 +363,10 @@ Do not store S3 keys, URLs, private candidate/source ids, filenames, alt text, i
 
 ### Phase 2G.6: lifecycle cleanup and audit hardening
 
-- Add append-only action audit, idempotency, durable retries, metrics, dead-letter handling, and owner-safe status/notification planning.
-- Reconcile missing objects, stale projections, superseded assets, and incomplete cleanup without private-source access.
-- Define retention/quarantine/appeal policy before retaining processed image evidence.
+- Follow [Phase 2H Public Image Reconciliation Plan](PUBLIC_IMAGE_PHASE_2H_RECONCILIATION_PLAN.md) for the recommended admin-first hybrid recovery architecture.
+- Add append-only action audit, idempotency, protected cleanup tasks, durable retries, metrics, and dead-letter handling without private-source access.
+- Reconcile missing objects, stale projections, superseded assets, and incomplete cleanup only when one exact generation is proven.
+- Retain hidden, possibly reported, legacy-unknown, and ambiguous generations until retention/quarantine/appeal policy and a protected report hold are defined.
 
 ### Phase 2G.7: consider Discover card images
 

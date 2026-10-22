@@ -1,0 +1,304 @@
+# Phase 2H Protected Public Image Reconciliation Plan
+
+## Status and scope
+
+Phase 2H is a planning-only release for protected recovery of processed public equipment-cover derivatives. It does not add a schema, Lambda, schedule, storage rule, API, or user-facing control.
+
+The current product already fails closed for public delivery: the resolver issues a short-lived URL only when the published snapshot, its projected image generation, the `PublicImageAsset` ledger row, source eligibility, account visibility, moderation state, canonical key, and S3 object all agree. Owner removal, derivative-aware Unpublish, replacement, and moderator Remove detach delivery before attempting object deletion. Those controls can therefore leave a non-deliverable derivative that still needs exact cleanup after a timeout or partial failure.
+
+Phase 2H must recover those objects without broadening public access, reading private originals, guessing across image generations, or weakening generation-bound report and moderation evidence.
+
+## Current implementation facts
+
+- Public derivatives use the canonical form `public/passports/{publicPassportSnapshotId}/cover/{publicImageAssetId}.jpg`.
+- `PublicImageAsset.id` is already the immutable image-generation identifier. A second generation field is not required for the first reconciliation release.
+- `PublicImageAsset` has an index named `publicImageAssetsBySnapshotId`, so a protected service can look up ledger rows for one known snapshot without scanning the table.
+- The processor uses a five-minute processing lease, writes the S3 object before the DynamoDB finalization transaction, and attempts an exact-key rollback delete if finalization fails.
+- Owner Remove and moderator Remove detach the snapshot projection and mark the matched ledger generation `removed` before exact-key deletion. They retain the canonical key only while cleanup needs a retry.
+- Moderator Hide detaches delivery and intentionally retains the processed derivative with `moderationStatus = hidden` for a later explicit Remove or retention decision.
+- New public-image reports bind to one immutable `PublicImageAsset` generation and update `lastReportAt`. Report workflow status remains independent from image availability.
+- Browsers and API-key callers have no direct Storage grant for the public derivative namespace. The resolver can read only processed public derivatives; cleanup functions can delete only from the public cover prefix.
+- Target photos and private source paths remain outside the public image pipeline.
+
+## Threat model and non-negotiable invariants
+
+The reconciler is a destructive storage operator. A false positive could delete the current public derivative or erase retained moderation evidence. The design therefore follows these rules:
+
+1. No public or API-key authorization. The first operator action should be `admin` only, with a second group check inside the Lambda. Ordinary users and moderators must not receive a general orphan-cleanup tool.
+2. Accept only a normalized persistent `publicPassportSnapshotId` plus a bounded operation mode such as `inspect` or `apply`. Do not accept keys, paths, URLs, owner IDs, source IDs, filenames, image bytes, arbitrary asset IDs, or destination values from a client.
+3. Re-read the snapshot and all candidate ledger rows from trusted tables on every attempt. Never trust a prior UI result when applying a cleanup.
+4. Derive the only deletable key from the trusted snapshot ID and immutable ledger asset ID, then require exact equality with any stored key.
+5. Operate on one snapshot and, when safe, one exact generation per request. Never issue a wildcard or multi-generation delete.
+6. Use conditional or transactional writes so a newer replacement, moderation transition, or projection change wins over a stale reconciliation attempt.
+7. Detach a stale or invalid projection before deleting an object. If detachment fails, do not delete.
+8. Treat a missing object as idempotent cleanup success only after the trusted binding and lifecycle state are established.
+9. Do not read, head, copy, list, or delete `private/equipment/`, `private/targets/`, `PrivateImageAsset.storageKey`, or any private original.
+10. Do not automatically delete a hidden generation, a generation with possible report evidence, an unknown/legacy moderation state, or an ambiguous duplicate. Return a bounded `manual_review` outcome.
+11. Reconciliation can make an image non-deliverable or finish deletion. It must never restore, republish, unhide, or attach an image.
+12. Do not expose internal identifiers or existence-sensitive differences in public UI, API responses, logs, metrics, or notifications.
+
+## Recovery cases and required outcomes
+
+| Case | Trusted checks | Safe Phase 2H outcome |
+| --- | --- | --- |
+| Snapshot is detached but a `removed` ledger row retains its canonical key | One exact row for the snapshot; `equipment_cover`; key matches canonical path; no current projection | Head/delete the exact object, treat missing as success, conditionally clear the ledger key/alt-text copy, and record a bounded completed outcome. |
+| Owner or moderator action returned `cleanup_pending` | Same checks as above, plus current removed state and expected moderation state | Retry idempotently. Never reattach the projection or repeat a delete against a different generation. |
+| Hidden derivative remains after snapshot unpublish | One `ready + hidden` generation; snapshot absent or detached | Keep delivery unavailable and retain the derivative by default. Return `retained_moderation_hold`; only a future explicit admin retention/removal policy may purge it. |
+| Snapshot fields point to a missing derivative | Projection and ledger agree on one current generation; exact `HeadObject` returns missing | Conditionally detach the projection, mark the generation non-deliverable/removed under the future lifecycle contract, and preserve the sanitized text snapshot. Do not fall back to a private source. |
+| Public object remains after snapshot projection was detached | Exactly one clear, removed, failed, or expired generation can be proved from trusted state | Delete only when the state table below permits it. Hidden/reported/unknown generations are retained for review. |
+| `PublicImageAsset` exists but its snapshot was unpublished/deleted | Lookup by known snapshot ID returns exact rows; no snapshot projection exists | Remove an unreported clear current/stale object when the generation is unambiguous. Retain hidden or potentially reported generations; fail closed on multiple live candidates. |
+| Snapshot is public but account or Equipment Passport is private/ineligible | Re-read the authoritative profile/source records through attribute-limited access | Detach delivery immediately. Queue exact cleanup for eligible clear generations; retain hidden/reported generations for policy review. Returning the account/source to public never republishes automatically. |
+| Private original was deleted or replaced | Trusted source event supplies the affected private source record; public binding is re-derived server-side | Detach every exact public generation bound to the source. Delete safe clear/unreported derivatives; preserve report/moderation evidence according to policy. Never touch another private original. |
+| Processor wrote S3 but finalization failed | A failed or expired `processing` ledger row deterministically derives the exact key; it is not projected; processing lease is stale | Head/delete only that exact object, then conditionally settle the ledger. A current processing lease is left alone. |
+| Processor finalized successfully but client timed out | Snapshot and ledger still agree on `ready + clear`, and the object exists | No cleanup. This is an eligible current derivative, not an orphan. |
+| Public object exists with no ledger row | Only an inventory record or manual observation exists | Do not delete in the application action. Classify as `unproven_object` for later protected inventory review; there is no trusted generation binding. |
+| Ledger exists but public object is missing | Exact trusted row exists; no object; generation is projected or otherwise active | Detach if projected, settle the generation as non-deliverable, and finish without S3 deletion. |
+| Stale remove-first replacement generation remains | Old row belongs to the same snapshot and is not the current projection | Delete only if it is clear/unreported and unambiguous. Retain if hidden, possibly reported, legacy-unknown, or subject to a hold. |
+| Interrupted moderation action | Re-read projection plus `status` and `moderationStatus` | `hidden` stays retained; `removed` with a canonical key retries deletion; `removed` without a key is already complete; inconsistent state goes to manual review. |
+| Multiple or ambiguous generations | More than one plausible current/cleanup candidate, truncated index result, malformed binding, or conflicting projection | Do not detach or delete. Return `manual_review` and require protected investigation. |
+| Legacy row lacks moderation or generation-era fields | State cannot be proven under current rules | Do not infer `clear`. Require controlled backfill/reprocess or manual review before cleanup. |
+| Future account deletion | Account lifecycle orchestrator enumerates trusted public snapshots/assets before deleting identity/profile state | Revoke delivery and settle public derivatives before deleting the records needed to prove ownership/binding. Retain minimum report/audit evidence required by policy. Account deletion must not start a bucket scan. |
+
+### State-based deletion decision
+
+- `removed` with a canonical retained key: safe exact retry when the binding is unambiguous.
+- `failed` or expired `processing`: safe only when the object key is deterministically derived, the generation is not projected, and no evidence/hold applies.
+- `ready + clear` but no longer referenced: safe only after confirming the snapshot is absent/detached or points to a different generation, account/source eligibility does not require a different transition, and no report/hold applies.
+- `ready + hidden`: retain. Hidden is a moderation hold, not a cleanup request.
+- `removed + moderationStatus = removed`: safe exact retry under the same canonical checks.
+- missing/unknown `moderationStatus`: retain for controlled migration or manual review.
+- any target-photo-like source, non-`equipment_cover` source, malformed key, foreign binding, or ambiguous set: reject without storage mutation.
+
+`lastReportAt` is a conservative evidence signal, not a complete report index. Its presence is enough to retain a generation in the first release, but its absence is not sufficient for automated deletion once legacy reports are considered. A later protected report-by-generation index or cleanup hold is required before scheduled cleanup can make evidence-aware decisions at scale.
+
+## Architecture options
+
+### Option A: manual protected admin action
+
+A group-gated custom AppSync action accepts one snapshot ID and performs an `inspect` or explicit `apply` operation. The Lambda queries the snapshot index, re-reads each primary ledger row, derives canonical keys, and returns only a bounded classification/outcome.
+
+Advantages:
+
+- smallest blast radius and easiest behavior to inspect;
+- reuses the current snapshot index and exact-key lifecycle rules;
+- needs no bucket listing or broad table scan; and
+- works for known `cleanup_pending`, unpublished, hidden, and failed-processor cases.
+
+Limitations:
+
+- requires an operator to know the snapshot ID;
+- cannot safely discover ledgerless S3 objects; and
+- does not provide durable retries by itself.
+
+### Option B: scheduled or manually invoked protected worker
+
+A backend-only worker consumes durable cleanup tasks and periodically processes a bounded batch. It can retry transient failures and enforce retention windows without user involvement.
+
+Advantages:
+
+- durable retries, metrics, dead-letter handling, and eventual cleanup;
+- natural integration point for account-private, private-source, moderation, processor, and account-deletion events; and
+- no need for an operator to repeat routine cleanup.
+
+Limitations:
+
+- requires a protected task/audit model or queue, lifecycle indexes, retention policy, and more IAM;
+- a scheduler without trusted tasks would encourage scans; and
+- automatic deletion is unsafe until report holds and legacy state are resolved.
+
+### Option C: hybrid, recommended
+
+Implement a narrow admin-only manual reconciler first, then add durable protected tasks and a bounded worker. Keep truly unproven or evidence-sensitive cases manual.
+
+This sequence is recommended because it makes known cleanup failures recoverable without granting `ListBucket`, adding a bulk delete path, or inventing policy for hidden/reported generations. The same classification and conditional-transition library can later power a worker, reducing behavior drift.
+
+## Recommended command contract
+
+The first backend action should conceptually be:
+
+```text
+reconcilePublicPassportImage(
+  publicPassportSnapshotId,
+  mode: inspect | apply
+) -> status + bounded reason
+```
+
+The exact GraphQL names are a future implementation choice. The contract should enforce:
+
+- Cognito user-pool authorization with `admin` group authorization in AppSync and repeated inside the Lambda;
+- a normalized persistent snapshot ID only; reject demo/sample values;
+- no browser-supplied asset ID in the first release—the trusted snapshot index resolves generations;
+- no key, URL, owner/source ID, filename, image data, retention flag, or arbitrary action path;
+- `inspect` performs no mutations and returns only allow-listed state such as `clean`, `cleanup_ready`, `retained_hold`, `missing_object`, `manual_review`, or `unavailable`;
+- `apply` re-reads and reclassifies instead of trusting the prior inspection;
+- one exact conditional transition and at most one exact object delete;
+- bounded outcomes such as `completed`, `already_complete`, `cleanup_pending`, `retained_hold`, `manual_review`, and `failed`; and
+- no echo of identifiers or infrastructure detail in the result.
+
+If later operator workflows need an asset-generation input, it must come from a protected server-created cleanup task or opaque single-use action token, not a freely editable browser field. The backend must still derive and verify the canonical key.
+
+## Durable task and data-model plan
+
+No schema change is made in Phase 2H planning. The current `removed` state plus a retained canonical ledger key is sufficient for known manual retries.
+
+Before scheduled cleanup, prefer a new backend/admin-only `PublicImageCleanupTask` instead of placing operational details on the owner-readable `PublicImageAsset`. Candidate fields are:
+
+- opaque task ID;
+- protected snapshot and immutable public asset generation bindings;
+- allow-listed cause (`owner_remove`, `moderator_remove`, `unpublish`, `replacement`, `account_private`, `source_revoked`, `processor_rollback`, `account_delete`, `reconciliation`);
+- status (`pending`, `in_progress`, `retry_wait`, `complete`, `retained_hold`, `manual_review`, `failed`);
+- expected lifecycle/moderation revision or condition token;
+- bounded attempt count and next-attempt time;
+- last-attempt/completed timestamps;
+- bounded failure code; and
+- retention/hold classification without user content.
+
+Useful indexes would be status plus next-attempt time for the worker and snapshot ID for operator inspection. A protected append-only `PublicImageCleanupAudit` can later record actor class, action, prior/result state, bounded reason/outcome, and timestamp. It must not store keys, URLs, filenames, alt text, private identifiers, report details, or tokens.
+
+Current fields should be interpreted as follows:
+
+- `PublicImageAsset.id` is the generation ID; do not duplicate it merely for naming.
+- `publicImageKey` may remain temporarily only on a non-deliverable removed row while exact deletion needs retry, then must be cleared.
+- `processingErrorCode` remains a bounded processing/cleanup-facing code; do not overload it with operator notes.
+- `lastReportAt` is a conservative retain signal, not a durable moderation hold or cleanup decision.
+- `hiddenAt`, `removedAt`, and `moderationStatus` remain moderation/lifecycle evidence and must not be cleared by a generic reconciler.
+
+Adding the protected task/audit models, indexes, or lifecycle fields later will be a schema/backend change requiring sandbox and hosted Amplify redeployment.
+
+## Detection without broad listing or deletion
+
+The recommended discovery order is:
+
+1. Synchronous lifecycle commands create a protected cleanup task when exact S3 deletion/finalization cannot complete.
+2. Trusted data-change hooks enqueue tasks for account-private, source revocation, snapshot deletion, and future account deletion.
+3. The worker queries only due tasks through a purpose-built index, processes a small bounded page, and checkpoints each result.
+4. The admin action handles a known snapshot on demand using `publicImageAssetsBySnapshotId`.
+5. A later offline inventory audit may compare S3 Inventory output for the public derivative prefix with protected ledger exports to find objects that have no ledger row.
+
+The first implementation must not call `ListObjectsV2` or perform a DynamoDB table scan. If ledgerless-object discovery becomes necessary, use S3 Inventory delivered to a separate protected operations location, validate every key against the exact canonical grammar, and require manual approval or a trusted generated task before deletion. Never grant the application UI or public resolver access to inventory data.
+
+## Least-privilege IAM plan
+
+### Manual admin reconciler
+
+- AppSync invocation limited to Cognito `admin`; Lambda independently validates the group claim.
+- DynamoDB `GetItem` on `PublicPassportSnapshot` with only projection/lifecycle fields needed for conditions.
+- DynamoDB `Query` only on `publicImageAssetsBySnapshotId`, initially projecting only IDs, followed by attribute-limited primary `GetItem` reads.
+- Conditional `UpdateItem`/`TransactWriteItems` only for snapshot projection fields and the matched ledger lifecycle/key fields.
+- Optional attribute-limited reads of public profile, Equipment Passport eligibility, and future report/cleanup-hold projection when required by classification.
+- S3 `GetObject` only as needed for exact `HeadObject` semantics and `DeleteObject` only under `public/passports/*/cover/*.jpg`.
+- No `s3:ListBucket`, `PutObject`, copy, ACL, bucket-policy, private-prefix, `PrivateImageAsset`, or Cognito mutation permissions.
+
+### Scheduled worker
+
+- Backend-only invocation from EventBridge/SQS or an equivalent protected trigger; no AppSync/public route is required.
+- Read/update only due protected cleanup tasks and exact referenced snapshot/asset records.
+- The same exact public-prefix Head/Delete boundary as the manual action.
+- Bounded concurrency, batch size, runtime, retry count, and dead-letter destination.
+- No bucket listing. If a later inventory-analysis role is introduced, keep it separate from the delete worker and from application roles.
+
+IAM narrows the resource boundary, while application checks narrow the exact object. Because the IAM public-prefix ARN can include many snapshots, the Lambda must require the exact canonical path derived from trusted record IDs before every Head/Delete.
+
+## Idempotency, concurrency, and retry rules
+
+- Derive an idempotency key from operation, snapshot, immutable asset generation, and expected lifecycle revision. Do not accept it from a browser.
+- Repeated cleanup after successful deletion returns `already_complete`; S3 missing-object behavior is success after binding validation.
+- A current projection, newer `updatedAt`, different asset generation, renewed processing lease, changed moderation state, or changed hold status cancels the stale attempt.
+- Detachment and lifecycle-state changes use one DynamoDB transaction. S3 deletion follows only after commit.
+- Final ledger key clearing is conditional on the same generation and retained key. Failure leaves a retryable non-deliverable row rather than restoring delivery.
+- Worker retries use bounded exponential backoff with jitter. Exhausted tasks enter `manual_review`/dead-letter state rather than looping forever.
+- Only one task for the same asset generation may be active; duplicate events converge on the same task/idempotency identity.
+- Reconciliation must never delete a newly attached replacement just because it shares a snapshot prefix.
+
+## Interactions with existing workflows
+
+### Owner remove, Unpublish, and replacement
+
+Existing controls continue to detach first and return `cleanup_pending` when exact deletion or finalization fails. A future hook creates a protected cleanup task before an image-bearing snapshot is deleted. Remove-first replacement never waits for an orphan retry to make the old image deliverable; the old generation remains detached while the new generation goes through fresh consent and processing.
+
+### Moderator hide/remove and reports
+
+Hide remains a deliberate retention state. Reconciliation may repair a stale snapshot projection that still points to hidden content, but it does not delete the hidden object. Moderator Remove and owner Remove may create the same kind of exact cleanup task after detachment.
+
+Generation-bound report rows remain intact after image removal. A report status change never triggers cleanup. Until there is a protected report-by-generation lookup and explicit retention policy, `lastReportAt` or an unknown legacy report state forces retention/manual review. The reconciler does not change `Report.status`, report content, or moderation reasons.
+
+### Account visibility and source eligibility
+
+The authoritative private setting is persisted first, so the public resolver fails closed immediately. A backend hook then enumerates trusted snapshots/assets through purpose-built indexes and enqueues cleanup. Making the account or Equipment Passport public again does not restore a derivative; the owner must repeat consent and processing.
+
+### Private original deletion/replacement
+
+The private operation must emit a trusted source-revocation event before discarding the binding needed to find public generations. Public derivative cleanup never reads or deletes the private original. A missing private source is not a reason to derive a private path from public data.
+
+### Account deletion/export
+
+Account deletion must revoke and enqueue public derivatives before deleting UserProfile, snapshots, or ledger bindings. It may wait for bounded cleanup completion or retain protected tasks/audit under the documented legal/moderation policy. Export may describe public-image lifecycle state in safe metadata, but must not include signed URLs, public/private keys, operator notes, or another user's report data.
+
+## Observability and operator safety
+
+Use fixed event names and bounded fields only:
+
+- operation (`inspect`, `detach`, `head`, `delete`, `finalize`);
+- outcome/failure code;
+- duration bucket;
+- retry count bucket; and
+- aggregate task counts by safe status.
+
+Do not log or use as metric dimensions snapshot IDs, asset IDs, owner/source IDs, keys, URLs, filenames, alt text, report text/reasons, usernames, profile data, tokens, or object metadata. CloudWatch alarms should cover growing pending/manual-review/dead-letter counts, repeated storage-delete failures, and worker invocation failures without exposing record identity.
+
+The future operator UI should show only a shortened public snapshot reference already permitted in moderation, bounded state, last-attempt time, and safe action copy. It must not render the derivative, ledger, key, URL, source/private record, owner identity, or report contents. Destructive apply requires explicit confirmation and a fresh server recheck.
+
+## Recommended implementation phases
+
+### Phase 2H.1: protected manual reconciliation
+
+- Add admin-only `inspect/apply` reconciliation for one persistent public snapshot ID.
+- Reuse a shared classifier/canonical-key validator across the manual action and future worker.
+- Support deterministic removed/cleanup-pending retry, missing-object projection repair, and expired failed-processing rollback cases.
+- Retain hidden, possibly reported, legacy, ledgerless, and ambiguous cases for manual policy review.
+- Add developer sandbox harness and adversarial fixtures; no user-facing product control.
+
+### Phase 2H.2: durable cleanup tasks and worker
+
+- Add protected cleanup task/audit storage, due-task index, lifecycle hooks, bounded scheduled/SQS worker, retries, metrics, and dead-letter handling.
+- Enqueue from owner/moderator cleanup, processor rollback failure, Unpublish, replacement, account-private, source revocation, and future account deletion.
+- Keep the worker list-free and exact-key only.
+
+### Phase 2H.3: evidence and legacy policy
+
+- Add a protected report-by-generation lookup or durable hold.
+- Define hidden/report evidence retention, expiration, appeal, and legal requirements.
+- Backfill legacy moderation state under controlled tooling; do not infer `clear` from absence.
+- Add a protected exact-generation moderator review/removal path before allowing automated cleanup of reported generations.
+
+### Phase 2H.4: inventory audit for ledgerless objects
+
+- Use protected S3 Inventory and an offline comparison, not live application listing.
+- Create review tasks for canonical unmatched objects.
+- Require a trusted binding or explicit operator approval before exact deletion.
+
+### Phase 2H.5: release validation
+
+- Run owner, moderator, admin, signed-out, API-key, concurrent replacement, account-private, source-revoked, missing-object, ambiguous-generation, legacy-row, retry, and dead-letter tests.
+- Verify no cleanup path reads/deletes private prefixes or makes a hidden/reported image public.
+- Verify current replacement wins over stale reconciliation and all issued delivery URLs expire within the existing 60-second bound.
+- Keep Discover/public-profile rendering deferred until lifecycle recovery and moderation gates pass.
+
+## Future QA checklist
+
+- [ ] A normal signed-in user, moderator, signed-out visitor, and API-key caller cannot invoke the admin reconciler or read cleanup tasks/audit.
+- [ ] `inspect` and `apply` accept only one persistent snapshot ID plus an allow-listed mode and return no key, URL, asset/owner/source ID, filename, alt text, or raw error.
+- [ ] Known owner/moderator `cleanup_pending` fixtures converge to completed cleanup; already-missing objects are idempotent success.
+- [ ] A current ready derivative is never classified as an orphan after a client timeout.
+- [ ] An expired processor rollback object can be removed only when it is unprojected and exact; a current lease is untouched.
+- [ ] Hidden, reported, legacy-unknown, duplicate, malformed, ledgerless, and ambiguous cases remain retained/manual-review.
+- [ ] Snapshot projection to a missing/removed/hidden asset is detached conditionally and public detail becomes safely text-only.
+- [ ] Private account/source revocation prevents new delivery before cleanup and never republishes after visibility is restored.
+- [ ] A concurrent replacement or moderation transition makes stale reconciliation fail closed without deleting the new generation.
+- [ ] Worker retries are bounded, duplicate tasks are idempotent, and dead-letter/manual-review paths do not loop.
+- [ ] IAM has no private-prefix, public write, bucket-list, broad scan, Cognito mutation, or browser/API-key cleanup access.
+- [ ] Logs, metrics, task UI, and mutation responses contain no sensitive or internal identity/storage values.
+
+## Explicitly out of scope
+
+This planning release does not implement reconciliation, cleanup Lambdas, schedules, queues, models, indexes, audit records, UI, storage changes, or IAM changes. It does not add Discover/public-profile images, target-photo publishing, public galleries, feeds/follows, marketplace behavior, destructive account deletion, or any calculator, scope output, hold recommendation, field correction, sight-in instruction, or aiming guidance.

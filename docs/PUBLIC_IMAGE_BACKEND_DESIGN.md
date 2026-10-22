@@ -2,7 +2,7 @@
 
 ## Status
 
-Phase 1 data guardrails were added on August 5, 2026. Phase 2A private source registration, Phase 2B trusted private source verification, and the Phase 2C backend derivative foundation were added on August 9, 2026. Phase 2D owner consent UI was added on August 18, 2026. Phase 2E.1 adds the backend-only `resolvePublicPassportImage` delivery query, and Phase 2E.2 adds detail-only rendering through that resolver. Phase 2F adds owner cleanup, derivative-aware Unpublish, and remove-first replacement. Phase 2G.1 adds moderation/report schema contracts and delivery enforcement, Phase 2G.2 adds detail-only image reporting, Phase 2G.3 adds metadata-only review, and Phase 2G.4 adds a separately group-authorized current-derivative hide/remove mutation. The schema contains a non-public, client-read-only `PublicImageAsset` workflow ledger, backend-reserved public snapshot projection fields, an owner-only `PrivateImageAsset` candidate registry, verification/processing/cleanup/moderation operations, and a public-safe delivery resolver.
+Phase 1 data guardrails were added on August 5, 2026. Phase 2A private source registration, Phase 2B trusted private source verification, and the Phase 2C backend derivative foundation were added on August 9, 2026. Phase 2D owner consent UI was added on August 18, 2026. Phase 2E.1 adds the backend-only `resolvePublicPassportImage` delivery query, and Phase 2E.2 adds detail-only rendering through that resolver. Phase 2F adds owner cleanup, derivative-aware Unpublish, and remove-first replacement. Phase 2G.1 adds moderation/report schema contracts and delivery enforcement, Phase 2G.2 adds detail-only image reporting, Phase 2G.3 adds metadata-only review, Phase 2G.4 adds a separately group-authorized current-derivative hide/remove mutation, and Phase 2G.5 binds new reports to the exact generation. Phase 2H is currently a docs-only plan for protected orphan reconciliation; no reconciler, schedule, task model, or new permission exists yet. The schema contains a non-public, client-read-only `PublicImageAsset` workflow ledger, backend-reserved public snapshot projection fields, an owner-only `PrivateImageAsset` candidate registry, verification/processing/cleanup/moderation operations, and a public-safe delivery resolver.
 
 Phase 2E.2 renders one eligible processed equipment-cover derivative on a saved Public Passport detail page. The component supplies only the route's snapshot ID to Phase 2E.1 and receives a 60-second non-cacheable URL only after the public snapshot, ready asset, allowed moderation state, Equipment Passport public flag, account visibility, safe alt text, exact derivative path, and S3 object all agree. The derivative namespace remains unreadable directly through Amplify Storage; the processor can read/write/delete, the resolver can read, and the cleanup Lambda can delete only the public derivative prefix. Owner removal, derivative-aware Unpublish, and remove-first replacement are available only in Public Preview. Discover/profile rendering, target-photo processing, atomic replacement, and automatic publishing remain unavailable.
 
@@ -531,7 +531,7 @@ Phase 2G.4 implements separate authorization, detach-first revocation, private-s
 | Public delivery object disappears unexpectedly | Public page renders no image; reconciliation marks the asset inconsistent and alerts operators. Never use private fallback. |
 | Cleanup job repeatedly fails | Send to DLQ/alert, retain non-public cleanup metadata, and keep the public projection detached. |
 
-Use a scheduled reconciliation job to compare approved projections with public objects and to remove expired staging objects and orphan derivatives. Avoid bucket-wide scans when a ledger-driven query can provide the candidate keys.
+Use the staged architecture in [Phase 2H Public Image Reconciliation Plan](PUBLIC_IMAGE_PHASE_2H_RECONCILIATION_PLAN.md): an admin-only one-snapshot reconciler first, protected cleanup tasks and a bounded worker second, and a separate S3 Inventory audit only if ledgerless-object discovery is eventually required. The application worker should query trusted tasks/indexes and derive one exact canonical key; it should not use bucket-wide listing or multi-object deletion. Hidden, possibly reported, legacy-unknown, and ambiguous generations remain retained/manual-review rather than automatic cleanup.
 
 ## Account deletion, export, and private deletion
 
@@ -560,7 +560,7 @@ Account deletion should:
 
 ### Public snapshot unpublish
 
-The current browser directly deletes a text-only `PublicPassportSnapshot` and keeps Unpublish disabled when an image is attached. Phase 2F.1 removes an image while retaining the text snapshot; it does not unpublish. A later backend-controlled unpublish command must reuse detach-first cleanup, then remove the snapshot idempotently.
+The current owner flow directly deletes a text-only `PublicPassportSnapshot`. When an image is attached or cleanup is pending, Phase 2F.3 first invokes detach-first backend cleanup and then deletes the sanitized snapshot. A future atomic backend unpublish command may replace that two-call orchestration once durable cleanup tasks exist.
 
 ### Private image deletion/replacement
 
@@ -690,7 +690,7 @@ Alarms should cover sustained processing failures, metadata-verification failure
 - [ ] Add derivative and ledger handling to account export.
 - [ ] Add detach/delete/retry behavior to account deletion.
 - [ ] Coordinate private-image deletion/replacement with public derivative removal.
-- [ ] Add scheduled orphan/staging reconciliation and operational alarms.
+- [ ] Implement the [Phase 2H Reconciliation Plan](PUBLIC_IMAGE_PHASE_2H_RECONCILIATION_PLAN.md): protected manual recovery first, then durable exact-key tasks/worker and operational alarms.
 - [ ] Complete privacy, authorization, load, accessibility, and hosted release tests.
 
 ## Release acceptance gates
