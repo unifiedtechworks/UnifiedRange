@@ -1,5 +1,29 @@
 # Dependency audit triage
 
+## Independent pass 1 validation — October 23, 2026
+
+Implementation `f6fe22a9b879f8c7080e5e8359676f46c9d553a9` was reviewed against
+freshly fetched `origin/main` at `6d268c77b8d694385bd21128bae044ff1feffbb0`.
+See [the focused validation report](DEPENDENCY_REMEDIATION_PASS_1_VALIDATION.md)
+for evidence, inherited risks, and the concrete nonproduction proposal.
+
+**Merge remains blocked under the requirements below.** Linux execution is
+unavailable (no WSL, Docker, configured CI workflow or self-hosted runner).
+Fresh audits confirm 40 full-tree findings, including critical Handlebars, and
+zero production-scope findings. Windows supplemental checks passed 65
+reconciliation tests, four new synthetic codec tests, backend typecheck, and
+lint. A fresh production-build rerun failed at Turbopack CSS worker startup,
+including one retry outside AppContainer; the prior implementation's Windows
+pass is historical evidence, not a pass for this rerun. No hosted validation,
+deployment, new local HTTP smoke test, or authenticated QA was performed.
+
+Managed Hosting documentation still lists Next.js through 15. Amplify JS has
+newer maintainer evidence for Next 16 library/adapter support; those are separate
+claims. The installed docs generator pins Handlebars 4.7.7, while the latest
+published generator still pins 4.7.9; the newer critical advisories require
+4.7.10. No supported parent fix was established or applied. Cleanup remains
+disabled in source. No owner risk acceptance is implied.
+
 ## Release stabilization pass 1 — October 23, 2026
 
 This pass applies a deliberately bounded dependency update on branch
@@ -48,7 +72,7 @@ Only three related dependency families were changed:
 | --- | --- | --- | --- |
 | Next.js | `next` `16.2.10 -> 16.4.3`; `eslint-config-next` `16.2.10 -> 16.4.3` | Next packages `16.4.3`; `sharp` `0.34.5 -> 0.35.5`; Next-owned PostCSS `8.4.31 -> 8.5.23`; `baseline-browser-mapping` `2.10.43 -> 2.11.32` | Removes the reported Next/sharp/browser-mapping findings. Next 16.4.3 is a stable backport release. Build, lint, and route generation passed. |
 | CSS/PostCSS | Root `postcss` `8.4.39 -> 8.5.31` | `nanoid` `3.3.16 -> 3.3.20`; `source-map-js` `1.2.1 -> 1.2.2` | Moves both PostCSS copies outside the reported vulnerable ranges and preserves the existing Tailwind/PostCSS pipeline. |
-| Image processing | `image-js` `1.7.0 -> 1.7.1` | `colord` `2.9.3 -> 2.10.0`; `follow-redirects` `1.16.0 -> 1.16.1`; compatible cheminformatics helpers | Removes the reported image-processing dependency findings. The public-image processor remains the only application import site and its offline reconciliation tests passed. |
+| Image processing | `image-js` `1.7.0 -> 1.7.1` | `colord` `2.9.3 -> 2.10.0`; `follow-redirects` `1.16.0 -> 1.16.1`; compatible cheminformatics helpers | Removes the reported image-processing dependency findings. The public-image processor remains the only application import site. Reconciliation tests do not cover codecs; the independent validation adds synthetic JPEG/PNG coverage. |
 
 No dependency override was added. No Amplify, CDK, authentication, React, or
 Node major migration was attempted. The Next build regenerated `next-env.d.ts`
