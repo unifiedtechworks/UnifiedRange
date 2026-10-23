@@ -1,0 +1,81 @@
+name: Dependency Linux validation
+
+on:
+  push:
+    branches: [codex/release-dependency-remediation-1]
+    paths:
+      - .github/workflows/dependency-linux-validation.yml
+      - .github/scripts/dependency-linux-validation.mjs
+
+permissions:
+  contents: read
+
+jobs:
+  compare:
+    name: Linux ${{ matrix.label }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        include:
+          - label: baseline
+            source: 6d268c77b8d694385bd21128bae044ff1feffbb0
+          - label: candidate
+            source: dbc5f575eb636a7da279a390bd2b6f3629e8fce7
+    steps:
+      # Official release tags resolved through the actions repositories' Git API.
+      - name: Check out immutable application source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ matrix.source }}
+          path: source
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Check out immutable codec harness
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: dbc5f575eb636a7da279a390bd2b6f3629e8fce7
+          path: harness
+          persist-credentials: false
+          sparse-checkout: scripts/public-image-codec-compatibility.test.mjs
+          sparse-checkout-cone-mode: false
+      - name: Check out this workflow's validation driver
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          path: validation
+          persist-credentials: false
+          sparse-checkout: .github/scripts/dependency-linux-validation.mjs
+          sparse-checkout-cone-mode: false
+      - name: Set up exact Node version without dependency cache
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24.14.0'
+          architecture: x64
+          package-manager-cache: false
+      - name: Run isolated install, tests, build, and HTTP checks
+        shell: bash
+        env:
+          SOURCE_SHA: ${{ matrix.source }}
+          COMPARISON_LABEL: ${{ matrix.label }}
+          WORKFLOW_SHA: ${{ github.sha }}
+        run: |
+          # Checkout/setup actions may use platform authentication. None of that
+          # environment is passed to the driver or its application processes.
+          isolated_home="$RUNNER_TEMP/dependency-validation-home"
+          mkdir -p "$isolated_home"
+          env -i \
+            PATH="$PATH" HOME="$isolated_home" TMPDIR="$RUNNER_TEMP" \
+            CI=true NEXT_TELEMETRY_DISABLED=1 AWS_EC2_METADATA_DISABLED=true \
+            AWS_SHARED_CREDENTIALS_FILE="$isolated_home/no-credentials" \
+            AWS_CONFIG_FILE="$isolated_home/no-config" \
+            npm_config_userconfig="$isolated_home/no-npmrc" \
+            SOURCE_SHA="$SOURCE_SHA" COMPARISON_LABEL="$COMPARISON_LABEL" \
+            WORKFLOW_SHA="$WORKFLOW_SHA" \
+            RUNNER_IMAGE_OS="${ImageOS:-unknown}" \
+            RUNNER_IMAGE_VERSION="${ImageVersion:-unknown}" \
+            node validation/.github/scripts/dependency-linux-validation.mjs \
+              "$GITHUB_WORKSPACE/source" "$GITHUB_WORKSPACE/harness" \
+              "$GITHUB_STEP_SUMMARY"
