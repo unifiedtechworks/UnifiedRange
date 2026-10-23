@@ -1,5 +1,158 @@
 # Dependency audit triage
 
+## Release stabilization pass 1 — October 23, 2026
+
+This pass applies a deliberately bounded dependency update on branch
+`codex/release-dependency-remediation-1`. It does not change application
+features, Amplify resources, data models, storage rules, reconciliation logic,
+or the disabled cleanup gate. No sandbox, pipeline, deployment, or live cleanup
+operation was run.
+
+### Baseline and environment
+
+- Baseline commit: `6d268c77b8d694385bd21128bae044ff1feffbb0`
+  (`main`, matching `origin/main` when this branch was created).
+- Local verification toolchain: Windows, Node.js `24.14.0`, npm `11.9.0`,
+  lockfile version 3.
+- Hosted Amplify production branch: `main`, with the baseline commit observed in
+  a successful hosted job before this work. The repository does not currently
+  pin an exact hosted Node/npm toolchain, so local/hosted toolchain parity remains
+  a release-validation item.
+- `amplify.yml` installs with `npm ci`, deploys the Amplify pipeline backend, and
+  then runs the Next.js build. Dependency changes therefore require hosted
+  frontend and backend-pipeline validation before merging to `main`, even when
+  this pass contains no schema or infrastructure source change.
+- The deployed removed-public-image cleanup function was checked read-only. It
+  was active and its `REMOVED_PUBLIC_IMAGE_CLEANUP_ENABLED` gate remained exactly
+  `false`. It was not invoked or modified.
+
+### Audit comparison
+
+Standalone npm audit JSON is the source of truth; install-summary counts differed
+and are not used as evidence of remediation.
+
+| Scope | Before | After | Change |
+| --- | ---: | ---: | ---: |
+| Full tree | 48 total: 2 critical, 33 high, 13 moderate | 40 total: 1 critical, 28 high, 11 moderate | 8 fewer affected package entries |
+| Production (`--omit=dev`) | 8 total: 1 critical, 5 high, 2 moderate | 0 total | All currently reported production-scope findings removed |
+
+The zero production-scope result does **not** mean the repository, build chain,
+or deployed service is vulnerability-free. Forty findings remain in build,
+generation, lint, and deployment tooling, including one critical finding.
+
+### Bounded update batch
+
+Only three related dependency families were changed:
+
+| Family | Direct changes | Notable compatible transitive changes | Reason and validation |
+| --- | --- | --- | --- |
+| Next.js | `next` `16.2.10 -> 16.4.3`; `eslint-config-next` `16.2.10 -> 16.4.3` | Next packages `16.4.3`; `sharp` `0.34.5 -> 0.35.5`; Next-owned PostCSS `8.4.31 -> 8.5.23`; `baseline-browser-mapping` `2.10.43 -> 2.11.32` | Removes the reported Next/sharp/browser-mapping findings. Next 16.4.3 is a stable backport release. Build, lint, and route generation passed. |
+| CSS/PostCSS | Root `postcss` `8.4.39 -> 8.5.31` | `nanoid` `3.3.16 -> 3.3.20`; `source-map-js` `1.2.1 -> 1.2.2` | Moves both PostCSS copies outside the reported vulnerable ranges and preserves the existing Tailwind/PostCSS pipeline. |
+| Image processing | `image-js` `1.7.0 -> 1.7.1` | `colord` `2.9.3 -> 2.10.0`; `follow-redirects` `1.16.0 -> 1.16.1`; compatible cheminformatics helpers | Removes the reported image-processing dependency findings. The public-image processor remains the only application import site and its offline reconciliation tests passed. |
+
+No dependency override was added. No Amplify, CDK, authentication, React, or
+Node major migration was attempted. The Next build regenerated `next-env.d.ts`
+with the expected `./.next/types/root-params.d.ts` reference; no application
+source behavior was changed.
+
+Official maintainer references used to bound this batch:
+
+- [Next.js 16.4.3 release](https://github.com/vercel/next.js/releases/tag/v16.4.3)
+- [PostCSS changelog](https://github.com/postcss/postcss/blob/main/CHANGELOG.md)
+- [PostCSS security policy and advisories](https://github.com/postcss/postcss/security)
+
+### Resolved finding groups
+
+The final standalone audit no longer reports affected entries for:
+
+- `next`, including the reported cache-confusion, Server Action, middleware,
+  rewrite, endpoint-disclosure, and image-optimization advisory groups;
+- `sharp`;
+- root and Next-owned `postcss` copies;
+- `nanoid` and `source-map-js`;
+- `baseline-browser-mapping`;
+- `colord`; and
+- `follow-redirects`.
+
+This is audit-resolution evidence, not proof that every advisory prerequisite was
+reachable before the update or that future advisories cannot apply.
+
+### Lockfile reproducibility
+
+An initial post-update `npm ci` exposed a lockfile synchronization problem: the
+targeted installs had removed four nested, bundled Amplify
+`@opentelemetry/core@2.0.0` entries still required by the manifest graph. The
+lockfile was repaired with `npm install --package-lock-only --ignore-scripts`;
+no root OpenTelemetry dependency or override was added. A fresh `npm ci` then
+passed and restored all four required nested entries.
+
+After the clean install, `npm ls --depth=0` exited successfully but displayed
+`@emnapi/runtime@1.11.3` and `@img/sharp-wasm32@0.35.5` as extraneous. Both are
+platform/optional Sharp runtime packages represented in the lockfile and the
+Next production build succeeded. Hosted Linux installation must still be checked
+before merge because the local observation does not establish cross-platform
+package behavior.
+
+### Remaining critical and high findings
+
+The remaining findings are absent from the final `--omit=dev` audit, but they
+remain relevant to trusted code generation, lint, CI, and Amplify deployment.
+They are not accepted risk or dismissed as false positives.
+
+| Group | Evidence and exposure | Next safe action |
+| --- | --- | --- |
+| Critical Handlebars chain | `handlebars@4.7.7` remains reachable through Amplify backend/CLI GraphQL documentation and model generation. Current `@aws-amplify/graphql-docs-generator@4.2.2` still pins `handlebars@4.7.9`, which is inside the audit's vulnerable range through 4.7.9. Trusted local schema/templates reduce some input exposure, but generation runs in credentialed build/deploy workflows. | Review a supported Amplify toolchain release that removes the vulnerable pin, or separately validate a narrowly scoped override. Do not add a root Handlebars override without generation/synthesis compatibility evidence. |
+| Amplify/GraphQL generation parents | High findings are inherited through Amplify backend/CLI, GraphQL Code Generator, GraphQL Tools, relay helpers, Immutable, Lodash, and MySQL tooling. | Handle as a separate Amplify migration batch with generated-client, synthesis, sandbox, and hosted pipeline validation. Reject npm's automated downgrade proposals. |
+| General build tooling | High findings remain in `@fastify/busboy`, `brace-expansion`, `browserslist`, `fast-uri`, `js-yaml`, and their parent tools. | Trace supported parent updates in small batches. Avoid processing untrusted globs, browser stats, YAML, URI, or multipart input through affected tools while pending. |
+
+The critical Handlebars advisories include
+[GHSA-2w6w-674q-4c4q](https://github.com/advisories/GHSA-2w6w-674q-4c4q),
+[GHSA-8r5x-fm3f-whwj](https://github.com/advisories/GHSA-8r5x-fm3f-whwj), and
+[GHSA-p8wg-vrv2-v86f](https://github.com/advisories/GHSA-p8wg-vrv2-v86f).
+The repository must not be described as secure or audit-clean while these and
+the other documented findings remain.
+
+### Deployment impact and pre-merge requirements
+
+This review branch should not be merged to `main` until all of the following are
+confirmed:
+
+1. Hosted Amplify installs the lockfile successfully on its Linux image.
+2. The Amplify pipeline backend generation/deployment completes without a
+   dependency-induced change or failure.
+3. The hosted Next.js application builds and the core signed-out/signed-in route
+   smoke tests pass.
+4. Private image verification, processing, delivery, removal, replacement,
+   moderation, and protected reconciliation remain behaviorally unchanged.
+5. The removed-public-image cleanup gate remains disabled and no cleanup job is
+   invoked as part of dependency validation.
+
+Next 16.4.3 warns that React 18 support is deprecated and will be removed in
+Next 17. React 19 migration is intentionally outside this security-fix batch and
+must be planned separately.
+
+### Verification
+
+| Command | Result |
+| --- | --- |
+| Fresh baseline `npm ci` | PASS; 1,268 packages installed. |
+| Updated fresh `npm ci` | PASS; 1,269 packages installed from the synchronized lockfile. |
+| `npm run test:public-image-reconciliation` | PASS; 65/65 offline tests. |
+| `npm run amplify:typecheck` | PASS. |
+| `npm run lint` | PASS. |
+| `npm run build` | PASS on Next.js 16.4.3; compilation, TypeScript checks, and generation of 27 routes/pages completed. |
+| `npm audit --json` | Findings remain (exit 1): 40 total; 1 critical, 28 high, 11 moderate. |
+| `npm audit --omit=dev --json` | PASS (exit 0): 0 reported production-scope findings. |
+
+The live processor, resolver, cleanup, and reconciliation scripts require hosted
+identifiers or perform live operations and were intentionally not invoked. No
+AWS resource was written, synthesized, deployed, or mutated in this pass.
+
+## Historical September 5, 2026 assessment (superseded)
+
+The material below preserves the earlier baseline for provenance. Its versions,
+counts, and remediation candidates are superseded by the October 23 pass above.
+
 Audit date: 2026-09-05. Environment: Windows, Node.js 24.14.0, npm 11.9.0.
 
 ## Summary
