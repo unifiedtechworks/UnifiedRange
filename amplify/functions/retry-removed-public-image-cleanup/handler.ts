@@ -13,6 +13,7 @@ import {
   S3Client
 } from "@aws-sdk/client-s3";
 import type { Schema } from "../../data/resource.ts";
+import { isRemovedPublicImageCleanupExecutionEnabled } from "./configuration.ts";
 import {
   retryRemovedPublicImageCleanup,
   type BucketVersioningResult,
@@ -32,7 +33,9 @@ function environmentValue(name: string) {
 const publicPassportSnapshotTableName = environmentValue("PUBLIC_PASSPORT_SNAPSHOT_TABLE_NAME");
 const publicImageAssetTableName = environmentValue("PUBLIC_IMAGE_ASSET_TABLE_NAME");
 const imageBucketName = environmentValue("unifiedRangePrivateImages_BUCKET_NAME");
-const executionEnabled = environmentValue("REMOVED_PUBLIC_IMAGE_CLEANUP_ENABLED") === "true";
+const executionEnabled = isRemovedPublicImageCleanupExecutionEnabled(
+  process.env.REMOVED_PUBLIC_IMAGE_CLEANUP_ENABLED
+);
 
 const dynamoClient = new DynamoDBClient({});
 const s3Client = new S3Client({});

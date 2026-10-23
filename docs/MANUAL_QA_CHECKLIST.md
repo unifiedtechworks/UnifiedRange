@@ -695,6 +695,8 @@ Follow [Phase 2H Public Image Reconciliation Plan](PUBLIC_IMAGE_PHASE_2H_RECONCI
 
 The backend and schema may be deployed with `REMOVED_PUBLIC_IMAGE_CLEANUP_ENABLED=false`, but no live cleanup call is approved in this phase. `npm run test:public-image-reconciliation` covers the disabled and mocked enabled paths without AWS credentials or real objects. A separate approval, reviewed gate change, redeployment, and disposable fixture plan are required before running the checks below.
 
+The read-only hosted checkpoint is recorded in [Phase 2H Hosted Deployment Assurance](PUBLIC_IMAGE_PHASE_2H_DEPLOYMENT_ASSURANCE.md). Any future live test must follow the [Controlled Cleanup Test Runbook](PHASE_2H_CONTROLLED_CLEANUP_TEST_RUNBOOK.md); those links document preparation and do not authorize gate enablement, fixture creation, invocation, or deletion.
+
 - [ ] Before any future enablement, confirm `retryRemovedPublicImageCleanup` is admin-only in AppSync and Lambda and requires one exact `publicImageAssetId` plus `confirmation: true`. Moderator-only, ordinary, signed-out, and API-key callers must be denied.
 - [ ] Confirm the disabled deployed mutation returns only `disabled/execution_disabled` and performs zero table reads/writes, S3 head/versioning/delete calls, or other side effects.
 - [ ] Confirm input cannot contain a snapshot/owner/source id, bucket, key, path, URL, ETag, object version, filename, image bytes, inspection finding/recommendation, action/mode, force flag, or batch target.
@@ -708,7 +710,7 @@ The backend and schema may be deployed with `REMOVED_PUBLIC_IMAGE_CLEANUP_ENABLE
 - [ ] Inspect result/log/console/network output. Confirm only bounded status/failure/retry fields appear—never keys, URLs, ETags, versions, IDs beyond the operator-supplied request, filenames, alt text, storage metadata, report details, owner/profile/private data, tokens, or raw AWS errors.
 - [ ] Record that Phase 2H.1 findings are not cleanup authorization; Phase 2H.2 independently re-derives current state. No product UI, schedule, queue, batch, scan, task model, audit ledger, or live automation exists.
 
-### Future Phase 2H.3+ reconciliation — not runnable yet
+### Future Phase 2H.4+ reconciliation — not runnable yet
 
 - [ ] Add separately reviewed protected cleanup tasks/worker, bounded retries, audit/holds, and visibility/private-source hooks. Do not infer authorization from a Phase 2H.1 inspection result or broaden the one-generation Phase 2H.2 mutation.
 - [ ] Keep hidden, legacy-unknown, ledgerless, malformed, and ambiguous generations retained until explicit policy and evidence controls exist.

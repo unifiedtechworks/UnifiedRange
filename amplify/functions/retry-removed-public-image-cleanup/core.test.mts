@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { isRemovedPublicImageCleanupExecutionEnabled } from "./configuration.ts";
 import {
   retryRemovedPublicImageCleanup,
   type BucketVersioningResult,
@@ -17,6 +18,13 @@ const sourceRecordId = "equipment-cleanup-123";
 const canonicalKey = `public/passports/${snapshotId}/cover/${assetId}.jpg`;
 const now = new Date("2026-10-23T20:00:00.000Z");
 const adminIdentity = { sub: "admin-sub", username: "admin-user", groups: ["admin"] };
+
+test("execution gate enables only for the exact backend value true", () => {
+  assert.equal(isRemovedPublicImageCleanupExecutionEnabled("true"), true);
+  for (const value of [undefined, null, false, true, "", "false", "TRUE", " true ", "1", "yes"]) {
+    assert.equal(isRemovedPublicImageCleanupExecutionEnabled(value), false);
+  }
+});
 
 function asset(overrides: Partial<RemovedPublicImageAssetRecord> = {}): RemovedPublicImageAssetRecord {
   return {

@@ -4,6 +4,8 @@
 
 Phase 2H planning is complete. Phase 2H.1 implements the protected, read-only inspection subset through `inspectPublicImageCleanup(publicImageAssetId)`. Phase 2H.2 adds a separate, admin-only `retryRemovedPublicImageCleanup(publicImageAssetId, confirmation)` mutation for one already-removed, detached equipment-cover generation. Its backend-controlled execution gate is hard-coded to `false` in every deployed environment in this phase, so the deployed function returns `disabled` before any data or S3 operation. There is no schedule, queue, task model, bucket scan, user-facing control, or live cleanup authorization.
 
+Phase 2H.3 records read-only hosted deployment assurance for the Phase 2H.2 checkpoint and prepares a future sandbox-only test procedure. See [Phase 2H Hosted Deployment Assurance](PUBLIC_IMAGE_PHASE_2H_DEPLOYMENT_ASSURANCE.md) and [Controlled Cleanup Test Runbook](PHASE_2H_CONTROLLED_CLEANUP_TEST_RUNBOOK.md). The assurance work did not enable the global gate, invoke cleanup, create a fixture, or deploy infrastructure.
+
 The current product already fails closed for public delivery: the resolver issues a short-lived URL only when the published snapshot, its projected image generation, the `PublicImageAsset` ledger row, source eligibility, account visibility, moderation state, canonical key, and S3 object all agree. Owner removal, derivative-aware Unpublish, replacement, and moderator Remove detach delivery before attempting object deletion. Those controls can therefore leave a non-deliverable derivative that still needs exact cleanup after a timeout or partial failure.
 
 Phase 2H must recover those objects without broadening public access, reading private originals, guessing across image generations, or weakening generation-bound report and moderation evidence.
@@ -299,26 +301,33 @@ The original plan's `apply` behavior, projection repair, removed-object deletion
 - Refuse versioned/suspended buckets, hidden/legacy/active/replacement states, and every ambiguous binding.
 - Keep the backend execution gate disabled until a separate live-test review and approval.
 
-### Phase 2H.3: durable cleanup tasks and worker
+### Phase 2H.3: hosted deployment assurance and controlled-test preparation — complete
+
+- Match the hosted Amplify job to the exact repository, `main` branch, and Phase 2H.2 source commit.
+- Inspect the deployed gate, relevant resolver/data source, actual execution roles, tables, and bucket using read-only operations.
+- Record configuration evidence separately from pending authenticated/live outcomes.
+- Test exact-value gate parsing locally and document an approval-gated, sandbox-only fixture procedure without invoking cleanup.
+
+### Phase 2H.4: durable cleanup tasks and worker
 
 - Add protected cleanup task/audit storage, due-task index, lifecycle hooks, bounded scheduled/SQS worker, retries, metrics, and dead-letter handling.
 - Enqueue from owner/moderator cleanup, processor rollback failure, Unpublish, replacement, account-private, source revocation, and future account deletion.
 - Keep the worker list-free and exact-key only.
 
-### Phase 2H.4: evidence and legacy policy
+### Phase 2H.5: evidence and legacy policy
 
 - Add a protected report-by-generation lookup or durable hold.
 - Define hidden/report evidence retention, expiration, appeal, and legal requirements.
 - Backfill legacy moderation state under controlled tooling; do not infer `clear` from absence.
 - Add a protected exact-generation moderator review/removal path before allowing automated cleanup of reported generations.
 
-### Phase 2H.5: inventory audit for ledgerless objects
+### Phase 2H.6: inventory audit for ledgerless objects
 
 - Use protected S3 Inventory and an offline comparison, not live application listing.
 - Create review tasks for canonical unmatched objects.
 - Require a trusted binding or explicit operator approval before exact deletion.
 
-### Phase 2H.6: release validation
+### Phase 2H.7: release validation
 
 - Run owner, moderator, admin, signed-out, API-key, concurrent replacement, account-private, source-revoked, missing-object, ambiguous-generation, legacy-row, retry, and dead-letter tests.
 - Verify no cleanup path reads/deletes private prefixes or makes a hidden/reported image public.
@@ -331,6 +340,9 @@ The original plan's `apply` behavior, projection repair, removed-object deletion
 - [x] Mocked tests confirm inspection accepts only one exact asset-generation ID and returns no key, URL, asset/owner/source ID, filename, alt text, or raw error.
 - [x] Mocked Phase 2H.2 tests confirm the disabled gate and missing confirmation perform zero reads/writes/deletes; non-admin identities are rejected before dependencies run.
 - [x] Mocked Phase 2H.2 tests cover removed/detached cleanup, already-missing convergence, hidden/current/replacement/legacy/target rejection, active lifecycle states, S3 403/404, ETag precondition failure, state races, repeated calls, ambiguous deletion, failed result persistence, stale-attempt protection, versioning refusal, and the no-private/list/copy/download dependency boundary.
+- [x] Phase 2H.3 matched the hosted Amplify deployment to commit `5ed4a6863e8cfbd0db19f09a647ae2df394ad861`, confirmed successful deployment, observed the hosted cleanup gate as exactly `false`, confirmed compatible unversioned storage, and inspected deployed authorization/IAM without invoking cleanup.
+- [x] The reconciliation suite tests missing and malformed gate values and enables execution only for the exact backend value `true`.
+- [ ] Complete the pending authenticated/live outcomes listed in the [deployment assurance report](PUBLIC_IMAGE_PHASE_2H_DEPLOYMENT_ASSURANCE.md) under separate approval and the [controlled test runbook](PHASE_2H_CONTROLLED_CLEANUP_TEST_RUNBOOK.md).
 - [ ] Hosted integration must confirm AppSync and Lambda both enforce Admin-only access and the deployed role has only the documented read/head permissions.
 - [ ] A separate approval must enable the Phase 2H.2 execution gate before any live cleanup test; this implementation/deployment must not invoke the mutation.
 - [ ] Known owner/moderator `cleanup_pending` fixtures converge to completed cleanup; already-missing objects are idempotent success.
