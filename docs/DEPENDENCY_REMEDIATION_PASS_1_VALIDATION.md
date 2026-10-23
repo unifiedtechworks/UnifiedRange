@@ -1,8 +1,8 @@
 # Dependency remediation pass 1 validation
 
-Date: October 23, 2026. **Disposition: blocked for merge under the existing pre-merge requirements; ready for review of the evidence and next validation proposal.** No residual risk is accepted here.
+Date: October 23, 2026. **Disposition: Linux comparison passed; merge/release remain blocked on the separate hosted validation and deployment-toolchain requirements.** No residual risk is accepted here.
 
-## Reviewed source and scope
+## Original source review and scope
 
 - Repository: `UnifiedRange`; branch: `codex/release-dependency-remediation-1`.
 - Exact implementation reviewed: `f6fe22a9b879f8c7080e5e8359676f46c9d553a9`.
@@ -10,37 +10,79 @@ Date: October 23, 2026. **Disposition: blocked for merge under the existing pre-
 - At review start, HEAD was exactly the implementation commit, with a clean working tree and no unexpected later commits. The implementation changes only `package.json`, `package-lock.json`, `next-env.d.ts`, and the audit report.
 - This validation adds documentation and an offline codec test only. No dependency upgrade, override, application change, infrastructure change, merge, or deployment is included.
 
-## Linux environment: blocked
+## Approved GitHub-hosted Linux comparison — passed
 
-There is no approved Linux execution environment available in this session:
+The owner subsequently approved a standard GitHub-hosted Ubuntu workflow. This supersedes the earlier lack of an approved Linux environment; no local WSL/Docker installation or AWS provisioning was needed. The workflow ran once, with two separate clean jobs, and both succeeded.
 
-- `wsl --list --verbose` reports that Windows Subsystem for Linux is not installed.
-- `docker` is not installed/discoverable on PATH; no Docker engine was available to query.
-- Read-only GitHub API inspection found no configured Actions workflows and zero repository self-hosted runners. Hosted runner availability alone is not an existing authorized validation workflow. None was provisioned or started.
+- Workflow: `.github/workflows/dependency-linux-validation.yml`.
+- Driver: `.github/scripts/dependency-linux-validation.mjs`.
+- Trigger: push only to `codex/release-dependency-remediation-1`, and only changes to those two files. No main/PR/schedule/manual trigger; documentation-only follow-up commits do not trigger it.
+- Workflow/support commit: `e41831b82bc36cdd2c75ba9575dd1705153d4daf`.
+- [Run 40031472320](https://github.com/unifiedtechworks/UnifiedRange/actions/runs/40031472320), attempt 1, push event, **success**, October 23, 2026, 15:06:50–15:09:21 America/Los_Angeles.
+- [Baseline job](https://github.com/unifiedtechworks/UnifiedRange/actions/runs/40031472320/job/120680489180): `6d268c77b8d694385bd21128bae044ff1feffbb0`.
+- [Candidate job](https://github.com/unifiedtechworks/UnifiedRange/actions/runs/40031472320/job/120680489114): `dbc5f575eb636a7da279a390bd2b6f3629e8fce7`, containing implementation `f6fe22a9b879f8c7080e5e8359676f46c9d553a9` plus only two validation documents and the codec test. No unexpected runtime changes were present.
+- Codec harness in both jobs: `dbc5f575eb636a7da279a390bd2b6f3629e8fce7`. It was explicitly copied as a supplemental test into baseline; it was not represented as baseline source.
+- `origin/main` still resolved to the agreed baseline when fetched before this run. The baseline was not silently advanced.
 
-Consequently, no clean Linux checkout, install, tests, production build, loopback smoke test, or Linux `git diff --check` was performed. There is no Linux `uname`, Node, or npm output to report. Windows results below must not be relabeled Linux results.
+### Runner and permissions
 
-Smallest next setup: approve access to one existing Linux x86-64/glibc host or installation of WSL/Docker locally. It needs Git, Node/npm, registry access, and disk for an isolated checkout; it needs no AWS credentials, authentication tokens, deployed resources, or new runner. First establish the actual hosted image and Node/npm versions and match them where practical. If unavailable, use an explicitly recorded Node 22/24 Linux baseline and retain the parity gap. The reconciliation script uses `--experimental-strip-types`, so an arbitrary Node 20 test runner is insufficient even though the processor Lambda targets Node 20.
+Both jobs recorded standard `ubuntu-24.04` x64, Ubuntu **24.04.5 LTS**, runner image **ubuntu24 / 20261012.334.1**, Linux kernel **6.17.0-1022-azure**, Node **24.14.0**, npm **11.9.0**. `uname -a` and both version commands exited 0. Ephemeral hostnames are omitted from this report. Ubuntu is not claimed to match Amplify's still-unverified build image or deployed runtime.
 
-Use a clean checkout of the exact implementation SHA, with the additional codec test copied from this validation commit and identified separately. Do not copy Windows `node_modules`, `.next`, `.env*`, `.aws`, or local sandbox state. Use the committed nonsecret `amplify_outputs.json` only for compilation; do not fabricate outputs, authenticate, or write to the referenced environment. Do not pass deployment credentials or user tokens. Run serially, stop/report each failed command, and record every exit status:
+Official action tags were resolved through their upstream Git APIs and pinned:
 
-```bash
-uname -a
-node --version
-npm --version
-sha256sum package.json package-lock.json
-npm ci
-npm run test:public-image-reconciliation
-node --test scripts/public-image-codec-compatibility.test.mjs
-npm run amplify:typecheck
-npm run lint
-npm run build
-git diff --check
-sha256sum package.json package-lock.json
-git diff --exit-code -- package.json package-lock.json
-```
+| Action release | Verified commit |
+| --- | --- |
+| `actions/checkout` v7.0.1 | `3d3c42e5aac5ba805825da76410c181273ba90b1` |
+| `actions/setup-node` v7.1.0 | `949feb2413d6458794dcd2491c4babbbce0c15c1` |
 
-Compare installed package versions to lockfile entries, including platform-specific Next/SWC/Sharp packages. Then start the built app on loopback and check signed-out page loads without live sign-in or mutations. A second codec check on the processor's actual Node 20 Lambda-compatible environment is useful; neither result alone validates a deployed function.
+Node 24.14.0 was available from its [official distribution](https://nodejs.org/download/release/v24.14.0/SHASUMS256.txt). npm 11.9.0 was installed into a temporary toolchain prefix from the official npm registry, with lifecycle scripts disabled for that toolchain installation. Neither action restored a dependency cache, and each source checkout started without `node_modules` or `.next`. Jobs had 30-minute limits, a maximum of two parallel jobs and `fail-fast: false`; no automatic reruns were used.
+
+Read-only repository inspection confirmed public visibility, Actions enabled, allowed actions `all`, and default workflow permissions `read`. The workflow explicitly sets only `contents: read`; it grants no OIDC or write permission and uses no deployment environment. Checkout/setup may use GitHub platform authentication. Checkout credentials are not persisted, and application processes receive an explicit `env -i` allowlist with a fresh HOME and empty AWS/npm credential configuration paths. No GITHUB_TOKEN, PAT, user token, AWS credential, repository secret, or Windows environment/configuration is passed to install/tests/build. No repository-security setting was changed.
+
+The committed nonsecret outputs are used for compilation only and never printed. The reviewed commands do not invoke the live processor/resolver/cleanup scripts, sandbox, pipeline-deploy, or CDK. The codec tests execute selected pure functions; reconciliation tests use injected offline fakes. HTTP checks use only loopback GETs, do not run browser JavaScript, and do not authenticate or invoke mutations. Job summaries/logs contain command outcomes and hashes; no `.next`, dependencies, outputs, environment dumps, or user-data artifacts were uploaded.
+
+### Per-command results
+
+Every command below exited **0** in both jobs. The driver retained real exit codes and would fail the job for any failed command or invariant.
+
+| Command/check | Baseline | Candidate |
+| --- | --- | --- |
+| `uname -a`, `node --version`, `npm --version` | passed | passed |
+| `npm ci` | passed; clean install | passed; clean install |
+| Installed/native package verification | passed; 1,690 installed entries compared | passed; 1,691 installed entries compared |
+| `npm run test:public-image-reconciliation` | passed; 65/65 | passed; 65/65 |
+| `node --test scripts/public-image-codec-compatibility.test.mjs` | passed; 4/4 supplemental tests | passed; 4/4 |
+| `npm run amplify:typecheck` | passed | passed |
+| `npm run lint` | passed | passed |
+| `npm run build` | passed; Next 16.2.10, Turbopack | passed; Next 16.4.3, Turbopack |
+| Loopback production HTTP | passed; `/` and `/auth/sign-in` returned 200 and expected HTML | passed; same checks |
+| `git diff --check` | passed | passed |
+| `git diff --exit-code -- package.json package-lock.json` | passed | passed |
+| Before/after SHA-256 equality | passed; both files unchanged | passed; both files unchanged |
+
+Both production builds generated 27 static pages and completed TypeScript checks. Smoke checks started the production artifact on `127.0.0.1`, used bounded readiness/request timeouts, then stopped the server. These are basic signed-out HTTP checks, not browser hydration or authenticated release QA. Existing audit/deprecation and module-type warnings were not treated as evidence of remediation.
+
+### Lockfile and native-package reproducibility
+
+| Revision / file | SHA-256 before and after (identical) |
+| --- | --- |
+| Baseline `package.json` | `f1c53ab4e4d4658bd26c8dda7107c619c956f0c079f43614d672c63ceeafa597` |
+| Baseline `package-lock.json` | `20f0ea0de3f48004d878db257d51954148576dcc4b28cfb3a31dcc98ce638ed7` |
+| Candidate `package.json` | `b686fe09ca70f686fc66933cdf9a55ef7c5c8b54c0dd53383b137ce048f3367b` |
+| Candidate `package-lock.json` | `3f12ec5d463a8b1b2aba54f1ab182fd1361649681641467b1b90a2a2bade583d` |
+
+All existing installed package manifests represented in each lockfile matched its version; all direct dependencies were present. Unmaterialized entries for other platforms/bundled layouts were not asserted to be installed. Required Linux x64 GNU native packages were explicitly present, version-matched, and SWC/Sharp loaded successfully:
+
+| Package | Baseline | Candidate |
+| --- | --- | --- |
+| `next` / `@next/swc-linux-x64-gnu` | 16.2.10 | 16.4.3 |
+| `image-js` | 1.7.0 | 1.7.1 |
+| Root `postcss` | 8.4.39 | 8.5.31 |
+| `@img/sharp-linux-x64` / Sharp | 0.34.5 | 0.35.5 |
+| `@img/sharp-libvips-linux-x64` | 1.2.4 | 1.3.4 |
+| Loaded libvips | 8.17.3 | 8.18.7 |
+
+No lockfile repair, dependency upgrade, override, compiler change, cache reuse, or automatic repeat run was needed. **Linux install/test/build validation is cleared for these exact revisions and this environment.** The earlier Windows CSS-worker startup failure did not reproduce here; its Windows-specific cause remains unverified, and this run does not claim to fix it. Amplify adaptation, managed-version support, actual Lambda bundles/Node 20 execution, authenticated QA and the critical Handlebars decision remain pending as described below.
 
 ## Hosted configuration observed read-only
 
@@ -73,27 +115,27 @@ Sources checked October 23, 2026:
 
 `next.config.mjs` remains an empty config, production build remains `next build` (Turbopack), and local Inter loading is preserved. No architecture change, automatic downgrade, or repeat Google Fonts investigation was undertaken.
 
-## Checks performed and pipeline boundaries
+## Earlier local checks and current pipeline boundaries
 
-Fresh standalone audits reconfirm **40 full-tree affected entries: 1 critical, 28 high, 11 moderate** (exit 1), and **0 production-scope entries** with `--omit=dev` (exit 0). Counts include inherited parent findings; zero production findings is not proof of a safe deployed app or credentialed build pipeline.
+Standalone audits in the earlier review confirmed **40 full-tree affected entries: 1 critical, 28 high, 11 moderate** (exit 1), and **0 production-scope entries** with `--omit=dev` (exit 0). Counts include inherited parent findings; zero production findings is not proof of a safe deployed app or credentialed build pipeline.
 
 | Stage/check | Result |
 | --- | --- |
-| Linux `npm ci`, lockfile reproducibility, installed versions | **blocked:** no Linux environment. Prior Windows install pass is historical evidence only; no new install was run in this validation. |
+| Linux `npm ci`, lockfile reproducibility, installed versions | **passed** for both pinned revisions in the hosted comparison above. |
 | Windows installed-version comparison | **passed:** all existing installed packages represented in the lockfile matched their locked versions; not a check that every Linux optional package is present. |
-| Linux reconciliation/typecheck/lint/build | **not run (blocked)**. |
+| Linux reconciliation/typecheck/lint/build | **passed** in both hosted jobs; exact commands and exit statuses above. |
 | Windows reconciliation rerun | **passed:** 65/65; existing module-type performance warning, no live operations. |
 | Windows synthetic JPEG/PNG codec test | **passed:** 4/4 under Node 24.14.0; see coverage below. |
 | Windows backend typecheck rerun | **passed:** exit 0. |
 | Windows lint rerun | **passed:** exit 0, including the new test. |
 | Windows production build rerun | **failed:** exit 1 at Turbopack CSS worker startup (`node process exited before we could connect`, child exit 0). One retry outside AppContainer also exited 1. No source/config workaround, font investigation, or dependency change was made. Root cause is unverified; this result does not establish a dependency regression and does not reproduce the historical pass. |
 | Windows loopback page-load checks | **not run:** no successful fresh production artifact from this rerun. |
-| Linux local signed-out HTTP checks | **not run (blocked)**. |
+| Linux loopback signed-out HTTP checks | **passed** for `/` and `/auth/sign-in` in both jobs; no browser JS or authenticated QA. |
 | Backend synthesis and Lambda bundling | **not run:** no standalone supported nondeploying `ampx synth` command identified in installed CLI 1.8.3 or the [official CLI reference](https://docs.amplify.aws/react/reference/cli-commands/). Its command registry exposes generation, sandbox, pipeline-deploy, configuration, info and notices. No invented dry-run flag, sandbox, pipeline-deploy, or credentialed CDK substitute was used. |
 | Amplify Hosting packaging / SSR adaptation | **requires deployment approval:** not performed for this artifact. A local `.next` build is not this stage. |
 | Actual deployment / authenticated release QA | **not run / requires deployment approval**. Manual authenticated QA remains pending. |
 
-Local test processes had AWS/auth/token environment variables removed and AWS credential/config paths redirected to nonexistent files. The codec test imports no AWS SDK and uses no user files, network calls, or publishing paths. No credentials were supplied to a Linux environment (none was created).
+Local test processes had AWS/auth/token environment variables removed and AWS credential/config paths redirected to nonexistent files. The codec test imports no AWS SDK and uses no user files, network calls, or publishing paths. The subsequently approved hosted Linux jobs used separate clean checkouts and allowlisted application environments as recorded above.
 
 ### Image-processing coverage and Lambda impact
 
@@ -101,7 +143,7 @@ Local test processes had AWS/auth/token environment variables removed and AWS cr
 
 The four synthetic tests check JPEG decode/re-encode and lossy color tolerance, PNG transparency flattened to white, resize from 1800x18 to 1600x16, and orientation transforms. The real derivative parser verifies output dimensions, size cap and absence of forbidden JPEG metadata. These tests cover library compatibility, not full authorization, AWS I/O, EXIF fixture coverage, hostile-image security, all formats, or actual Lambda execution. The existing 65 reconciliation tests do not cover image decoding.
 
-The processor imports `image-js` and `jpeg-js` directly. Thus `image-js` 1.7.0 -> 1.7.1 and reachable changed helpers can alter its bundled code and asset hash without any function-source/schema/IAM diff. Changed image-related helpers include `colord`, `cheminfo-types`, `ml-spectra-processing`, and `follow-redirects`; actual tree-shaken bundle inclusion was not measured. `jpeg-js` and the direct AWS SDK versions are unchanged. Next/SWC/Sharp/PostCSS changes affect frontend/build output; `@swc/helpers` is required by Next in the reviewed lockfile. Linux native optional-package resolution, bundle size, Node 20 execution, and real Amplify asset generation remain pending. Backend typechecking proves none of those deployment properties.
+The processor imports `image-js` and `jpeg-js` directly. Thus `image-js` 1.7.0 -> 1.7.1 and reachable changed helpers can alter its bundled code and asset hash without any function-source/schema/IAM diff. Changed image-related helpers include `colord`, `cheminfo-types`, `ml-spectra-processing`, and `follow-redirects`; actual tree-shaken bundle inclusion was not measured. `jpeg-js` and the direct AWS SDK versions are unchanged. Next/SWC/Sharp/PostCSS changes affect frontend/build output; `@swc/helpers` is required by Next in the reviewed lockfile. Linux x64 GNU optional-package installation/loading passed in both jobs. Bundle size, Node 20 execution, and real Amplify asset generation remain pending. Backend typechecking proves none of those deployment properties.
 
 ## Remaining critical Handlebars finding
 
@@ -136,22 +178,26 @@ Supported next action: track/request an upstream Amplify docs-generator release 
 
 ## Merge versus release blockers
 
-- **Merge:** Linux reproducibility and hosted pipeline validation required by the existing audit report are still unmet, and the supplemental Windows production build failed as recorded above. No dependency regression was established, but the failing rerun cannot be waived. Main has automatic deployment enabled, so merging this batch is operationally coupled to privileged deployment. Merge remains blocked under those requirements.
+- **Merge:** the Linux reproducibility/test/build requirement is now satisfied for the exact compared revisions. Hosted pipeline requirements remain unmet. The Windows CSS-worker failure is still an unresolved local diagnostic, but did not reproduce in either Linux job; no Linux candidate regression was found. Main has automatic deployment enabled, so merging remains coupled to privileged deployment and is not approved by this validation.
 - **Inherited issues:** Next 16 managed Hosting support gaps and conflicting library documentation, React 18, unpinned hosted toolchain, Node 20 function targets, and the Handlebars chain already existed on main. They must not be misreported as newly introduced vulnerabilities. The inherited critical finding alone is not evidence that the improvement batch must be reverted; it still requires an owner decision before privileged tooling/release execution.
 - **Release:** managed 16.4.3 adaptation, exact deployed SSR/runtime behavior, actual backend bundles, image/auth boundary QA and manual authenticated release tests remain unvalidated. A zero production audit and successful local build cannot waive these checks. No risk acceptance is made on the owner's behalf.
 
 ## Concrete nonproduction validation proposal — requires approval
 
-After credential-free Linux checks pass, request approval for one temporary, isolated Amplify Gen 2 validation environment for the exact approved candidate commit. Prefer a dedicated nonproduction account/app and a manually connected validation branch, with automatic branch creation and PR previews disabled. First obtain AWS support clarification for managed Next 16 or explicitly review the continuing support gap; no hosting migration is proposed here.
+The credential-free Linux checks have now passed. Separately request approval for one temporary, isolated Amplify Gen 2 validation environment for the exact approved candidate commit. Prefer a dedicated nonproduction account/app and a manually connected validation branch, with automatic branch creation and PR previews disabled. First obtain AWS support clarification for managed Next 16 or explicitly review the continuing support gap; no hosting migration is proposed here.
 
 Expected changes are a new app/branch and isolated backend stacks (Cognito, AppSync/DynamoDB, private S3, function/IAM/log resources), plus Hosting compute/build artifacts. Generate genuine outputs for that isolated backend; never silently reuse live outputs for a writable preview. Use synthetic data and separate disposable QA identities. Keep the cleanup gate exactly false and do not invoke cleanup or moderation mutations in this validation. Installation/tests must run without deployment credentials; a separately approved restricted deployment stage necessarily needs scoped permissions, so credential separation and the Handlebars decision must be reviewed before execution.
 
 Collect image/Node/npm versions, synth/asset differences, backend deployment outcome, managed SSR packaging and signed-out/authenticated image/privacy QA for that exact commit. Potential costs include Amplify build/hosting/compute, CloudWatch logs, Lambda, storage and data services; set an owner-approved budget/time limit before provisioning. Rollback is to stop the isolated environment and, with approval, remove its disposable resources and retained objects/logs; never revert or delete the live app's backend/data. Record retained-resource costs. No such environment was created or deployment performed here.
 
-## Completion checks
+## Earlier local completion checks (historical)
 
-Local toolchain was Windows Node 24.14.0 / npm 11.9.0. The 65 reconciliation tests, four codec tests, backend typecheck and lint exited 0. Production build exited 1 in both attempts; no Linux or hosted stage is marked passed. `git diff --check` and `git diff --cached --check` passed before commit.
+Local toolchain was Windows Node 24.14.0 / npm 11.9.0. The 65 reconciliation tests, four codec tests, backend typecheck and lint exited 0. The earlier Windows production build exited 1 in both attempts. The later GitHub-hosted Linux passes are recorded above; no Amplify stage is marked passed. `git diff --check` and `git diff --cached --check` passed before commit.
 
-`package.json` and `package-lock.json` remain identical to implementation commit `f6fe22a`; no installation or dependency fix command ran in this validation. Observed file SHA-256 values are `B686FE09CA70F686FC66933CDF9A55EF7C5C8B54C0DD53383B137CE048F3367B` and `3F12EC5D463A8B1B2ABA54F1AB182FD1361649681641467B1B90A2A2BADE583D`, respectively (checkout line endings can affect hashes on Linux).
+`package.json` and `package-lock.json` remain identical to implementation commit `f6fe22a`; no local installation or dependency fix command ran in the earlier review. The later Linux jobs ran only the approved clean installs, without changing either file. Observed file SHA-256 values are `B686FE09CA70F686FC66933CDF9A55EF7C5C8B54C0DD53383B137CE048F3367B` and `3F12EC5D463A8B1B2ABA54F1AB182FD1361649681641467B1B90A2A2BADE583D`, respectively (checkout line endings can affect hashes on Linux).
 
 Validation changes are restricted to this document, the audit-report update, and the codec test. No raw diagnostics, resource identity, credentials, generated output, package changes, or deployment workflow is included. Commit/push identity is reported in the task completion message. Main, AWS resources, source cleanup gates, schema/auth rules, permissions, user data, and account lifecycle behavior were not changed.
+
+## Linux follow-up completion boundary
+
+This follow-up changes only the branch-only workflow, its dedicated driver, and this results document. The workflow commit was pushed to `codex/release-dependency-remediation-1`; the documentation-only follow-up uses the same branch and does not match the workflow path filter. No PR was created. Automatic Amplify branch creation and PR previews were checked disabled, and the review branch remained unconnected before the workflow push. No AWS deployment/resources/permissions, cleanup gate, application/dependency version, or main commit was changed. No WSL, Docker, CodeBuild, EC2, larger runner, or self-hosted runner was provisioned. No residual Handlebars risk was accepted and no privileged Amplify tooling was executed.
