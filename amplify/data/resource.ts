@@ -5,6 +5,7 @@ import { moderatePublicPassportImage } from "../functions/moderate-public-passpo
 import { processPublicPassportImage } from "../functions/process-public-passport-image/resource.ts";
 import { removePublicPassportImage } from "../functions/remove-public-passport-image/resource.ts";
 import { resolvePublicPassportImage } from "../functions/resolve-public-passport-image/resource.ts";
+import { retryRemovedPublicImageCleanup } from "../functions/retry-removed-public-image-cleanup/resource.ts";
 import { verifyPrivateImage } from "../functions/verify-private-image/resource.ts";
 
 // TODO: Wire mock-data screens to generated AppSync clients after the sandbox
@@ -25,6 +26,17 @@ const schema = a.schema({
     "manual_review",
     "retry_inspection",
     "cleanup_candidate_for_future_review"
+  ]),
+  RemovedPublicImageCleanupAttemptStatus: a.enum(["claimed", "retry_pending", "complete"]),
+  RemovedPublicImageCleanupRetryStatus: a.enum([
+    "disabled",
+    "not_eligible",
+    "already_missing",
+    "cleaned",
+    "retry_pending",
+    "state_changed",
+    "manual_review",
+    "failed"
   ]),
   PublicImageDeliveryStatus: a.enum(["available", "unavailable"]),
   PrivateImageAssetSourceType: a.enum(["equipment_cover", "range_session_target"]),
@@ -73,6 +85,12 @@ const schema = a.schema({
     findingCodes: a.string().array().required(),
     recommendedNextStep: a.ref("PublicImageCleanupRecommendation").required(),
     inspectedAt: a.datetime().required(),
+    retryable: a.boolean().required()
+  }),
+
+  RemovedPublicImageCleanupRetryResult: a.customType({
+    cleanupStatus: a.ref("RemovedPublicImageCleanupRetryStatus").required(),
+    failureCode: a.string(),
     retryable: a.boolean().required()
   }),
 
@@ -130,6 +148,16 @@ const schema = a.schema({
     .returns(a.ref("PublicImageCleanupInspectionResult"))
     .authorization((allow) => [allow.groups(["admin"])])
     .handler(a.handler.function(inspectPublicImageCleanup)),
+
+  retryRemovedPublicImageCleanup: a
+    .mutation()
+    .arguments({
+      publicImageAssetId: a.id().required(),
+      confirmation: a.boolean().required()
+    })
+    .returns(a.ref("RemovedPublicImageCleanupRetryResult"))
+    .authorization((allow) => [allow.groups(["admin"])])
+    .handler(a.handler.function(retryRemovedPublicImageCleanup)),
 
   resolvePublicPassportImage: a
     .query()
@@ -519,6 +547,23 @@ const schema = a.schema({
         .string()
         .authorization((allow) => [allow.ownerDefinedIn("ownerId").to(["read"])]),
       lastReportAt: a
+        .datetime()
+        .authorization((allow) => [allow.ownerDefinedIn("ownerId").to(["read"])]),
+      // Protected Phase 2H.2 coordination metadata. These fields are minimal
+      // retry state, not a complete audit trail, and remain client-nonwritable.
+      cleanupAttemptId: a
+        .string()
+        .authorization((allow) => [allow.ownerDefinedIn("ownerId").to(["read"])]),
+      cleanupAttemptStatus: a
+        .ref("RemovedPublicImageCleanupAttemptStatus")
+        .authorization((allow) => [allow.ownerDefinedIn("ownerId").to(["read"])]),
+      cleanupAttemptStartedAt: a
+        .datetime()
+        .authorization((allow) => [allow.ownerDefinedIn("ownerId").to(["read"])]),
+      cleanupAttemptFailureCode: a
+        .string()
+        .authorization((allow) => [allow.ownerDefinedIn("ownerId").to(["read"])]),
+      cleanupCompletedAt: a
         .datetime()
         .authorization((allow) => [allow.ownerDefinedIn("ownerId").to(["read"])]),
       createdAt: a.datetime(),

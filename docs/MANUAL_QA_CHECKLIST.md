@@ -691,10 +691,27 @@ Follow [Phase 2H Public Image Reconciliation Plan](PUBLIC_IMAGE_PHASE_2H_RECONCI
 - [ ] Inspect the GraphQL result, CloudWatch logs, console, and network. Confirm no key, URL, snapshot/asset/owner/source id, filename, alt text, report content, profile/private data, object metadata, token, or raw AWS error is exposed.
 - [ ] Record that this is a point-in-time assessment, not an atomic DynamoDB/S3 snapshot and not deletion permission. Ledgerless S3 objects remain undiscoverable without a future protected inventory workflow.
 
-### Future Phase 2H.2+ write-capable reconciliation — not runnable yet
+### Phase 2H.2 controlled removed-image cleanup retry — execution disabled; do not invoke
 
-- [ ] Add separately reviewed protected cleanup tasks/worker, conditional mutations, exact-key delete, bounded retries, audit/holds, and visibility/private-source hooks. Do not infer authorization from a Phase 2H.1 inspection result.
-- [ ] Keep hidden, reported, legacy-unknown, ledgerless, malformed, and ambiguous generations retained until explicit policy and evidence controls exist.
+The backend and schema may be deployed with `REMOVED_PUBLIC_IMAGE_CLEANUP_ENABLED=false`, but no live cleanup call is approved in this phase. `npm run test:public-image-reconciliation` covers the disabled and mocked enabled paths without AWS credentials or real objects. A separate approval, reviewed gate change, redeployment, and disposable fixture plan are required before running the checks below.
+
+- [ ] Before any future enablement, confirm `retryRemovedPublicImageCleanup` is admin-only in AppSync and Lambda and requires one exact `publicImageAssetId` plus `confirmation: true`. Moderator-only, ordinary, signed-out, and API-key callers must be denied.
+- [ ] Confirm the disabled deployed mutation returns only `disabled/execution_disabled` and performs zero table reads/writes, S3 head/versioning/delete calls, or other side effects.
+- [ ] Confirm input cannot contain a snapshot/owner/source id, bucket, key, path, URL, ETag, object version, filename, image bytes, inspection finding/recommendation, action/mode, force flag, or batch target.
+- [ ] With a separately approved disposable fixture, confirm only a valid `removed + clear|removed + equipment_cover` generation whose snapshot is fully detached can be claimed. Still-attached, replacement-generation, partial, active/draft/processing/ready, hidden, legacy/unknown, malformed, missing-ledger, target-photo, inaccessible, and ambiguous fixtures must fail closed.
+- [ ] Confirm the claim transaction condition-checks the snapshot and conditionally updates the asset without a ConditionCheck and Update on the same item. Race two retries and confirm only one exact attempt owns finalization; an older attempt cannot overwrite newer state.
+- [ ] Confirm processing cannot reuse a `removed` generation. Race cleanup with owner/moderator lifecycle actions and confirm no generation is reattached or made deliverable.
+- [ ] Confirm bucket versioning is inspected before a claim. Enabled or suspended versioning must return manual review with no asset write/delete. Do not enable/disable versioning or delete versions/history for this test.
+- [ ] Confirm a present derivative is checked for canonical key, JPEG MIME, bounded size, and ETag; deletion uses the observed ETag as `IfMatch` and never falls back to unconditional deletion. Treat 403 as inaccessible, 404 as missing only after eligibility validation, and precondition/timeouts as state-changed or retryable.
+- [ ] Confirm `cleaned` is returned only after conditional deletion, follow-up confirmed absence, and exact-attempt ledger completion. Repeated calls converge to `already_missing`; a post-delete persistence failure remains retryable without restoring delivery.
+- [ ] Inspect deployed IAM. It must contain only attribute-limited named-table reads, transaction-scoped snapshot condition-check and asset update, exact-attempt asset update, bucket-versioning read, and public-cover-prefix get/head/delete. It must not include table/index scan/query, S3 list/put/copy, private prefixes, target photos, private image records, snapshot/report/account deletion, or Cognito mutation.
+- [ ] Inspect result/log/console/network output. Confirm only bounded status/failure/retry fields appear—never keys, URLs, ETags, versions, IDs beyond the operator-supplied request, filenames, alt text, storage metadata, report details, owner/profile/private data, tokens, or raw AWS errors.
+- [ ] Record that Phase 2H.1 findings are not cleanup authorization; Phase 2H.2 independently re-derives current state. No product UI, schedule, queue, batch, scan, task model, audit ledger, or live automation exists.
+
+### Future Phase 2H.3+ reconciliation — not runnable yet
+
+- [ ] Add separately reviewed protected cleanup tasks/worker, bounded retries, audit/holds, and visibility/private-source hooks. Do not infer authorization from a Phase 2H.1 inspection result or broaden the one-generation Phase 2H.2 mutation.
+- [ ] Keep hidden, legacy-unknown, ledgerless, malformed, and ambiguous generations retained until explicit policy and evidence controls exist.
 
 ## 14. Public profiles
 

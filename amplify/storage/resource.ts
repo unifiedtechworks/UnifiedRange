@@ -4,6 +4,7 @@ import { moderatePublicPassportImage } from "../functions/moderate-public-passpo
 import { processPublicPassportImage } from "../functions/process-public-passport-image/resource.ts";
 import { removePublicPassportImage } from "../functions/remove-public-passport-image/resource.ts";
 import { resolvePublicPassportImage } from "../functions/resolve-public-passport-image/resource.ts";
+import { retryRemovedPublicImageCleanup } from "../functions/retry-removed-public-image-cleanup/resource.ts";
 import { verifyPrivateImage } from "../functions/verify-private-image/resource.ts";
 
 export const storage = defineStorage({
@@ -23,7 +24,8 @@ export const storage = defineStorage({
       allow.resource(removePublicPassportImage).to(["delete"]),
       allow.resource(moderatePublicPassportImage).to(["delete"]),
       allow.resource(resolvePublicPassportImage).to(["get"]),
-      allow.resource(inspectPublicImageCleanup).to(["get"])
+      allow.resource(inspectPublicImageCleanup).to(["get"]),
+      allow.resource(retryRemovedPublicImageCleanup).to(["get", "delete"])
     ]
   })
 });

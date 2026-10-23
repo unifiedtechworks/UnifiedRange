@@ -2,7 +2,7 @@
 
 ## Status and scope
 
-Phase 2H planning is complete. Phase 2H.1 implements only the protected, read-only inspection subset through `inspectPublicImageCleanup(publicImageAssetId)`. It adds an admin-only custom query and Lambda, but no cleanup mutation, delete permission, schedule, queue, task model, bucket scan, or user-facing control.
+Phase 2H planning is complete. Phase 2H.1 implements the protected, read-only inspection subset through `inspectPublicImageCleanup(publicImageAssetId)`. Phase 2H.2 adds a separate, admin-only `retryRemovedPublicImageCleanup(publicImageAssetId, confirmation)` mutation for one already-removed, detached equipment-cover generation. Its backend-controlled execution gate is hard-coded to `false` in every deployed environment in this phase, so the deployed function returns `disabled` before any data or S3 operation. There is no schedule, queue, task model, bucket scan, user-facing control, or live cleanup authorization.
 
 The current product already fails closed for public delivery: the resolver issues a short-lived URL only when the published snapshot, its projected image generation, the `PublicImageAsset` ledger row, source eligibility, account visibility, moderation state, canonical key, and S3 object all agree. Owner removal, derivative-aware Unpublish, replacement, and moderator Remove detach delivery before attempting object deletion. Those controls can therefore leave a non-deliverable derivative that still needs exact cleanup after a timeout or partial failure.
 
@@ -19,6 +19,22 @@ The bounded response contains only `assessmentStatus`, allow-listed `findingCode
 Phase 2H.1 can assess a current attached generation, a detached or removed generation, an intentionally hidden generation, a missing snapshot, a different projected generation, a missing/inaccessible derivative, malformed/legacy/inconsistent bindings, an active or expired processing lease, and state changes during inspection. Hidden, reported, missing-snapshot, different-generation, legacy, malformed, target-photo, and otherwise ambiguous cases remain retained or manual-review outcomes. An orphan object with no ledger row cannot be discovered from an asset-ID query; bucket listing remains intentionally absent.
 
 Automated mocked coverage exercises authorization, invalid/missing assets, attached/detached/hidden/replacement states, target-photo rejection, canonical-key rejection, S3 success/403/404/transient results, state races, bounded output, and the read/head-only dependency surface. Hosted authenticated integration scenarios remain pending in the manual QA checklist.
+
+### Phase 2H.2 implemented boundary
+
+`retryRemovedPublicImageCleanup` is independent from the inspector. It does not accept an inspection result, recommendation, key, path, URL, bucket, ETag, object version, snapshot/owner/source identifier, force flag, or batch. AppSync and the Lambda both require Cognito `admin`; the request must contain one exact `img-` plus 40 lowercase hexadecimal asset id and `confirmation: true`. The backend execution gate is not client-controlled and remains `false`. A disabled invocation performs zero DynamoDB reads/writes and zero S3 calls.
+
+When a later separately approved deployment enables the gate, the mutation re-derives all authority from current trusted state. It accepts only an `equipment_cover` asset already in server-managed `removed` status with `moderationStatus` exactly `clear` or `removed`, a valid owner/source/snapshot binding, a fully detached snapshot projection, and either no retained key or the exact canonical derivative key. Current, replacement-generation, partial, hidden, legacy, malformed, missing-ledger, target-photo, active/draft/processing/ready, and otherwise ambiguous states fail closed. A snapshot referencing a different generation remains `manual_review` in this first write-capable slice.
+
+The Lambda checks that the configured bucket is unversioned, then transactionally condition-checks the detached snapshot while conditionally claiming the asset. The transaction does not use both `ConditionCheck` and `Update` on the same item. Claims have a five-minute lease, and exact `updatedAt` conditions prevent concurrent callers from stealing the same retry-pending state. The processor already refuses to reuse an asset in `removed` status, so the claimed generation cannot be reactivated through the existing writer. The Lambda re-reads both records after the claim and again immediately before S3 deletion. Final completion or retry state is conditional on the exact attempt id and claimed state, so an older worker cannot overwrite a newer attempt.
+
+S3 access is limited to metadata read and delete on the processed-cover prefix. The function obtains the current ETag with `HeadObject`, validates JPEG MIME and the two-megabyte derivative bound, and sends that exact ETag as `DeleteObject.IfMatch`. It never treats ETag as a content hash. A 403 is inaccessible, a 404 is confirmed missing only after lifecycle validation, a precondition failure is `state_changed`, and an ambiguous timeout remains retryable until a follow-up `HeadObject` proves absence. `cleaned` means an unversioned-bucket conditional delete was followed by confirmed object absence and an exact-attempt ledger finalization; it never means merely attempted.
+
+Runtime bucket-versioning inspection is mandatory. `Enabled` and `Suspended` buckets return `manual_review`; Phase 2H.2 does not create/delete versions, delete markers, or object history, and it never silently falls back to an unconditional delete. The configured developer sandbox bucket was observed as unversioned during implementation, but the gate remains disabled and no cleanup invocation was performed. Hosted bucket behavior and live deletion remain unverified release gates.
+
+Five minimal owner-readable/client-nonwritable coordination fields are added to `PublicImageAsset`: `cleanupAttemptId`, `cleanupAttemptStatus`, `cleanupAttemptStartedAt`, `cleanupAttemptFailureCode`, and `cleanupCompletedAt`. They provide conditional retry safety only and are not a complete audit trail. Report rows and generation bindings are preserved.
+
+The bounded results are `disabled`, `not_eligible`, `already_missing`, `cleaned`, `retry_pending`, `state_changed`, `manual_review`, and `failed`. Responses and logs contain only allow-listed status/failure values and never expose keys, URLs, ETags, version ids, storage metadata, owner/source identifiers, private data, report details, or raw AWS errors.
 
 ## Current implementation facts
 
@@ -194,15 +210,15 @@ The first implementation must not call `ListObjectsV2` or perform a DynamoDB tab
 - S3 `GetObject` only under `public/passports/{snapshot_id}/cover/*`, used by the handler solely for exact-key `HeadObject` metadata checks.
 - No DynamoDB query/scan/write/transaction action; no S3 list/write/copy/delete; no private-prefix, private-record, AppSync data-write, cleanup/moderation invocation, presigning, or Cognito permission.
 
-### Future manual write-capable reconciler — not implemented
+### Phase 2H.2 controlled removed-generation retry — implemented but disabled
 
 - AppSync invocation limited to Cognito `admin`; Lambda independently validates the group claim.
-- DynamoDB `GetItem` on `PublicPassportSnapshot` with only projection/lifecycle fields needed for conditions.
-- DynamoDB `Query` only on `publicImageAssetsBySnapshotId`, initially projecting only IDs, followed by attribute-limited primary `GetItem` reads.
-- Conditional `UpdateItem`/`TransactWriteItems` only for snapshot projection fields and the matched ledger lifecycle/key fields.
-- Optional attribute-limited reads of public profile, Equipment Passport eligibility, and future report/cleanup-hold projection when required by classification.
-- S3 `GetObject` only as needed for exact `HeadObject` semantics and `DeleteObject` only under `public/passports/*/cover/*.jpg`.
+- Backend-controlled execution is fixed to `false`; the disabled path makes no dependency call.
+- Attribute-limited DynamoDB `GetItem` on one `PublicImageAsset` and its named `PublicPassportSnapshot` only; no query or scan.
+- Transaction-scoped snapshot `ConditionCheckItem` plus asset `UpdateItem` for the attempt claim, followed only by exact-attempt conditional asset updates.
+- S3 `GetBucketVersioning`, exact-key `GetObject` authorization for `HeadObject`, and `DeleteObject` only under `public/passports/*/cover/*.jpg`.
 - No `s3:ListBucket`, `PutObject`, copy, ACL, bucket-policy, private-prefix, `PrivateImageAsset`, or Cognito mutation permissions.
+- No snapshot content delete, projection mutation, ledger delete, report mutation, or moderation-state change.
 
 ### Scheduled worker
 
@@ -275,26 +291,34 @@ The future operator UI should show only a shortened public snapshot reference al
 
 The original plan's `apply` behavior, projection repair, removed-object deletion, and failed-processing rollback are not part of Phase 2H.1. They require a separately reviewed write-capable phase.
 
-### Phase 2H.2: durable cleanup tasks and worker
+### Phase 2H.2: controlled removed-generation retry — implemented, execution disabled
+
+- Add the separate admin-only mutation for one known immutable generation.
+- Re-derive current state; do not consume Phase 2H.1 findings as authorization.
+- Claim one removed/detached generation conditionally and revalidate immediately before an ETag-bound exact-key delete.
+- Refuse versioned/suspended buckets, hidden/legacy/active/replacement states, and every ambiguous binding.
+- Keep the backend execution gate disabled until a separate live-test review and approval.
+
+### Phase 2H.3: durable cleanup tasks and worker
 
 - Add protected cleanup task/audit storage, due-task index, lifecycle hooks, bounded scheduled/SQS worker, retries, metrics, and dead-letter handling.
 - Enqueue from owner/moderator cleanup, processor rollback failure, Unpublish, replacement, account-private, source revocation, and future account deletion.
 - Keep the worker list-free and exact-key only.
 
-### Phase 2H.3: evidence and legacy policy
+### Phase 2H.4: evidence and legacy policy
 
 - Add a protected report-by-generation lookup or durable hold.
 - Define hidden/report evidence retention, expiration, appeal, and legal requirements.
 - Backfill legacy moderation state under controlled tooling; do not infer `clear` from absence.
 - Add a protected exact-generation moderator review/removal path before allowing automated cleanup of reported generations.
 
-### Phase 2H.4: inventory audit for ledgerless objects
+### Phase 2H.5: inventory audit for ledgerless objects
 
 - Use protected S3 Inventory and an offline comparison, not live application listing.
 - Create review tasks for canonical unmatched objects.
 - Require a trusted binding or explicit operator approval before exact deletion.
 
-### Phase 2H.5: release validation
+### Phase 2H.6: release validation
 
 - Run owner, moderator, admin, signed-out, API-key, concurrent replacement, account-private, source-revoked, missing-object, ambiguous-generation, legacy-row, retry, and dead-letter tests.
 - Verify no cleanup path reads/deletes private prefixes or makes a hidden/reported image public.
@@ -305,7 +329,10 @@ The original plan's `apply` behavior, projection repair, removed-object deletion
 
 - [x] Mocked tests reject a normal signed-in user, moderator, signed-out visitor, and API-key-shaped caller before any dependency read.
 - [x] Mocked tests confirm inspection accepts only one exact asset-generation ID and returns no key, URL, asset/owner/source ID, filename, alt text, or raw error.
+- [x] Mocked Phase 2H.2 tests confirm the disabled gate and missing confirmation perform zero reads/writes/deletes; non-admin identities are rejected before dependencies run.
+- [x] Mocked Phase 2H.2 tests cover removed/detached cleanup, already-missing convergence, hidden/current/replacement/legacy/target rejection, active lifecycle states, S3 403/404, ETag precondition failure, state races, repeated calls, ambiguous deletion, failed result persistence, stale-attempt protection, versioning refusal, and the no-private/list/copy/download dependency boundary.
 - [ ] Hosted integration must confirm AppSync and Lambda both enforce Admin-only access and the deployed role has only the documented read/head permissions.
+- [ ] A separate approval must enable the Phase 2H.2 execution gate before any live cleanup test; this implementation/deployment must not invoke the mutation.
 - [ ] Known owner/moderator `cleanup_pending` fixtures converge to completed cleanup; already-missing objects are idempotent success.
 - [ ] A current ready derivative is never classified as an orphan after a client timeout.
 - [ ] An expired processor rollback object can be removed only when it is unprojected and exact; a current lease is untouched.
@@ -319,4 +346,4 @@ The original plan's `apply` behavior, projection repair, removed-object deletion
 
 ## Explicitly out of scope
 
-Phase 2H.1 does not implement write-capable reconciliation, cleanup mutations, schedules, queues, task/audit models, indexes, UI, bucket listing, or broader rendering. It does not add Discover/public-profile images, target-photo publishing, public galleries, feeds/follows, marketplace behavior, destructive account deletion, or any calculator, scope output, hold recommendation, field correction, sight-in instruction, or aiming guidance.
+Phase 2H.2 does not add general orphan reconciliation, projection repair, cleanup of failed/expired processing rows, hidden-image cleanup, cleanup schedules, queues, task/audit models, indexes, UI, bucket listing, version-history deletion, or broader rendering. It does not add Discover/public-profile images, target-photo publishing, public galleries, feeds/follows, marketplace behavior, destructive account deletion, or any calculator, scope output, hold recommendation, field correction, sight-in instruction, or aiming guidance. Phase 2H.1 remains read-only and its recommendation is never deletion authorization.

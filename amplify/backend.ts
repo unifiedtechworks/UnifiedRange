@@ -1,5 +1,5 @@
 import { defineBackend } from "@aws-amplify/backend";
-import { PolicyStatement } from "aws-cdk-lib/aws-iam";
+import { Policy, PolicyStatement } from "aws-cdk-lib/aws-iam";
 import { auth } from "./auth/resource.ts";
 import { data } from "./data/resource.ts";
 import { createPublicImageReport } from "./functions/create-public-image-report/resource.ts";
@@ -8,6 +8,7 @@ import { moderatePublicPassportImage } from "./functions/moderate-public-passpor
 import { processPublicPassportImage } from "./functions/process-public-passport-image/resource.ts";
 import { removePublicPassportImage } from "./functions/remove-public-passport-image/resource.ts";
 import { resolvePublicPassportImage } from "./functions/resolve-public-passport-image/resource.ts";
+import { retryRemovedPublicImageCleanup } from "./functions/retry-removed-public-image-cleanup/resource.ts";
 import { verifyPrivateImage } from "./functions/verify-private-image/resource.ts";
 import { storage } from "./storage/resource.ts";
 
@@ -20,6 +21,7 @@ const backend = defineBackend({
   processPublicPassportImage,
   removePublicPassportImage,
   resolvePublicPassportImage,
+  retryRemovedPublicImageCleanup,
   verifyPrivateImage,
   storage
 });
@@ -38,6 +40,7 @@ const imageCleanupLambda = backend.removePublicPassportImage.resources.lambda;
 const imageModerationLambda = backend.moderatePublicPassportImage.resources.lambda;
 const publicImageReportLambda = backend.createPublicImageReport.resources.lambda;
 const publicImageCleanupInspectorLambda = backend.inspectPublicImageCleanup.resources.lambda;
+const removedPublicImageCleanupRetryLambda = backend.retryRemovedPublicImageCleanup.resources.lambda;
 
 function restrictDynamoAttributes(attributes: string[]) {
   return {
@@ -82,6 +85,132 @@ backend.inspectPublicImageCleanup.addEnvironment(
   publicPassportSnapshotTable.tableName
 );
 backend.inspectPublicImageCleanup.addEnvironment("PUBLIC_IMAGE_ASSET_TABLE_NAME", publicImageAssetTable.tableName);
+
+backend.retryRemovedPublicImageCleanup.addEnvironment(
+  "PUBLIC_PASSPORT_SNAPSHOT_TABLE_NAME",
+  publicPassportSnapshotTable.tableName
+);
+backend.retryRemovedPublicImageCleanup.addEnvironment("PUBLIC_IMAGE_ASSET_TABLE_NAME", publicImageAssetTable.tableName);
+// Phase 2H.2 is deliberately inert until a separately reviewed deployment
+// changes this backend-controlled value and approves live cleanup testing.
+backend.retryRemovedPublicImageCleanup.addEnvironment("REMOVED_PUBLIC_IMAGE_CLEANUP_ENABLED", "false");
+
+removedPublicImageCleanupRetryLambda.addToRolePolicy(
+  new PolicyStatement({
+    actions: ["dynamodb:GetItem"],
+    resources: [publicPassportSnapshotTable.tableArn],
+    conditions: restrictDynamoAttributes([
+      "id",
+      "ownerId",
+      "equipmentPassportId",
+      "publicImageAssetId",
+      "publicImageKey",
+      "publicImageAltText",
+      "updatedAt"
+    ])
+  })
+);
+
+removedPublicImageCleanupRetryLambda.addToRolePolicy(
+  new PolicyStatement({
+    actions: ["dynamodb:GetItem"],
+    resources: [publicImageAssetTable.tableArn],
+    conditions: restrictDynamoAttributes([
+      "id",
+      "ownerId",
+      "publicPassportSnapshotId",
+      "sourceType",
+      "sourceRecordId",
+      "publicImageKey",
+      "publicImageAltText",
+      "status",
+      "moderationStatus",
+      "lastReportAt",
+      "cleanupAttemptId",
+      "cleanupAttemptStatus",
+      "cleanupAttemptStartedAt",
+      "cleanupAttemptFailureCode",
+      "cleanupCompletedAt",
+      "updatedAt"
+    ])
+  })
+);
+
+removedPublicImageCleanupRetryLambda.addToRolePolicy(
+  new PolicyStatement({
+    actions: ["dynamodb:ConditionCheckItem"],
+    resources: [publicPassportSnapshotTable.tableArn],
+    conditions: restrictDynamoTransactionAttributes([
+      "id",
+      "ownerId",
+      "equipmentPassportId",
+      "publicImageAssetId",
+      "publicImageKey",
+      "publicImageAltText",
+      "updatedAt"
+    ])
+  })
+);
+
+removedPublicImageCleanupRetryLambda.addToRolePolicy(
+  new PolicyStatement({
+    actions: ["dynamodb:UpdateItem"],
+    resources: [publicImageAssetTable.tableArn],
+    conditions: restrictDynamoTransactionAttributes([
+      "id",
+      "ownerId",
+      "publicPassportSnapshotId",
+      "sourceType",
+      "sourceRecordId",
+      "publicImageKey",
+      "status",
+      "moderationStatus",
+      "cleanupAttemptId",
+      "cleanupAttemptStatus",
+      "cleanupAttemptStartedAt",
+      "cleanupAttemptFailureCode",
+      "cleanupCompletedAt",
+      "updatedAt"
+    ])
+  })
+);
+
+removedPublicImageCleanupRetryLambda.addToRolePolicy(
+  new PolicyStatement({
+    actions: ["dynamodb:UpdateItem"],
+    resources: [publicImageAssetTable.tableArn],
+    conditions: restrictDynamoAttributes([
+      "id",
+      "ownerId",
+      "publicPassportSnapshotId",
+      "sourceType",
+      "sourceRecordId",
+      "publicImageKey",
+      "publicImageAltText",
+      "status",
+      "moderationStatus",
+      "processingErrorCode",
+      "cleanupAttemptId",
+      "cleanupAttemptStatus",
+      "cleanupAttemptFailureCode",
+      "cleanupCompletedAt",
+      "updatedAt"
+    ])
+  })
+);
+
+// Keep this bucket-level permission in the storage nested stack. Defining it
+// inline on the data-stack Lambda role would add a data -> storage reference
+// while Storage already grants this function exact-prefix object access.
+new Policy(backend.storage.stack, "RemovedPublicImageCleanupRetryBucketPolicy", {
+  roles: [removedPublicImageCleanupRetryLambda.role!],
+  statements: [
+    new PolicyStatement({
+      actions: ["s3:GetBucketVersioning"],
+      resources: [backend.storage.resources.bucket.bucketArn]
+    })
+  ]
+});
 
 publicImageCleanupInspectorLambda.addToRolePolicy(
   new PolicyStatement({
