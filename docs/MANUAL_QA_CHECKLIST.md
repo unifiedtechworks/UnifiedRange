@@ -678,21 +678,23 @@ Phase 2F.1 provides the owner-authorized backend primitive, Phase 2F.2 wires its
 - [ ] Replace the current-snapshot review convention with an exact-generation safe projection/preview; confirm an old report cannot action a later replacement.
 - [ ] Add a durable cross-generation moderation hold, append-only audit, notification/appeal policy, and cleanup reconciliation before expanding image surfaces.
 
-### Future Phase 2H protected reconciliation — not runnable yet
+### Phase 2H.1 protected read-only inspection — pending hosted integration
 
-Follow [Phase 2H Public Image Reconciliation Plan](PUBLIC_IMAGE_PHASE_2H_RECONCILIATION_PLAN.md). These checks become runnable only after a separately requested backend implementation and redeploy.
+Follow [Phase 2H Public Image Reconciliation Plan](PUBLIC_IMAGE_PHASE_2H_RECONCILIATION_PLAN.md). The mocked automated suite runs with `npm run test:public-image-reconciliation`; the live checks below remain pending until the Phase 2H.1 backend is redeployed. Use disposable hosted-development fixtures and protected developer tooling. There is no product UI.
 
-- [ ] Confirm the first operator action is admin-only in both AppSync and Lambda. Normal users, moderators, signed-out visitors, and API-key callers must not invoke it or read cleanup tasks/audit.
-- [ ] Confirm the request accepts only one persistent `publicPassportSnapshotId` plus an allow-listed `inspect | apply` mode. It must not accept a key, path, URL, asset/owner/source id, filename, image bytes, arbitrary destination, or private record identifier.
-- [ ] Retry owner and moderator `cleanup_pending` fixtures. Confirm the worker derives and deletes at most one exact canonical public derivative, treats a missing object as idempotent success, and conditionally clears the retained ledger key.
-- [ ] Confirm a current `ready + clear` derivative remains attached after client timeout and is never misclassified as an orphan.
-- [ ] Confirm an expired failed-processing rollback object is eligible only when it is unprojected and exact. A current processing lease must remain untouched.
-- [ ] Confirm a snapshot projection pointing to a missing, removed, or hidden generation is detached transactionally and the public page stays safely text-only with no private fallback.
-- [ ] Confirm hidden, possibly reported, legacy-missing moderation state, duplicate, malformed, ledgerless, and ambiguous generations return retained/manual-review and cause no object deletion.
-- [ ] Race reconciliation against replacement, removal, Unpublish, and moderation. A newer projection or lifecycle revision must make the stale action fail closed without deleting the new generation.
-- [ ] Confirm account-private and source-revoked hooks deny new delivery before cleanup, enqueue only trusted exact generations, and never republish when eligibility later returns.
-- [ ] Confirm the scheduled worker, when added, queries only protected due tasks with bounded batches/retries and uses no live bucket listing, table scan, wildcard delete, or private-prefix permission.
-- [ ] Inspect responses, operator UI, CloudWatch, metrics, task rows, and dead letters. Confirm no key, URL, snapshot/asset/owner/source id, filename, alt text, report content, profile data, token, or raw AWS error is exposed.
+- [ ] Confirm `inspectPublicImageCleanup` is admin-only in both AppSync and Lambda. Moderator-only, ordinary, signed-out, and API-key callers must not invoke it.
+- [ ] Confirm the query accepts only one bounded `publicImageAssetId`. It must not accept a bucket, key, path, URL, snapshot/owner/source id, filename, image bytes, cleanup action, `apply`, `force`, or `delete` flag.
+- [ ] Inspect a current `ready + clear` attached generation. Confirm `no_action`, the attachment remains unchanged, and no object/record is modified.
+- [ ] Inspect detached, removed-with-object, hidden, missing-snapshot, replacement-generation, missing-object, inaccessible-object, malformed-key, legacy-state, active/expired-processing, and target-photo-like fixtures. Confirm bounded conservative findings: hidden is retained, 403 is retryable rather than absent, only 404 is confirmed missing, and ambiguous/evidence-sensitive cases require manual review.
+- [ ] Race inspection against replacement, removal, Unpublish, and moderation. Confirm changed critical fields return `state_changed`/retry rather than a stale assessment.
+- [ ] Inspect the Lambda role and CloudTrail/test spies. Confirm DynamoDB access is attribute-limited `GetItem` only; S3 is exact public-cover-prefix get/head only; no table/index scan/query, private-prefix, list, data write, S3 write/copy/delete, presigning, image download, cleanup/moderation invocation, or Cognito mutation occurs.
+- [ ] Inspect the GraphQL result, CloudWatch logs, console, and network. Confirm no key, URL, snapshot/asset/owner/source id, filename, alt text, report content, profile/private data, object metadata, token, or raw AWS error is exposed.
+- [ ] Record that this is a point-in-time assessment, not an atomic DynamoDB/S3 snapshot and not deletion permission. Ledgerless S3 objects remain undiscoverable without a future protected inventory workflow.
+
+### Future Phase 2H.2+ write-capable reconciliation — not runnable yet
+
+- [ ] Add separately reviewed protected cleanup tasks/worker, conditional mutations, exact-key delete, bounded retries, audit/holds, and visibility/private-source hooks. Do not infer authorization from a Phase 2H.1 inspection result.
+- [ ] Keep hidden, reported, legacy-unknown, ledgerless, malformed, and ambiguous generations retained until explicit policy and evidence controls exist.
 
 ## 14. Public profiles
 

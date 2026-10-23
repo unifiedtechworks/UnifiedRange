@@ -17,7 +17,7 @@ The Phase 2C backend-only derivative namespace is:
 public/passports/{publicPassportSnapshotId}/cover/{contentAddressedAssetId}.jpg
 ```
 
-Phase 2C grants `process-public-passport-image` get/write/delete access to this namespace. Phase 2E.1 grants `resolve-public-passport-image` get access only, which supports `HeadObject` and signing an exact `GetObject`. There is still no guest, API-key, authenticated-browser, moderator, or admin direct Storage rule for the namespace. Normal clients never receive public-prefix write access.
+Phase 2C grants `process-public-passport-image` get/write/delete access to this namespace. Phase 2E.1 grants `resolve-public-passport-image` get access only, which supports `HeadObject` and signing an exact `GetObject`. Phase 2H.1 grants the admin-only inspection Lambda get access on the same public-cover namespace solely for exact-key `HeadObject`; the handler never downloads bytes or signs a URL. There is still no guest, API-key, authenticated-browser, moderator, or admin direct Storage rule for the namespace. Normal clients never receive public-prefix write access.
 
 ## Private User Images
 
@@ -38,7 +38,7 @@ A `verified` result records a point-in-time source binding. It does not freeze t
 
 ## Public Sanitized Images
 
-The Phase 2C Lambda may create a public-safe derivative only after its authenticated request includes explicit consent and all current ownership, public-account, username-reservation, source, and object checks pass. Phase 2E.1 adds a backend-only public resolver that can return a 60-second non-cacheable signed URL after rechecking the snapshot, ready asset, source public flag, account visibility, safe alt text, exact derivative path, and S3 object. Public pages do not invoke it yet.
+The Phase 2C Lambda may create a public-safe derivative only after its authenticated request includes explicit consent and all current ownership, public-account, username-reservation, source, and object checks pass. Phase 2E.1 adds a backend-only public resolver that can return a 60-second non-cacheable signed URL after rechecking the snapshot, ready asset, source public flag, account visibility, safe alt text, exact derivative path, and S3 object. Phase 2E.2 invokes it only on saved Public Passport detail.
 
 The current Public Passport publishing flow writes sanitized text/setup data only and does not expose private S3 keys or public images.
 
@@ -56,4 +56,4 @@ The Phase 2C processor decodes an eligible JPEG/PNG, applies orientation in pixe
 6. The public snapshot references only the approved sanitized derivative. Phase 2C can set this guarded projection, and Phase 2D may invoke it after explicit consent.
 7. Phase 2E.1 resolves an eligible projection to a short-lived URL without granting clients direct Storage access; Phase 2E.2 renders it only on saved Public Passport detail.
 
-Steps 1-7 are implemented through detail-only backend delivery/rendering. Phase 2F adds owner removal, derivative-aware Unpublish, and remove-first replacement. Phase 2G.4 adds a separate admin/moderator current-derivative action with delete access only on `public/passports/{snapshot_id}/cover/*`; it has no private-prefix permission. Hide detaches delivery and retains the public derivative for a later explicit remove, while Remove detaches first and deletes only the backend-derived canonical public object. Atomic replacement, target-photo support, account/private-source hooks, exact-generation report binding, durable moderation holds/audit, and lifecycle reconciliation remain unavailable. The derivative namespace is not directly public; only the resolver Lambda can issue a short-lived eligible-object URL.
+Steps 1-7 are implemented through detail-only backend delivery/rendering. Phase 2F adds owner removal, derivative-aware Unpublish, and remove-first replacement. Phase 2G.4 adds a separate admin/moderator current-derivative action with delete access only on `public/passports/{snapshot_id}/cover/*`; it has no private-prefix permission. Hide detaches delivery and retains the public derivative for a later explicit remove, while Remove detaches first and deletes only the backend-derived canonical public object. Phase 2H.1 can inspect one exact known generation with read/head-only permissions, but it cannot repair or delete it. Atomic replacement, target-photo support, account/private-source hooks, durable moderation holds/audit, and write-capable lifecycle reconciliation remain unavailable. The derivative namespace is not directly public; only the resolver Lambda can issue a short-lived eligible-object URL.

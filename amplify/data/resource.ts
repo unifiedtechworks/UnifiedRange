@@ -1,5 +1,6 @@
 import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
 import { createPublicImageReport } from "../functions/create-public-image-report/resource.ts";
+import { inspectPublicImageCleanup } from "../functions/inspect-public-image-cleanup/resource.ts";
 import { moderatePublicPassportImage } from "../functions/moderate-public-passport-image/resource.ts";
 import { processPublicPassportImage } from "../functions/process-public-passport-image/resource.ts";
 import { removePublicPassportImage } from "../functions/remove-public-passport-image/resource.ts";
@@ -18,6 +19,13 @@ const schema = a.schema({
   PublicImageModerationActionStatus: a.enum(["hidden", "removed", "not_attached", "cleanup_pending", "failed"]),
   PublicImageReportSubmissionStatus: a.enum(["submitted", "failed"]),
   PublicImageCleanupStatus: a.enum(["removed", "not_attached", "cleanup_pending", "failed"]),
+  PublicImageCleanupAssessmentStatus: a.enum(["assessed", "unavailable", "state_changed", "failed"]),
+  PublicImageCleanupRecommendation: a.enum([
+    "no_action",
+    "manual_review",
+    "retry_inspection",
+    "cleanup_candidate_for_future_review"
+  ]),
   PublicImageDeliveryStatus: a.enum(["available", "unavailable"]),
   PrivateImageAssetSourceType: a.enum(["equipment_cover", "range_session_target"]),
   PrivateImageAssetBindingStatus: a.enum(["unverified", "verifying", "verified", "failed", "rejected", "removed"]),
@@ -58,6 +66,14 @@ const schema = a.schema({
   CreatePublicImageReportResult: a.customType({
     submissionStatus: a.ref("PublicImageReportSubmissionStatus").required(),
     failureCode: a.string()
+  }),
+
+  PublicImageCleanupInspectionResult: a.customType({
+    assessmentStatus: a.ref("PublicImageCleanupAssessmentStatus").required(),
+    findingCodes: a.string().array().required(),
+    recommendedNextStep: a.ref("PublicImageCleanupRecommendation").required(),
+    inspectedAt: a.datetime().required(),
+    retryable: a.boolean().required()
   }),
 
   verifyPrivateImageAsset: a
@@ -107,6 +123,13 @@ const schema = a.schema({
     .returns(a.ref("CreatePublicImageReportResult"))
     .authorization((allow) => [allow.authenticated()])
     .handler(a.handler.function(createPublicImageReport)),
+
+  inspectPublicImageCleanup: a
+    .query()
+    .arguments({ publicImageAssetId: a.id().required() })
+    .returns(a.ref("PublicImageCleanupInspectionResult"))
+    .authorization((allow) => [allow.groups(["admin"])])
+    .handler(a.handler.function(inspectPublicImageCleanup)),
 
   resolvePublicPassportImage: a
     .query()

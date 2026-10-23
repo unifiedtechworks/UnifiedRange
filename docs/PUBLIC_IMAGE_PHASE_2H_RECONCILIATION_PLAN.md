@@ -2,11 +2,23 @@
 
 ## Status and scope
 
-Phase 2H is a planning-only release for protected recovery of processed public equipment-cover derivatives. It does not add a schema, Lambda, schedule, storage rule, API, or user-facing control.
+Phase 2H planning is complete. Phase 2H.1 implements only the protected, read-only inspection subset through `inspectPublicImageCleanup(publicImageAssetId)`. It adds an admin-only custom query and Lambda, but no cleanup mutation, delete permission, schedule, queue, task model, bucket scan, or user-facing control.
 
 The current product already fails closed for public delivery: the resolver issues a short-lived URL only when the published snapshot, its projected image generation, the `PublicImageAsset` ledger row, source eligibility, account visibility, moderation state, canonical key, and S3 object all agree. Owner removal, derivative-aware Unpublish, replacement, and moderator Remove detach delivery before attempting object deletion. Those controls can therefore leave a non-deliverable derivative that still needs exact cleanup after a timeout or partial failure.
 
 Phase 2H must recover those objects without broadening public access, reading private originals, guessing across image generations, or weakening generation-bound report and moderation evidence.
+
+### Phase 2H.1 implemented boundary
+
+The Phase 2H.1 query accepts one bounded `PublicImageAsset` generation ID. AppSync permits only the Cognito `admin` group, and the Lambda repeats that group check from trusted identity context. Moderator-only users, ordinary users, signed-out callers, and API-key callers are not authorized. Operational reconciliation starts admin-only because its findings concern cross-lifecycle storage state rather than ordinary report review; moderators retain their narrower current-image review/action boundary.
+
+The Lambda performs strongly consistent, attribute-limited base-table reads of the named asset and its associated `PublicPassportSnapshot`. It derives and validates the existing canonical equipment-cover path, uses `HeadObject` only, and re-reads both records before returning. A changed record returns `state_changed`; a 403 is inaccessible/indeterminate, while only a 404 is confirmed missing. No secondary index, profile/private-record read, object download, presigned URL, write, detach, cleanup action, or deletion is used.
+
+The bounded response contains only `assessmentStatus`, allow-listed `findingCodes`, `recommendedNextStep`, `inspectedAt`, and `retryable`. Recommendations are `no_action`, `manual_review`, `retry_inspection`, or `cleanup_candidate_for_future_review`. The last value is a review classification, not `safe_to_delete` permission. Keys, URLs, owner/source identifiers, filenames, alt text, ledger contents, report details, object metadata, and raw AWS errors are never returned.
+
+Phase 2H.1 can assess a current attached generation, a detached or removed generation, an intentionally hidden generation, a missing snapshot, a different projected generation, a missing/inaccessible derivative, malformed/legacy/inconsistent bindings, an active or expired processing lease, and state changes during inspection. Hidden, reported, missing-snapshot, different-generation, legacy, malformed, target-photo, and otherwise ambiguous cases remain retained or manual-review outcomes. An orphan object with no ledger row cannot be discovered from an asset-ID query; bucket listing remains intentionally absent.
+
+Automated mocked coverage exercises authorization, invalid/missing assets, attached/detached/hidden/replacement states, target-photo rejection, canonical-key rejection, S3 success/403/404/transient results, state races, bounded output, and the read/head-only dependency surface. Hosted authenticated integration scenarios remain pending in the manual QA checklist.
 
 ## Current implementation facts
 
@@ -22,11 +34,11 @@ Phase 2H must recover those objects without broadening public access, reading pr
 
 ## Threat model and non-negotiable invariants
 
-The reconciler is a destructive storage operator. A false positive could delete the current public derivative or erase retained moderation evidence. The design therefore follows these rules:
+Phase 2H.1 is not a destructive operator. The future write-capable reconciler would be one, and a false positive could delete the current public derivative or erase retained moderation evidence. The implemented inspection and every future phase therefore follow these rules:
 
 1. No public or API-key authorization. The first operator action should be `admin` only, with a second group check inside the Lambda. Ordinary users and moderators must not receive a general orphan-cleanup tool.
-2. Accept only a normalized persistent `publicPassportSnapshotId` plus a bounded operation mode such as `inspect` or `apply`. Do not accept keys, paths, URLs, owner IDs, source IDs, filenames, image bytes, arbitrary asset IDs, or destination values from a client.
-3. Re-read the snapshot and all candidate ledger rows from trusted tables on every attempt. Never trust a prior UI result when applying a cleanup.
+2. Phase 2H.1 accepts only one normalized `PublicImageAsset` generation ID and has no mode or action input. Do not accept keys, paths, URLs, owner IDs, source IDs, snapshot IDs, filenames, image bytes, destination values, or cleanup flags from this query. A future write action requires its own independently reviewed contract.
+3. Re-read the asset and associated snapshot from trusted base tables on every inspection. Never trust a prior inspection result when designing or applying future cleanup.
 4. Derive the only deletable key from the trusted snapshot ID and immutable ledger asset ID, then require exact equality with any stored key.
 5. Operate on one snapshot and, when safe, one exact generation per request. Never issue a wildcard or multi-generation delete.
 6. Use conditional or transactional writes so a newer replacement, moderation transition, or projection change wins over a stale reconciliation attempt.
@@ -75,7 +87,7 @@ The reconciler is a destructive storage operator. A false positive could delete 
 
 ### Option A: manual protected admin action
 
-A group-gated custom AppSync action accepts one snapshot ID and performs an `inspect` or explicit `apply` operation. The Lambda queries the snapshot index, re-reads each primary ledger row, derives canonical keys, and returns only a bounded classification/outcome.
+Phase 2H.1 implements the read-only half as a group-gated custom AppSync query accepting one known image-generation ID. The Lambda consistently reads that base ledger row and its associated snapshot, derives the canonical key, heads it, re-reads critical state, and returns only a bounded classification. A future explicit write action would be a separate contract that reclassifies from trusted state rather than applying a cached inspection.
 
 Advantages:
 
@@ -86,7 +98,7 @@ Advantages:
 
 Limitations:
 
-- requires an operator to know the snapshot ID;
+- requires an operator to know the opaque asset-generation ID;
 - cannot safely discover ledgerless S3 objects; and
 - does not provide durable retries by itself.
 
@@ -112,30 +124,26 @@ Implement a narrow admin-only manual reconciler first, then add durable protecte
 
 This sequence is recommended because it makes known cleanup failures recoverable without granting `ListBucket`, adding a bulk delete path, or inventing policy for hidden/reported generations. The same classification and conditional-transition library can later power a worker, reducing behavior drift.
 
-## Recommended command contract
+## Implemented read-only command contract
 
-The first backend action should conceptually be:
+The Phase 2H.1 backend query is:
 
 ```text
-reconcilePublicPassportImage(
-  publicPassportSnapshotId,
-  mode: inspect | apply
-) -> status + bounded reason
+inspectPublicImageCleanup(publicImageAssetId)
+  -> assessmentStatus + findingCodes + recommendedNextStep + inspectedAt + retryable
 ```
 
-The exact GraphQL names are a future implementation choice. The contract should enforce:
+The contract enforces:
 
 - Cognito user-pool authorization with `admin` group authorization in AppSync and repeated inside the Lambda;
-- a normalized persistent snapshot ID only; reject demo/sample values;
-- no browser-supplied asset ID in the first release—the trusted snapshot index resolves generations;
-- no key, URL, owner/source ID, filename, image data, retention flag, or arbitrary action path;
-- `inspect` performs no mutations and returns only allow-listed state such as `clean`, `cleanup_ready`, `retained_hold`, `missing_object`, `manual_review`, or `unavailable`;
-- `apply` re-reads and reclassifies instead of trusting the prior inspection;
-- one exact conditional transition and at most one exact object delete;
-- bounded outcomes such as `completed`, `already_complete`, `cleanup_pending`, `retained_hold`, `manual_review`, and `failed`; and
+- an exact `img-` plus 40 lowercase hexadecimal generation ID only;
+- no key, URL, snapshot/owner/source ID, filename, image data, retention flag, mode, or arbitrary action path;
+- no mutation, conditional transition, cleanup invocation, object download, or object delete;
+- strongly consistent base reads, exact canonical-key validation, `HeadObject`, and a final critical-state re-read;
+- bounded recommendations only: `no_action`, `manual_review`, `retry_inspection`, or `cleanup_candidate_for_future_review`; and
 - no echo of identifiers or infrastructure detail in the result.
 
-If later operator workflows need an asset-generation input, it must come from a protected server-created cleanup task or opaque single-use action token, not a freely editable browser field. The backend must still derive and verify the canonical key.
+`cleanup_candidate_for_future_review` is not deletion permission. A later write-capable workflow must use a protected server-created task or independently re-derived exact binding, repeat every state/evidence check, and never treat this point-in-time result as authorization.
 
 ## Durable task and data-model plan
 
@@ -179,7 +187,14 @@ The first implementation must not call `ListObjectsV2` or perform a DynamoDB tab
 
 ## Least-privilege IAM plan
 
-### Manual admin reconciler
+### Phase 2H.1 read-only inspector — implemented
+
+- AppSync invocation is limited to Cognito `admin`; the Lambda independently validates the group claim.
+- DynamoDB `GetItem` only on `PublicImageAsset` and `PublicPassportSnapshot`, with attribute-limited projections and strongly consistent reads.
+- S3 `GetObject` only under `public/passports/{snapshot_id}/cover/*`, used by the handler solely for exact-key `HeadObject` metadata checks.
+- No DynamoDB query/scan/write/transaction action; no S3 list/write/copy/delete; no private-prefix, private-record, AppSync data-write, cleanup/moderation invocation, presigning, or Cognito permission.
+
+### Future manual write-capable reconciler — not implemented
 
 - AppSync invocation limited to Cognito `admin`; Lambda independently validates the group claim.
 - DynamoDB `GetItem` on `PublicPassportSnapshot` with only projection/lifecycle fields needed for conditions.
@@ -250,13 +265,15 @@ The future operator UI should show only a shortened public snapshot reference al
 
 ## Recommended implementation phases
 
-### Phase 2H.1: protected manual reconciliation
+### Phase 2H.1: protected read-only inspection — implemented
 
-- Add admin-only `inspect/apply` reconciliation for one persistent public snapshot ID.
-- Reuse a shared classifier/canonical-key validator across the manual action and future worker.
-- Support deterministic removed/cleanup-pending retry, missing-object projection repair, and expired failed-processing rollback cases.
-- Retain hidden, possibly reported, legacy, ledgerless, and ambiguous cases for manual policy review.
-- Add developer sandbox harness and adversarial fixtures; no user-facing product control.
+- Add admin-only inspection for one persistent public image asset generation ID.
+- Reuse a pure classifier/canonical-key validator that can later inform a separately authorized worker.
+- Inspect exact metadata and return bounded findings without changing data or storage.
+- Retain hidden, possibly reported, legacy, ledgerless, missing-snapshot, replacement-mismatch, and ambiguous cases for manual policy review.
+- Add adversarial mocked fixtures; no user-facing product control.
+
+The original plan's `apply` behavior, projection repair, removed-object deletion, and failed-processing rollback are not part of Phase 2H.1. They require a separately reviewed write-capable phase.
 
 ### Phase 2H.2: durable cleanup tasks and worker
 
@@ -284,10 +301,11 @@ The future operator UI should show only a shortened public snapshot reference al
 - Verify current replacement wins over stale reconciliation and all issued delivery URLs expire within the existing 60-second bound.
 - Keep Discover/public-profile rendering deferred until lifecycle recovery and moderation gates pass.
 
-## Future QA checklist
+## QA checklist
 
-- [ ] A normal signed-in user, moderator, signed-out visitor, and API-key caller cannot invoke the admin reconciler or read cleanup tasks/audit.
-- [ ] `inspect` and `apply` accept only one persistent snapshot ID plus an allow-listed mode and return no key, URL, asset/owner/source ID, filename, alt text, or raw error.
+- [x] Mocked tests reject a normal signed-in user, moderator, signed-out visitor, and API-key-shaped caller before any dependency read.
+- [x] Mocked tests confirm inspection accepts only one exact asset-generation ID and returns no key, URL, asset/owner/source ID, filename, alt text, or raw error.
+- [ ] Hosted integration must confirm AppSync and Lambda both enforce Admin-only access and the deployed role has only the documented read/head permissions.
 - [ ] Known owner/moderator `cleanup_pending` fixtures converge to completed cleanup; already-missing objects are idempotent success.
 - [ ] A current ready derivative is never classified as an orphan after a client timeout.
 - [ ] An expired processor rollback object can be removed only when it is unprojected and exact; a current lease is untouched.
@@ -301,4 +319,4 @@ The future operator UI should show only a shortened public snapshot reference al
 
 ## Explicitly out of scope
 
-This planning release does not implement reconciliation, cleanup Lambdas, schedules, queues, models, indexes, audit records, UI, storage changes, or IAM changes. It does not add Discover/public-profile images, target-photo publishing, public galleries, feeds/follows, marketplace behavior, destructive account deletion, or any calculator, scope output, hold recommendation, field correction, sight-in instruction, or aiming guidance.
+Phase 2H.1 does not implement write-capable reconciliation, cleanup mutations, schedules, queues, task/audit models, indexes, UI, bucket listing, or broader rendering. It does not add Discover/public-profile images, target-photo publishing, public galleries, feeds/follows, marketplace behavior, destructive account deletion, or any calculator, scope output, hold recommendation, field correction, sight-in instruction, or aiming guidance.
