@@ -1,5 +1,239 @@
 # Dependency remediation pass 1 validation
 
+## Node 24 custom-function migration — October 24, 2026
+
+This section supersedes the earlier proposal's outstanding source-runtime
+migration prerequisite. Historical Node 20 evidence below remains historical;
+it is not repeated or treated as release clearance. No deployment is authorized
+by this record, and the separate Hosting support and dependency-risk decisions
+remain open.
+
+### Exact candidate and preserved scope
+
+- Starting clean review HEAD: `fe20ed34a7f49dec44be6af43366542af01a97ab`.
+- Previous tested implementation: `1656d7cc243151c9ee42e31598620bef72d6edb7`.
+- Migration/application source: `9db0692a66d7e217643cce63320d97ffb0505af2`.
+- Expanded immutable harness: `b175bfceab048f7ecc4ae34fdd0cb36b54446b5b`.
+- Workflow: `ea9cc52d370ab8c9647c0b01450c34926854a4f5`.
+- [Migrated-source Linux run 40144267196](https://github.com/unifiedtechworks/UnifiedRange/actions/runs/40144267196): completed successfully.
+- Fetched origin/main: `6d268c77b8d694385bd21128bae044ff1feffbb0`.
+
+The distinct migration commit changes exactly eight `runtime: 20` declarations
+to `runtime: 24`, each in `amplify/functions/<name>/resource.ts`. It contains no
+handler changes. Function names, entries, resource group, logging, default
+x86_64 architecture, memory, timeout, ephemeral storage, environment, IAM,
+Storage, schema and operation contracts are preserved. The backend still sets
+`REMOVED_PUBLIC_IMAGE_CLEANUP_ENABLED` to the literal string `false`.
+Package.json, package-lock.json, the scoped Handlebars override, production
+Next build/local Inter loading, and Hosting build/SSR settings are unchanged.
+Framework/CDK-provider functions were not overridden.
+
+### Handler review and per-function coverage
+
+All eight handlers export a single-event async arrow function. Source review
+found no callback signatures, context.done/fail/succeed,
+callbackWaitsForEmptyEventLoop, background timers, dynamic imports, require calls,
+or experimental module-loading dependencies in application handlers. SDK sends
+are awaited; concurrent work uses awaited Promise.all, and wrapper callbacks
+return their promises to awaited core functions. No specific Node 24
+incompatibility or handler correction was identified. This is a focused review,
+not a proof of every successful asynchronous path.
+
+| Function (runtime 20 → 24) | Node 24 coverage |
+| --- | --- |
+| create-public-image-report | Bundle/init/async export; unauthenticated request → unauthorized |
+| inspect-public-image-cleanup | Bundle/init/async export; unauthenticated request → unauthorized finding; existing core tests |
+| moderate-public-passport-image | Bundle/init/async export; unauthenticated request → unauthorized |
+| process-public-passport-image | Bundle/init/async export; unauthorized rejection; preserved 14-check processing suite |
+| remove-public-passport-image | Bundle/init/async export; unauthenticated request → unauthorized |
+| resolve-public-passport-image | Bundle/init/async export, including presigner dependency; invalid snapshot ID → unavailable |
+| retry-removed-public-image-cleanup | Bundle/init/async export; unauthorized rejection; authorized admin + valid ID + confirmation → disabled; existing core/configuration tests |
+| verify-private-image | Bundle/init/async export with all required environment values; missing IAM identity → unauthorized |
+
+Each row's initialization/export and rejection checks run against both the
+plain representative bundle with Amplify banner and the complete handler
+compiled into the SDK-boundary test bundle. The all-function suite has 34
+checks: four per function, plus two authorized-disabled cleanup checks. SDK
+send mocks throw and record unexpected DynamoDB/S3 operations, checked even if
+the handler catches the exception. Plain bundles have fail-closed HTTP/fetch
+guards as well as the container network restriction. The authorized-disabled
+cleanup SDK-boundary case specifically asserts zero SDK operations. No real
+cleanup ran.
+
+The processor's separate 14 checks retain real codec dependencies and synthetic
+JPEG/PNG fixtures for successful processing, transparency, EXIF orientation,
+metadata removal, resizing, size bounds and rejection cases. The other seven
+functions do not have full successful-path integration coverage from this
+suite. Existing 65 reconciliation/core tests and four pure codec checks remain
+separate evidence; they run on build Node 24, not as deployed invocations.
+
+`scripts/lambda-runtime/configuration.test.mjs` uses the TypeScript AST to find
+defineFunction calls throughout amplify, compare the exact eight names/paths
+and complete literal configuration objects, reject missing/extra functions or
+settings, and check the backend's literal disabled gate. It checks installed
+tooling's x86_64 default and runtime-24 mapping, and async single-event handler
+signatures. These three source regression tests are not verification of
+CloudFormation or deployed runtime configuration.
+
+### Lambda semantics, representative artifacts and isolation
+
+Checked the [official Node 24 migration guidance](https://aws.amazon.com/blogs/compute/node-js-24-runtime-now-available-in-aws-lambda/)
+on October 24, 2026: callback handlers and legacy context completion APIs are
+removed; required async work must complete before return. This source uses the
+supported async pattern. Following the [Lambda Node module restrictions](https://docs.aws.amazon.com/lambda/latest/dg/lambda-nodejs.html),
+both container suites explicitly pass `--no-experimental-require-module` and
+`--no-experimental-detect-module`. No experimental features or NODE_OPTIONS
+override were enabled. ESM output has an explicit `.mjs` extension; the installed
+Amplify CJS shim is retained.
+
+The existing harness directly executes Node in the official image. It has no
+Runtime Interface Client invocation driver, so this change preserves direct
+execution with the documented restrictions rather than adding an emulator
+platform. The RIC, managed runtime lifecycle, warm reuse and deployed behavior
+remain unverified. No actual Amplify synthesis/asset generation was attempted;
+the previously documented unsupported standalone-path limitation remains.
+
+All eight real handler entries are bundled separately for node24 using the
+same inspected esbuild/Amplify settings documented below. Plain artifacts carry
+the actual installed CJS and SSM shims. Test bundles retain complete application
+handlers and real dependencies but omit the SSM banner for SDK boundary mocks;
+they are not deployment artifacts. All configuration is synthetic, with empty
+SSM configuration. Required top-level environment reads in the processor and
+private verifier are initialized before import; no handler imports the generated
+Amplify env module, and schema imports are type-only. The conditional banner
+SSM dependency and actual environment/IAM binding gaps remain as described below.
+
+The pinned official image remains
+`public.ecr.aws/lambda/nodejs@sha256:b157a991e174a3696e77c991727001756bb4d4ea4bba426d3401e515b9285b0d`
+(linux/amd64). The standard Ubuntu runner, pinned official actions,
+contents:read-only permissions, immutable checkouts, credential-free install/
+build environment, no cache, no artifact uploads, no network in containers,
+read-only mounts/root, nonroot user, dropped capabilities, 2 CPU/1024 MB/128 PID
+limits, 64 MB temporary storage and 180-second per-suite limit are preserved.
+The job remains bounded to 30 minutes with no automatic rerun loop. No AWS
+credentials, GitHub tokens, .aws directory, user images or live identifiers enter
+the test process. Node 20 is not rerun.
+
+### Verification results
+
+Local diagnostics on Windows Node 24.14.0/npm 11.9.0 passed the three source
+configuration checks, representative eight-handler bundling, 34 all-function
+checks, 14 processor checks and scoped lint. One diagnostic invocation started
+before bundling had finished and failed on a not-yet-created file; rerunning
+after build completion passed. A test-local variable name was corrected for
+the Next lint rule before the harness commit. Neither issue required application
+changes. Linux results, rather than Windows diagnostics, establish the runtime
+compatibility outcome below.
+
+**Hosted conclusion: success.** Exact source/harness/workflow SHAs above were
+checked by the driver. Build runner: `ubuntu24/20261023.334.3`, Node v24.14.0,
+npm 11.9.0. Both runtime suites executed under actual Node v24.22.1,
+linux/x64, Amazon Linux 2023.12.20260914 in the pinned image above.
+
+| Check | Result | Exit |
+| --- | --- | --- |
+| npm ci | Passed | 0 |
+| Generator compatibility | 5 passed | 0 |
+| Reconciliation/core suite | 65 passed | 0 |
+| Pure codec helpers | 4 passed | 0 |
+| Runtime configuration regression | 3 passed | 0 |
+| Amplify typecheck | Passed | 0 |
+| Lint | Passed | 0 |
+| Production web build | Passed | 0 |
+| Representative bundling | All 8 built | 0 |
+| Node 24 all-handler suite | 34 passed | 0 |
+| Node 24 processor suite | 14 passed | 0 |
+| git diff --check | Passed | 0 |
+| Manifest/lockfile diff + SHA-256 invariants | Both unchanged | 0 |
+
+The run's npm ci summary reported 50 vulnerabilities (45 high, 5 moderate),
+unchanged from the preceding Linux run. This task performed no audit fix,
+dependency change, or acceptance of remaining findings. The prior explicit
+full-audit evidence remains preserved below.
+
+Linux representative artifact measurements (uncompressed bytes, not ZIP sizes):
+
+| Function | JS bytes | Map bytes | Package/version inputs |
+| --- | --- | --- | --- |
+| create-public-image-report | 513,574 | 2,011,961 | 27 |
+| inspect-public-image-cleanup | 696,570 | 2,682,808 | 30 |
+| moderate-public-passport-image | 702,545 | 2,696,287 | 30 |
+| process-public-passport-image | 1,000,709 | 5,004,584 | 70 |
+| remove-public-passport-image | 697,746 | 2,683,928 | 30 |
+| resolve-public-passport-image | 697,464 | 2,684,777 | 31 |
+| retry-removed-public-image-cleanup | 703,024 | 2,699,861 | 30 |
+| verify-private-image | 694,508 | 2,673,684 | 30 |
+
+Plain JS SHA-256 values:
+
+```text
+create-public-image-report 95213c4fc13fc6e56db218d5f5b69ba40224151b85585c9e8124bdce586e7489
+inspect-public-image-cleanup 0a2edf833bb938e54b27e2a53d4c43224c5b7aa7028261ef341a2378056e5650
+moderate-public-passport-image 47e6980bfea715b8883d4758528b299cbc1d45ac10ee1af2b694602beb7e5ae9
+process-public-passport-image 8b066007011fa56b684812753839a181b4eb1395e88c9fb8eebb6aeaaf703b18
+remove-public-passport-image 973bc9c69239db061a4368eaf48cd5f270f23b04a858c0825e2798fd950c2098
+resolve-public-passport-image 1b73b26471ab95f2d79ca9966eb4f70d7507feab2b883053855d41acec4b0fe6
+retry-removed-public-image-cleanup d7045ec2e80c419b6586e9dfa3eca5587cdd3fa850437cf988efbcfca182cc03
+verify-private-image 33ad4e5d9e10d1b5a61cb81827f9e71fa14b54a56cb26c8393655c91bc753862
+```
+
+Every bundle has zero native `.node` inputs and only Node builtin metafile
+externals. AWS clients/presigner and their support packages are explicitly
+bundled, not resolved from the runtime's provided SDK; the raw banner's
+conditional SSM import is the separately documented exception. Complete
+package/version lists and external requirements are in the CI log/job summary.
+Processor output is unchanged because only its resource declaration migrated.
+All eight results are representative artifacts, not deployed asset verification.
+
+### Updated isolated deployment proposal — approval still required
+
+The proposed migrated application candidate is
+`9db0692a66d7e217643cce63320d97ffb0505af2`. The eight expected custom functions
+now request Node 24/x86_64 with unchanged logical identity/settings. The harness
+and workflow commits above are testing support, not additional application
+behavior. Only deploy this exact candidate after its recorded CI result and
+the following decisions have been reviewed; this task creates no environment.
+
+Request separate explicit approval to provision and deploy that SHA to a named,
+dedicated nonproduction app/backend and test branch, in an approved region and
+account boundary, with agreed IAM scope, cost limits, retention, teardown owner
+and remaining dependency/Hosting risk disposition. The present authorization
+covers source and automated offline testing only. Do not connect this review
+branch or any preview backend without that new approval.
+
+Keep the proposed environment separate from main/live data, use only synthetic
+test identities/images, and do not reuse production outputs or credentials.
+Expected categories are Cognito, AppSync, DynamoDB tables/indexes, S3, eight
+custom Lambdas plus framework resources, IAM roles/policies, logs and Hosting/
+build resources. Review the actual generated resource plan and permissions
+before provisioning. Potential costs include builds/Hosting, compute, APIs,
+database requests/storage, object storage/transfer and retained logs. Approve
+budget/monitoring and teardown scope before incurring them.
+
+During that separately approved stage, record the exact source SHA, Node/npm,
+Amplify/CDK/esbuild and Hosting build-image versions; inspect and checksum the
+actual generated function artifacts; verify all eight deployed runtimes and
+architectures, environment bindings and IAM; test managed invocation, safe
+synthetic authorization and packaging. Record SSR adaptation and support
+separately. Do not publish secrets/configuration values. Keep cleanup execution
+disabled throughout unless separately authorized.
+
+Remaining high/moderate findings are not accepted or resolved by this migration.
+The separate managed Amplify Hosting/Next support question remains open. Full
+manual authenticated release QA is a later milestone, distinct from proposed
+automated nonproduction deployment validation and not required in this task.
+
+On failure, stop isolated builds/traffic, diagnose or restore a tested supported
+runtime candidate, and review teardown of only dedicated test resources under
+the approved retention policy. Do not assume deprecated Node 20 can be deployed
+again as rollback. Confirm retained storage/logs and residual costs; main and
+live data remain outside rollback scope.
+
+Before the review push, read-only AWS checks confirmed automatic branch creation
+disabled, no review-branch connection, and previews disabled on the sole main
+connection. No main push, PR, deployment, resource creation/configuration change,
+cleanup enablement or live application mutation was performed.
+
 ## Offline Lambda bundle/runtime validation — October 24, 2026
 
 **Disposition: offline validation passed; deployment remains unapproved. The declared Node 20 runtime is
