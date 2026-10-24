@@ -16,17 +16,17 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
-      - name: Check out immutable remediated source
+      - name: Check out immutable migrated source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: 1656d7cc243151c9ee42e31598620bef72d6edb7
+          ref: 9db0692a66d7e217643cce63320d97ffb0505af2
           path: source
           persist-credentials: false
           fetch-depth: 1
       - name: Check out immutable offline harness
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: 05790294dd7293f4c7db9e12ddee7b5e7963aeb1
+          ref: b175bfceab048f7ecc4ae34fdd0cb36b54446b5b
           path: harness
           persist-credentials: false
           sparse-checkout: |
@@ -52,7 +52,7 @@ jobs:
             AWS_SHARED_CREDENTIALS_FILE="$isolated_home/no-credentials" \
             AWS_CONFIG_FILE="$isolated_home/no-config" \
             npm_config_userconfig="$isolated_home/no-npmrc" \
-            HARNESS_SHA=05790294dd7293f4c7db9e12ddee7b5e7963aeb1 \
+            HARNESS_SHA=b175bfceab048f7ecc4ae34fdd0cb36b54446b5b \
             WORKFLOW_SHA="$WORKFLOW_SHA" \
             RUNNER_IMAGE_OS="${ImageOS:-unknown}" \
             RUNNER_IMAGE_VERSION="${ImageVersion:-unknown}" \
