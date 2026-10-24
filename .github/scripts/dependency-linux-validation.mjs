@@ -1,15 +1,15 @@
 import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { appendFileSync, copyFileSync, existsSync, readFileSync } from "node:fs";
+import { appendFileSync, copyFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { arch, platform } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const [source, harness, summary] = process.argv.slice(2).map((path) => resolve(path));
-const harnessSha = "dbc5f575eb636a7da279a390bd2b6f3629e8fce7";
-const baselineSha = "6d268c77b8d694385bd21128bae044ff1feffbb0";
+const harnessSha = "1656d7cc243151c9ee42e31598620bef72d6edb7";
+const controlSha = "dbc5f575eb636a7da279a390bd2b6f3629e8fce7";
 const results = [];
 let failed = false;
 const note = (text) => { console.log(text); appendFileSync(summary, `${text}\n`); };
@@ -54,6 +54,12 @@ function installedVersions() {
     note(`- Installed ${name}: ${version} (matches lockfile)`);
   }
   const requireFromSource = createRequire(join(source, "package.json"));
+  const requireFromParent = createRequire(requireFromSource.resolve("@aws-amplify/graphql-generator/package.json"));
+  const requireFromGenerator = createRequire(requireFromParent.resolve("@aws-amplify/graphql-docs-generator"));
+  const expectedHandlebars = process.env.SOURCE_SHA === controlSha ? "4.7.7" : "4.7.10";
+  assert.equal(requireFromGenerator("handlebars/dist/handlebars").VERSION, expectedHandlebars);
+  note(`- Generator-resolved Handlebars: ${expectedHandlebars}; resolved from this source checkout's parent importer.`);
+  process.env.EXPECTED_HANDLEBARS_VERSION = expectedHandlebars;
   requireFromSource("@next/swc-linux-x64-gnu");
   const sharp = requireFromSource("sharp");
   note(`- Native module load: SWC and Sharp passed; Sharp ${sharp.versions.sharp}, libvips ${sharp.versions.vips}`);
@@ -104,7 +110,7 @@ try {
   assert.equal(platform(), "linux");
   assert.equal(arch(), "x64");
   assert.equal(process.version, "v24.14.0");
-  assert.ok([baselineSha, harnessSha].includes(process.env.SOURCE_SHA));
+  assert.ok([controlSha, harnessSha].includes(process.env.SOURCE_SHA));
   assert.equal(revision(source), process.env.SOURCE_SHA);
   assert.equal(revision(harness), harnessSha);
   assert.equal(revision(resolve(dirname(fileURLToPath(import.meta.url)), "../..")), process.env.WORKFLOW_SHA);
@@ -113,7 +119,7 @@ try {
     assert.equal(config.status, 1, "Checkout must not retain authentication configuration");
   }
   note(`- Source SHA: ${revision(source)}`);
-  note(`- Codec harness SHA: ${harnessSha}${process.env.SOURCE_SHA === baselineSha ? " (supplemental; not part of baseline)" : ""}`);
+  note(`- Codec/generator harness SHA: ${harnessSha}${process.env.SOURCE_SHA === controlSha ? " (generator test/fixtures supplemental; not part of control)" : ""}`);
   note(`- Workflow/support SHA: ${process.env.WORKFLOW_SHA}`);
   note(`- Runner image: ${process.env.RUNNER_IMAGE_OS} / ${process.env.RUNNER_IMAGE_VERSION}; ${platform()} ${arch()}`);
   note(`- OS: ${readFileSync("/etc/os-release", "utf8").split("\n").find((line) => line.startsWith("PRETTY_NAME="))}`);
@@ -133,8 +139,12 @@ try {
   }
   assert.ok(!existsSync(join(source, "node_modules")) && !existsSync(join(source, ".next")), "Clean checkout required");
   const codecFile = "scripts/public-image-codec-compatibility.test.mjs";
-  copyFileSync(join(harness, codecFile), join(source, codecFile));
-  assert.equal(hash(join(source, codecFile)), hash(join(harness, codecFile)));
+  const generatorFile = "scripts/graphql-generator-compatibility.test.mjs";
+  for (const file of [codecFile, generatorFile, "scripts/fixtures/graphql-generator/schema.graphql", "scripts/fixtures/graphql-generator/expected.json"]) {
+    mkdirSync(dirname(join(source, file)), { recursive: true });
+    copyFileSync(join(harness, file), join(source, file));
+    assert.equal(hash(join(source, file)), hash(join(harness, file)));
+  }
   if (command("npm ci", "npm", ["ci"], 720_000)) {
     try {
       installedVersions();
@@ -144,6 +154,7 @@ try {
       results.push(["Installed/native package verification", "failed", 1]);
       failed = true;
     }
+    command("GraphQL generator compatibility tests", "node", ["--test", generatorFile]);
     command("npm run test:public-image-reconciliation", "npm", ["run", "test:public-image-reconciliation"]);
     command("Synthetic codec tests", "node", ["--test", codecFile]);
     command("npm run amplify:typecheck", "npm", ["run", "amplify:typecheck"], 300_000);

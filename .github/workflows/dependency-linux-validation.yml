@@ -20,10 +20,10 @@ jobs:
       max-parallel: 2
       matrix:
         include:
-          - label: baseline
-            source: 6d268c77b8d694385bd21128bae044ff1feffbb0
-          - label: candidate
+          - label: control
             source: dbc5f575eb636a7da279a390bd2b6f3629e8fce7
+          - label: candidate
+            source: 1656d7cc243151c9ee42e31598620bef72d6edb7
     steps:
       # Official release tags resolved through the actions repositories' Git API.
       - name: Check out immutable application source
@@ -33,13 +33,16 @@ jobs:
           path: source
           persist-credentials: false
           fetch-depth: 1
-      - name: Check out immutable codec harness
+      - name: Check out immutable codec and generator harness
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: dbc5f575eb636a7da279a390bd2b6f3629e8fce7
+          ref: 1656d7cc243151c9ee42e31598620bef72d6edb7
           path: harness
           persist-credentials: false
-          sparse-checkout: scripts/public-image-codec-compatibility.test.mjs
+          sparse-checkout: |
+            scripts/public-image-codec-compatibility.test.mjs
+            scripts/graphql-generator-compatibility.test.mjs
+            scripts/fixtures/graphql-generator
           sparse-checkout-cone-mode: false
       - name: Check out this workflow's validation driver
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
