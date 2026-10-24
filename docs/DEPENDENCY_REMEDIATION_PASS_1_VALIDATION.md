@@ -1,5 +1,264 @@
 # Dependency remediation pass 1 validation
 
+## Offline Lambda bundle/runtime validation — October 24, 2026
+
+**Disposition: offline validation passed; deployment remains unapproved. The declared Node 20 runtime is
+deprecated. Node 24 is the recommended separately reviewed migration target;
+offline compatibility does not establish deployed or managed Hosting support.**
+
+### Exact source and scope
+
+- Implementation tested: `1656d7cc243151c9ee42e31598620bef72d6edb7`.
+- Starting review HEAD: `b1f721e9fd69670eb790fb4aafb2391333e4b168`.
+- Immutable harness: `05790294dd7293f4c7db9e12ddee7b5e7963aeb1`.
+- Workflow: `c096a21672eae87b69b3506dfab142de1610a803`.
+- [Lambda validation run 40139591853](https://github.com/unifiedtechworks/UnifiedRange/actions/runs/40139591853): completed successfully; actual results below.
+- Branch: `codex/release-dependency-remediation-1`; main remained
+  `6d268c77b8d694385bd21128bae044ff1feffbb0`.
+
+The starting checkout was clean. Later commits between the implementation and
+starting HEAD contain workflow/support and documentation changes, not runtime
+changes. This task adds only test/build harnesses, a workflow, and this report.
+There is no comparison baseline in this run. The two earlier successful Linux
+comparison runs below remain separate historical evidence; this workflow checks
+out the exact Handlebars-remediated implementation, not the older candidate.
+
+### Runtime inventory and supported target
+
+All eight custom functions explicitly declare `runtime: 20` in their respective
+`amplify/functions/<name>/resource.ts` files:
+
+| Function | Declared runtime | Effective architecture |
+| --- | --- | --- |
+| create-public-image-report | Node 20 | x86_64 default |
+| inspect-public-image-cleanup | Node 20 | x86_64 default |
+| moderate-public-passport-image | Node 20 | x86_64 default |
+| process-public-passport-image | Node 20 | x86_64 default |
+| remove-public-passport-image | Node 20 | x86_64 default |
+| resolve-public-passport-image | Node 20 | x86_64 default |
+| retry-removed-public-image-cleanup | Node 20 | x86_64 default |
+| verify-private-image | Node 20 | x86_64 default |
+
+None overrides architecture, layers, or bundling. Installed
+`@aws-amplify/backend-function@1.18.1` supplies x86_64 and a Node 22 default
+(overridden here). Its NodeVersion type and runtime map include 18/20/22/24,
+including `Runtime.NODEJS_24_X` from installed `aws-cdk-lib@2.261.0`.
+No toolchain upgrade is needed to express Node 24. The processor specifies
+45 seconds, 1024 MB memory, 512 MB ephemeral storage, and the data resource group.
+
+The [official AWS runtime table](https://docs.aws.amazon.com/lambda/latest/dg/lambda-runtimes.html),
+checked October 24, 2026, lists the following Amazon Linux 2023 runtimes. AWS
+forecast dates can change; recheck at deployment approval.
+
+| Runtime | Deprecation | Block new functions | Block function updates |
+| --- | --- | --- | --- |
+| Node 20 | April 30, 2026 | July 29, 2027 | August 31, 2027 |
+| Node 22 | April 30, 2027 | July 29, 2027 | August 31, 2027 |
+| Node 24 | April 30, 2028 | June 1, 2028 | July 1, 2028 |
+
+Node 20 compatibility is historical evidence, not release clearance. Prefer
+Node 24: AWS and this installed toolchain support it, the bundled SDKs declare
+Node >=20, and the container results below assess the real handler dependencies.
+Node 22 is an available intermediate target but was not container-tested here.
+
+Local diagnostic tools and GitHub build/tests use Node 24.14.0/npm 11.9.0.
+Those versions do not establish the deployed function runtime. The exact
+Amplify Hosting build Node and managed SSR runtime/support remain unverified;
+neither a successful local/CI Next build nor this Lambda test resolves them.
+
+### Representative bundling and precise equivalence limits
+
+Actual Amplify deployment artifact generation: **not achieved**. The documented
+[Amplify CLI commands](https://docs.amplify.aws/react/reference/cli-commands/)
+provide no supported standalone artifact/synthesis command used here. No
+invented synth/dry-run flag, sandbox, pipeline deploy, or CDK deployment ran.
+
+`scripts/lambda-runtime/build.mjs` compiles the unchanged real
+`amplify/functions/process-public-passport-image/handler.ts`, export `handler`,
+using installed esbuild 0.25.12. It mirrors the inspected Amplify factory/CDK
+settings: platform node, targets node20 and node24 separately, ESM, minification,
+source maps with source content, AWS SDK bundled, empty configured externals,
+`.node` file loader, actual installed CJS shim injection, and actual installed
+SSM resolution/invocation banner. Outputs are `index.mjs`, `index.mjs.map`, a
+metafile, and dependency/size/checksum reports in a temporary directory.
+
+The factory's generated environment module exports `process.env`; the processor
+reads process.env directly and does not import `$amplify/env`. Its Schema import
+is type-only and erased. The test supplies synthetic table/bucket names. It
+does not generate or verify synthesized resource names, permissions, environment
+bindings, asset staging/hashes, packaging, or managed-runtime configuration.
+
+Metafile externals are Node builtins only; no native `.node` input is present.
+The raw Amplify banner additionally has a conditional dynamic
+`@aws-sdk/client-ssm` import outside the esbuild dependency graph. Tests use empty
+`AMPLIFY_SSM_ENV_CONFIG` and the processor declares no secret; a nonempty deployed
+configuration's SSM lookup, package availability, permissions, and refresh
+behavior remain untested. This limitation is not hidden by the builtin-only
+metafile check.
+
+The plain representative `index.mjs` independently loads with its banner and
+exports the handler; invalid-ID and missing-identity events reject before I/O.
+Successful processing runs in a second compiled test bundle containing the
+same complete production handler, real SDKs, fixtures, and mocked SDK `send`
+boundaries, with the CJS shim and without the SSM banner. Production logic is
+not copied, bypassed, or altered. The second bundle enables SDK prototype mocks;
+its size is not reported as deployment size. This is full-handler behavior
+coverage but not byte-for-byte execution of the plain artifact's successful
+AWS-I/O path. Neither bundle is an Amplify-generated deployment asset.
+
+### Container isolation and coverage
+
+The standard GitHub-hosted Ubuntu 24.04 runner prepares dependencies/images,
+then executes [official AWS Lambda Node images](https://docs.aws.amazon.com/lambda/latest/dg/nodejs-image.html)
+pinned to these resolved linux/amd64 digests:
+
+- Node 20: `public.ecr.aws/lambda/nodejs@sha256:7113432fbe93b701792a659c515a9501822b95b0c3070d27565f22b8422aee3d`
+- Node 24: `public.ecr.aws/lambda/nodejs@sha256:b157a991e174a3696e77c991727001756bb4d4ea4bba426d3401e515b9285b0d`
+
+Install/build runs with a fresh HOME, explicit environment allowlist, nonexistent
+AWS/npm user config paths, no deployment credentials or inherited GitHub token,
+and nonpersisted checkout credentials. Official actions use pinned commit SHAs;
+permissions are contents:read only, without OIDC, secrets, deployment
+environments, or larger runners. No artifacts or private configuration upload.
+
+Each container has network disabled, read-only root and bundle mount, no other
+host mount, user 1000:1000, dropped capabilities, no-new-privileges, 2 CPUs,
+1024 MB memory, 128 PID limit, 64 MB temporary /tmp, and 180-second test timeout.
+The job has a 30-minute bound. These controls are test bounds, not a simulation
+of Lambda's exact CPU/timeout/ephemeral-storage allocation. The entrypoint is
+the image's `/var/lang/bin/node`: this exercises the AWS base-image userspace,
+not the Runtime Interface Client, emulator invocation, or a deployed Lambda.
+SDK mocks reject unexpected calls and record violations so swallowed errors
+still fail tests. No real images, users, resources, or live APIs are used.
+
+There are 14 checks per runtime: three plain-bundle initialization/export/early
+rejection checks and eleven complete-handler processing/rejection checks. They
+cover successful JPEG and transparent PNG to JPEG; white flattening; EXIF
+orientation 6 with pixel-position checks; removal of EXIF/comment metadata;
+1800-to-1600 pixel resizing; a high-entropy derivative under 2 MiB; invalid image,
+unsupported format, source >6 MiB, excessive dimensions, cross-owner access,
+and absent explicit consent. Successful paths check ready status, public ID,
+JPEG dimensions, one encrypted S3 write, and six transaction actions. This is
+representative coverage, not exhaustive malformed-image/fallback/codec coverage
+or proof of DynamoDB conditional semantics, AppSync authorization, or IAM.
+
+The existing four codec tests exercise selected pure helpers; they are reported
+separately under build Node 24. The 65 TypeScript reconciliation tests also use
+their supported Node 24 runner, not the Lambda runtime container. Local Windows
+diagnostic execution of the node20-target bundle passed 14 checks under Node 24;
+that result is not Node 20 or Linux evidence.
+
+### Hosted results
+
+Run 40139591853 concluded **success**. Runner image was
+`ubuntu24/20261023.334.3`; build Node v24.14.0/npm 11.9.0, linux/x64.
+
+| Check | Actual result | Exit |
+| --- | --- | --- |
+| npm ci | Passed | 0 |
+| Generator compatibility | 5 passed | 0 |
+| Reconciliation, build Node 24 | 65 passed | 0 |
+| Pure codec helpers, build Node 24 | 4 passed | 0 |
+| Amplify typecheck | Passed | 0 |
+| Lint | Passed | 0 |
+| Production web build | Passed | 0 |
+| Representative bundles, node20/node24 targets | Both built | 0 |
+| Node 20.20.2, Amazon Linux 2023.10.20260302, x64 | 14 checks passed | 0 |
+| Node 24.22.1, Amazon Linux 2023.12.20260914, x64 | 14 checks passed | 0 |
+| git diff --check | Passed | 0 |
+| Manifest/lockfile diff and before/after SHA-256 | Unchanged, both files | 0 |
+
+Both official image pulls and architecture checks succeeded. The configured
+Node 20 image remains available, but its successful result does not reverse
+deprecation. The supported-target test ran under actual Node 24.22.1 inside
+its pinned Lambda image, independently of build Node 24.14.0.
+
+This run's npm ci advisory summary reported 50 vulnerabilities (45 high,
+5 moderate). The earlier explicit full-audit report recorded 53 (45 high,
+8 moderate). No dependency files changed, and this task did not capture a new
+full audit JSON to reconcile advisory/platform differences. Preserve both
+observations; neither constitutes acceptance or additional remediation.
+
+| Target | Plain JS bytes | Source map bytes | Package/version inputs | Native inputs |
+| --- | --- | --- | --- | --- |
+| node20 | 1,000,709 | 5,004,584 | 70 | 0 |
+| node24 | 1,000,709 | 5,004,584 | 70 | 0 |
+
+Both plain JS outputs have SHA-256
+`8b066007011fa56b684812753839a181b4eb1395e88c9fb8eebb6aeaaf703b18`.
+The targets happen to emit identical JavaScript; that does not make their
+runtime versions interchangeable. These are uncompressed JS/map sizes, not a
+deployment ZIP size. The Windows source map was 5,010,664 bytes; the table uses
+the actual Linux result, not the local diagnostic measurement.
+
+The CI log and job summary retain all 70 package/version inputs. Principal
+inputs are `image-js@1.7.1`, `jpeg-js@0.4.4`, `fast-jpeg@3.0.1`,
+`fast-png@8.0.0`, `tiff@7.1.3`, `fflate@0.8.3`,
+`@aws-sdk/client-s3@3.1090.0`, `@aws-sdk/client-dynamodb@3.1090.0`, AWS/Smithy
+support modules, image/matrix utilities, and the Amplify CJS shim. Presence as a
+metafile input does not imply every export is retained after tree shaking.
+There is no Sharp/native codec in this handler bundle. Dependency engine
+requirements and versions are captured by the builder; the relevant AWS clients
+require Node >=20.0.0. The successful real-handler image tests provide evidence
+beyond package engine declarations.
+
+Recorded builtin externals: `module`, `node:async_hooks`, `node:child_process`,
+`node:crypto`, `node:fs`, `node:fs/promises`, `node:http`, `node:http2`,
+`node:https`, `node:module`, `node:os`, `node:path`, `node:process`,
+`node:stream`, `node:url`, `node:util`, and `node:zlib`. The separate conditional
+SSM-banner requirement remains as described above. No artifacts were uploaded.
+
+### Separately reviewed migration and deployment proposal
+
+The smallest processor migration changes only
+`amplify/functions/process-public-passport-image/resource.ts` from runtime 20 to
+24. A supported whole-backend release requires separately reviewing the same
+runtime declaration in all eight resource files listed above. The other seven
+handlers were typechecked but did not receive this processor-specific full
+runtime test suite. Review their runtime behavior before approving that broader
+migration. No resource definition or dependency was changed in this task.
+
+The exact validated implementation candidate is
+`1656d7cc243151c9ee42e31598620bef72d6edb7`; harness/workflow commits are identified
+above. A deployable candidate still needs a separately reviewed migration commit
+whose full SHA must be recorded and validated before approval. There is no
+approved final deployment SHA yet. This report is ready to inform that decision,
+not authorization to deploy the existing Node 20 candidate.
+
+Proposed next stage, **not executed**:
+
+1. Review and validate the runtime migration, remaining dependency risk (the
+   prior audit retained 45 high/8 moderate, zero critical findings), and managed
+   Next/Amplify Hosting support gap. This task accepts none of those risks.
+2. Approve a dedicated isolated nonproduction app/backend and test branch with
+   no connection to main or live user data. Use dedicated synthetic identities,
+   images and data; do not reuse live outputs or credentials. Review the actual
+   plan and permissions before provisioning.
+3. Expect Cognito, AppSync, DynamoDB tables/indexes, S3, Lambda, IAM policies/roles,
+   logs, and Hosting/build resources according to the synthesized backend.
+   Confirm precise resources, region, retention, quotas and access boundaries
+   from the future plan; no plan/resources were created here.
+4. Log the final source SHA, Node/npm and Amplify/CDK/esbuild versions, Hosting
+   build image/Node and SSR adaptation, generated function artifacts/checksums,
+   architecture/runtime and environment binding names without secrets. Execute
+   actual deployed Lambda and authenticated release QA in that isolated setup.
+   Keep cleanup execution disabled unless separately approved.
+5. Before provisioning, approve potential Hosting/build, Lambda, AppSync,
+   DynamoDB, S3, log-retention and data-transfer costs and monitoring/budget
+   controls. Set retention and a teardown owner/window. No cost amount is
+   assumed from offline tests.
+6. On failure, stop isolated builds/traffic and revert only that isolated
+   candidate. Teardown requires reviewing the dedicated resources and retention
+   policy first; remove only the approved test resources and verify residual
+   storage/log costs. Main/live data remain outside rollback/cleanup scope.
+
+Actual deployed Lambda execution, deployed IAM/auth/resource bindings, Amplify
+Hosting packaging/support and authenticated release QA remain pending. Before
+the CI push, read-only AWS checks confirmed the review branch was unconnected,
+automatic branch creation was disabled, and the sole connected main branch had
+previews disabled. No PR, deployment, AWS mutation, runtime migration, live
+processor/moderation/cleanup invocation, or main push was performed.
+
 ## Handlebars remediation — October 24, 2026
 
 **Disposition: targeted critical finding resolved; local and Linux compatibility
