@@ -6,7 +6,7 @@ export const removePublicPassportImage = defineFunction({
   resourceGroupName: "data",
   timeoutSeconds: 15,
   memoryMB: 256,
-  runtime: 20,
+  runtime: 24,
   logging: {
     format: "json",
     level: "info",

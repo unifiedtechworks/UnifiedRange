@@ -6,7 +6,7 @@ export const inspectPublicImageCleanup = defineFunction({
   resourceGroupName: "data",
   timeoutSeconds: 10,
   memoryMB: 256,
-  runtime: 20,
+  runtime: 24,
   logging: {
     format: "json",
     level: "info",

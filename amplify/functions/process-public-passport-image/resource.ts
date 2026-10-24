@@ -7,7 +7,7 @@ export const processPublicPassportImage = defineFunction({
   timeoutSeconds: 45,
   memoryMB: 1024,
   ephemeralStorageSizeMB: 512,
-  runtime: 20,
+  runtime: 24,
   logging: {
     format: "json",
     level: "info",
