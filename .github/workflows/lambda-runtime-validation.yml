@@ -1,0 +1,61 @@
+name: Lambda runtime validation
+
+on:
+  push:
+    branches: [codex/release-dependency-remediation-1]
+    paths:
+      - .github/workflows/lambda-runtime-validation.yml
+      - .github/scripts/lambda-runtime-validation.mjs
+      - scripts/lambda-runtime/**
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out immutable remediated source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: 1656d7cc243151c9ee42e31598620bef72d6edb7
+          path: source
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Check out immutable offline harness
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: 05790294dd7293f4c7db9e12ddee7b5e7963aeb1
+          path: harness
+          persist-credentials: false
+          sparse-checkout: |
+            scripts/lambda-runtime
+            .github/scripts/lambda-runtime-validation.mjs
+          sparse-checkout-cone-mode: false
+      - name: Set up build Node without cache
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24.14.0'
+          architecture: x64
+          package-manager-cache: false
+      - name: Credential-free build and network-disabled runtime tests
+        shell: bash
+        env:
+          WORKFLOW_SHA: ${{ github.sha }}
+        run: |
+          isolated_home="$RUNNER_TEMP/lambda-validation-home"
+          mkdir -p "$isolated_home"
+          env -i \
+            PATH="$PATH" HOME="$isolated_home" TMPDIR="$RUNNER_TEMP" \
+            CI=true NEXT_TELEMETRY_DISABLED=1 AWS_EC2_METADATA_DISABLED=true \
+            AWS_SHARED_CREDENTIALS_FILE="$isolated_home/no-credentials" \
+            AWS_CONFIG_FILE="$isolated_home/no-config" \
+            npm_config_userconfig="$isolated_home/no-npmrc" \
+            HARNESS_SHA=05790294dd7293f4c7db9e12ddee7b5e7963aeb1 \
+            WORKFLOW_SHA="$WORKFLOW_SHA" \
+            RUNNER_IMAGE_OS="${ImageOS:-unknown}" \
+            RUNNER_IMAGE_VERSION="${ImageVersion:-unknown}" \
+            node harness/.github/scripts/lambda-runtime-validation.mjs \
+              "$GITHUB_WORKSPACE/source" "$GITHUB_WORKSPACE/harness" \
+              "$GITHUB_STEP_SUMMARY"
