@@ -1,0 +1,21 @@
+# Synthetic offline schema: no deployed identifiers or introspection.
+enum Visibility { PRIVATE PUBLIC }
+type Author { id: ID! displayName: String tags: [String!]! }
+type Entry { id: ID! title: String! visibility: Visibility! notes: String author: Author related: [Entry!]! }
+type EntryConnection { items: [Entry] nextToken: String }
+type ReviewResult { accepted: Boolean! entry: Entry warnings: [String!]! }
+input EntryInput { title: String! visibility: Visibility notes: String tags: [String!] }
+type Query {
+  getEntry(id: ID!): Entry
+  listEntries(visibility: Visibility, limit: Int, nextToken: String): EntryConnection
+  lookupEntries(ids: [ID!]!): [Entry!]!
+}
+type Mutation {
+  createEntry(input: EntryInput!): Entry
+  deleteEntry(id: ID!): Entry
+  reviewEntry(id: ID!, accepted: Boolean!): ReviewResult!
+}
+type Subscription {
+  onCreateEntry(visibility: Visibility): Entry @aws_subscribe(mutations: ["createEntry"])
+  onDeleteEntry: Entry @aws_subscribe(mutations: ["deleteEntry"])
+}

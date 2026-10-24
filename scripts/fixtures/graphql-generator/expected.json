@@ -1,0 +1,118 @@
+{
+  "provenance": {
+    "source": "e035ca80235976b457340e09c79e6472ec19b993",
+    "generator": "4.2.1",
+    "handlebars": "4.7.7",
+    "description": "Benign pre-remediation output, generated offline from the adjacent synthetic schema; not an update-on-test snapshot."
+  },
+  "outputs": {
+    "default": {
+      "queries": {
+        "getEntry": "\nquery GetEntry \n  (\n      $id:ID!\n  )\n{\n  getEntry\n  (\n      id:$id\n  )\n \n   {\n    \n    id\n    title\n    visibility\n    notes\n      author {\n        \n    id\n    displayName\n    tags\n    __typename\n        \n      }\n      related {\n        \n    id\n    title\n    visibility\n    notes\n    __typename\n        \n      }\n    __typename\n    \n  }\n}\n",
+        "listEntries": "\nquery ListEntries \n  (\n      $visibility:Visibility,\n      $limit:Int,\n      $nextToken:String\n  )\n{\n  listEntries\n  (\n      visibility:$visibility,\n      limit:$limit,\n      nextToken:$nextToken\n  )\n \n   {\n    \n      items {\n        \n    id\n    title\n    visibility\n    notes\n    __typename\n        \n      }\n    nextToken\n    __typename\n    \n  }\n}\n",
+        "lookupEntries": "\nquery LookupEntries \n  (\n      $ids:[ID!]!\n  )\n{\n  lookupEntries\n  (\n      ids:$ids\n  )\n \n   {\n    \n    id\n    title\n    visibility\n    notes\n      author {\n        \n    id\n    displayName\n    tags\n    __typename\n        \n      }\n      related {\n        \n    id\n    title\n    visibility\n    notes\n    __typename\n        \n      }\n    __typename\n    \n  }\n}\n"
+      },
+      "mutations": {
+        "createEntry": "\nmutation CreateEntry \n  (\n      $input:EntryInput!\n  )\n{\n  createEntry\n  (\n      input:$input\n  )\n \n   {\n    \n    id\n    title\n    visibility\n    notes\n      author {\n        \n    id\n    displayName\n    tags\n    __typename\n        \n      }\n      related {\n        \n    id\n    title\n    visibility\n    notes\n    __typename\n        \n      }\n    __typename\n    \n  }\n}\n",
+        "deleteEntry": "\nmutation DeleteEntry \n  (\n      $id:ID!\n  )\n{\n  deleteEntry\n  (\n      id:$id\n  )\n \n   {\n    \n    id\n    title\n    visibility\n    notes\n      author {\n        \n    id\n    displayName\n    tags\n    __typename\n        \n      }\n      related {\n        \n    id\n    title\n    visibility\n    notes\n    __typename\n        \n      }\n    __typename\n    \n  }\n}\n",
+        "reviewEntry": "\nmutation ReviewEntry \n  (\n      $id:ID!,\n      $accepted:Boolean!\n  )\n{\n  reviewEntry\n  (\n      id:$id,\n      accepted:$accepted\n  )\n \n   {\n    \n    accepted\n      entry {\n        \n    id\n    title\n    visibility\n    notes\n    __typename\n        \n      }\n    warnings\n    __typename\n    \n  }\n}\n"
+      },
+      "subscriptions": {
+        "onCreateEntry": "\nsubscription OnCreateEntry \n  (\n      $visibility:Visibility\n  )\n{\n  onCreateEntry\n  (\n      visibility:$visibility\n  )\n \n   {\n    \n    id\n    title\n    visibility\n    notes\n      author {\n        \n    id\n    displayName\n    tags\n    __typename\n        \n      }\n      related {\n        \n    id\n    title\n    visibility\n    notes\n    __typename\n        \n      }\n    __typename\n    \n  }\n}\n",
+        "onDeleteEntry": "\nsubscription OnDeleteEntry \n{\n  onDeleteEntry\n \n   {\n    \n    id\n    title\n    visibility\n    notes\n      author {\n        \n    id\n    displayName\n    tags\n    __typename\n        \n      }\n      related {\n        \n    id\n    title\n    visibility\n    notes\n    __typename\n        \n      }\n    __typename\n    \n  }\n}\n"
+      },
+      "fragments": {}
+    },
+    "metadata": {
+      "queries": {
+        "getEntry": {
+          "graphql": "\nquery GetEntry \n  (\n      $id:ID!\n  )\n{\n  getEntry\n  (\n      id:$id\n  )\n \n   {\n    \n    id\n    title\n    visibility\n    notes\n      author {\n        \n    id\n    displayName\n    tags\n    __typename\n        \n      }\n      related {\n        \n    id\n    title\n    visibility\n    notes\n      author {\n        \n    id\n    displayName\n    tags\n    __typename\n        \n      }\n      related {\n        \n    id\n    title\n    visibility\n    notes\n      author {\n        \n    id\n    displayName\n    tags\n    __typename\n        \n      }\n      related {\n        \n    id\n    title\n    visibility\n    notes\n    __typename\n        \n      }\n    __typename\n        \n      }\n    __typename\n        \n      }\n    __typename\n    \n  }\n}\n",
+          "operationName": "GetEntry",
+          "operationType": "query",
+          "fieldName": "getEntry"
+        },
+        "listEntries": {
+          "graphql": "\nquery ListEntries \n  (\n      $visibility:Visibility,\n      $limit:Int,\n      $nextToken:String\n  )\n{\n  listEntries\n  (\n      visibility:$visibility,\n      limit:$limit,\n      nextToken:$nextToken\n  )\n \n   {\n    \n      items {\n        \n    id\n    title\n    visibility\n    notes\n      author {\n        \n    id\n    displayName\n    tags\n    __typename\n        \n      }\n      related {\n        \n    id\n    title\n    visibility\n    notes\n      author {\n        \n    id\n    displayName\n    tags\n    __typename\n        \n      }\n      related {\n        \n    id\n    title\n    visibility\n    notes\n    __typename\n        \n      }\n    __typename\n        \n      }\n    __typename\n        \n      }\n    nextToken\n    __typename\n    \n  }\n}\n",
+          "operationName": "ListEntries",
+          "operationType": "query",
+          "fieldName": "listEntries"
+        },
+        "lookupEntries": {
+          "graphql": "\nquery LookupEntries \n  (\n      $ids:[ID!]!\n  )\n{\n  lookupEntries\n  (\n      ids:$ids\n  )\n \n   {\n    \n    id\n    title\n    visibility\n    notes\n      author {\n        \n    id\n    displayName\n    tags\n    __typename\n        \n      }\n      related {\n        \n    id\n    title\n    visibility\n    notes\n      author {\n        \n    id\n    displayName\n    tags\n    __typename\n        \n      }\n      related {\n        \n    id\n    title\n    visibility\n    notes\n      author {\n        \n    id\n    displayName\n    tags\n    __typename\n        \n      }\n      related {\n        \n    id\n    title\n    visibility\n    notes\n    __typename\n        \n      }\n    __typename\n        \n      }\n    __typename\n        \n      }\n    __typename\n    \n  }\n}\n",
+          "operationName": "LookupEntries",
+          "operationType": "query",
+          "fieldName": "lookupEntries"
+        }
+      },
+      "mutations": {
+        "createEntry": {
+          "graphql": "\nmutation CreateEntry \n  (\n      $input:EntryInput!\n  )\n{\n  createEntry\n  (\n      input:$input\n  )\n \n   {\n    \n    id\n    title\n    visibility\n    notes\n      author {\n        \n    id\n    displayName\n    tags\n    __typename\n        \n      }\n      related {\n        \n    id\n    title\n    visibility\n    notes\n      author {\n        \n    id\n    displayName\n    tags\n    __typename\n        \n      }\n      related {\n        \n    id\n    title\n    visibility\n    notes\n      author {\n        \n    id\n    displayName\n    tags\n    __typename\n        \n      }\n      related {\n        \n    id\n    title\n    visibility\n    notes\n    __typename\n        \n      }\n    __typename\n        \n      }\n    __typename\n        \n      }\n    __typename\n    \n  }\n}\n",
+          "operationName": "CreateEntry",
+          "operationType": "mutation",
+          "fieldName": "createEntry"
+        },
+        "deleteEntry": {
+          "graphql": "\nmutation DeleteEntry \n  (\n      $id:ID!\n  )\n{\n  deleteEntry\n  (\n      id:$id\n  )\n \n   {\n    \n    id\n    title\n    visibility\n    notes\n      author {\n        \n    id\n    displayName\n    tags\n    __typename\n        \n      }\n      related {\n        \n    id\n    title\n    visibility\n    notes\n      author {\n        \n    id\n    displayName\n    tags\n    __typename\n        \n      }\n      related {\n        \n    id\n    title\n    visibility\n    notes\n      author {\n        \n    id\n    displayName\n    tags\n    __typename\n        \n      }\n      related {\n        \n    id\n    title\n    visibility\n    notes\n    __typename\n        \n      }\n    __typename\n        \n      }\n    __typename\n        \n      }\n    __typename\n    \n  }\n}\n",
+          "operationName": "DeleteEntry",
+          "operationType": "mutation",
+          "fieldName": "deleteEntry"
+        },
+        "reviewEntry": {
+          "graphql": "\nmutation ReviewEntry \n  (\n      $id:ID!,\n      $accepted:Boolean!\n  )\n{\n  reviewEntry\n  (\n      id:$id,\n      accepted:$accepted\n  )\n \n   {\n    \n    accepted\n      entry {\n        \n    id\n    title\n    visibility\n    notes\n      author {\n        \n    id\n    displayName\n    tags\n    __typename\n        \n      }\n      related {\n        \n    id\n    title\n    visibility\n    notes\n      author {\n        \n    id\n    displayName\n    tags\n    __typename\n        \n      }\n      related {\n        \n    id\n    title\n    visibility\n    notes\n    __typename\n        \n      }\n    __typename\n        \n      }\n    __typename\n        \n      }\n    warnings\n    __typename\n    \n  }\n}\n",
+          "operationName": "ReviewEntry",
+          "operationType": "mutation",
+          "fieldName": "reviewEntry"
+        }
+      },
+      "subscriptions": {
+        "onCreateEntry": {
+          "graphql": "\nsubscription OnCreateEntry \n  (\n      $visibility:Visibility\n  )\n{\n  onCreateEntry\n  (\n      visibility:$visibility\n  )\n \n   {\n    \n    id\n    title\n    visibility\n    notes\n      author {\n        \n    id\n    displayName\n    tags\n    __typename\n        \n      }\n      related {\n        \n    id\n    title\n    visibility\n    notes\n      author {\n        \n    id\n    displayName\n    tags\n    __typename\n        \n      }\n      related {\n        \n    id\n    title\n    visibility\n    notes\n      author {\n        \n    id\n    displayName\n    tags\n    __typename\n        \n      }\n      related {\n        \n    id\n    title\n    visibility\n    notes\n    __typename\n        \n      }\n    __typename\n        \n      }\n    __typename\n        \n      }\n    __typename\n    \n  }\n}\n",
+          "operationName": "OnCreateEntry",
+          "operationType": "subscription",
+          "fieldName": "onCreateEntry"
+        },
+        "onDeleteEntry": {
+          "graphql": "\nsubscription OnDeleteEntry \n{\n  onDeleteEntry\n \n   {\n    \n    id\n    title\n    visibility\n    notes\n      author {\n        \n    id\n    displayName\n    tags\n    __typename\n        \n      }\n      related {\n        \n    id\n    title\n    visibility\n    notes\n      author {\n        \n    id\n    displayName\n    tags\n    __typename\n        \n      }\n      related {\n        \n    id\n    title\n    visibility\n    notes\n      author {\n        \n    id\n    displayName\n    tags\n    __typename\n        \n      }\n      related {\n        \n    id\n    title\n    visibility\n    notes\n    __typename\n        \n      }\n    __typename\n        \n      }\n    __typename\n        \n      }\n    __typename\n    \n  }\n}\n",
+          "operationName": "OnDeleteEntry",
+          "operationType": "subscription",
+          "fieldName": "onDeleteEntry"
+        }
+      },
+      "fragments": {}
+    },
+    "without-typename": {
+      "queries": {
+        "getEntry": "\nquery GetEntry \n  (\n      $id:ID!\n  )\n{\n  getEntry\n  (\n      id:$id\n  )\n \n   {\n    \n    id\n    title\n    visibility\n    notes\n      author {\n        \n    id\n    displayName\n    tags\n        \n      }\n      related {\n        \n    id\n    title\n    visibility\n    notes\n      author {\n        \n    id\n    displayName\n    tags\n        \n      }\n      related {\n        \n    id\n    title\n    visibility\n    notes\n        \n      }\n        \n      }\n    \n  }\n}\n",
+        "listEntries": "\nquery ListEntries \n  (\n      $visibility:Visibility,\n      $limit:Int,\n      $nextToken:String\n  )\n{\n  listEntries\n  (\n      visibility:$visibility,\n      limit:$limit,\n      nextToken:$nextToken\n  )\n \n   {\n    \n      items {\n        \n    id\n    title\n    visibility\n    notes\n      author {\n        \n    id\n    displayName\n    tags\n        \n      }\n      related {\n        \n    id\n    title\n    visibility\n    notes\n        \n      }\n        \n      }\n    nextToken\n    \n  }\n}\n",
+        "lookupEntries": "\nquery LookupEntries \n  (\n      $ids:[ID!]!\n  )\n{\n  lookupEntries\n  (\n      ids:$ids\n  )\n \n   {\n    \n    id\n    title\n    visibility\n    notes\n      author {\n        \n    id\n    displayName\n    tags\n        \n      }\n      related {\n        \n    id\n    title\n    visibility\n    notes\n      author {\n        \n    id\n    displayName\n    tags\n        \n      }\n      related {\n        \n    id\n    title\n    visibility\n    notes\n        \n      }\n        \n      }\n    \n  }\n}\n"
+      },
+      "mutations": {
+        "createEntry": "\nmutation CreateEntry \n  (\n      $input:EntryInput!\n  )\n{\n  createEntry\n  (\n      input:$input\n  )\n \n   {\n    \n    id\n    title\n    visibility\n    notes\n      author {\n        \n    id\n    displayName\n    tags\n        \n      }\n      related {\n        \n    id\n    title\n    visibility\n    notes\n      author {\n        \n    id\n    displayName\n    tags\n        \n      }\n      related {\n        \n    id\n    title\n    visibility\n    notes\n        \n      }\n        \n      }\n    \n  }\n}\n",
+        "deleteEntry": "\nmutation DeleteEntry \n  (\n      $id:ID!\n  )\n{\n  deleteEntry\n  (\n      id:$id\n  )\n \n   {\n    \n    id\n    title\n    visibility\n    notes\n      author {\n        \n    id\n    displayName\n    tags\n        \n      }\n      related {\n        \n    id\n    title\n    visibility\n    notes\n      author {\n        \n    id\n    displayName\n    tags\n        \n      }\n      related {\n        \n    id\n    title\n    visibility\n    notes\n        \n      }\n        \n      }\n    \n  }\n}\n",
+        "reviewEntry": "\nmutation ReviewEntry \n  (\n      $id:ID!,\n      $accepted:Boolean!\n  )\n{\n  reviewEntry\n  (\n      id:$id,\n      accepted:$accepted\n  )\n \n   {\n    \n    accepted\n      entry {\n        \n    id\n    title\n    visibility\n    notes\n      author {\n        \n    id\n    displayName\n    tags\n        \n      }\n      related {\n        \n    id\n    title\n    visibility\n    notes\n        \n      }\n        \n      }\n    warnings\n    \n  }\n}\n"
+      },
+      "subscriptions": {
+        "onCreateEntry": "\nsubscription OnCreateEntry \n  (\n      $visibility:Visibility\n  )\n{\n  onCreateEntry\n  (\n      visibility:$visibility\n  )\n \n   {\n    \n    id\n    title\n    visibility\n    notes\n      author {\n        \n    id\n    displayName\n    tags\n        \n      }\n      related {\n        \n    id\n    title\n    visibility\n    notes\n      author {\n        \n    id\n    displayName\n    tags\n        \n      }\n      related {\n        \n    id\n    title\n    visibility\n    notes\n        \n      }\n        \n      }\n    \n  }\n}\n",
+        "onDeleteEntry": "\nsubscription OnDeleteEntry \n{\n  onDeleteEntry\n \n   {\n    \n    id\n    title\n    visibility\n    notes\n      author {\n        \n    id\n    displayName\n    tags\n        \n      }\n      related {\n        \n    id\n    title\n    visibility\n    notes\n      author {\n        \n    id\n    displayName\n    tags\n        \n      }\n      related {\n        \n    id\n    title\n    visibility\n    notes\n        \n      }\n        \n      }\n    \n  }\n}\n"
+      },
+      "fragments": {}
+    },
+    "local-introspection": {
+      "queries": {
+        "getEntry": "\nquery GetEntry \n  (\n      $id:ID!\n  )\n{\n  getEntry\n  (\n      id:$id\n  )\n \n   {\n    \n    id\n    title\n    visibility\n    notes\n      author {\n        \n    id\n    displayName\n    tags\n    __typename\n        \n      }\n      related {\n        \n    id\n    title\n    visibility\n    notes\n      author {\n        \n    id\n    displayName\n    tags\n    __typename\n        \n      }\n      related {\n        \n    id\n    title\n    visibility\n    notes\n      author {\n        \n    id\n    displayName\n    tags\n    __typename\n        \n      }\n      related {\n        \n    id\n    title\n    visibility\n    notes\n    __typename\n        \n      }\n    __typename\n        \n      }\n    __typename\n        \n      }\n    __typename\n    \n  }\n}\n",
+        "listEntries": "\nquery ListEntries \n  (\n      $visibility:Visibility,\n      $limit:Int,\n      $nextToken:String\n  )\n{\n  listEntries\n  (\n      visibility:$visibility,\n      limit:$limit,\n      nextToken:$nextToken\n  )\n \n   {\n    \n      items {\n        \n    id\n    title\n    visibility\n    notes\n      author {\n        \n    id\n    displayName\n    tags\n    __typename\n        \n      }\n      related {\n        \n    id\n    title\n    visibility\n    notes\n      author {\n        \n    id\n    displayName\n    tags\n    __typename\n        \n      }\n      related {\n        \n    id\n    title\n    visibility\n    notes\n    __typename\n        \n      }\n    __typename\n        \n      }\n    __typename\n        \n      }\n    nextToken\n    __typename\n    \n  }\n}\n",
+        "lookupEntries": "\nquery LookupEntries \n  (\n      $ids:[ID!]!\n  )\n{\n  lookupEntries\n  (\n      ids:$ids\n  )\n \n   {\n    \n    id\n    title\n    visibility\n    notes\n      author {\n        \n    id\n    displayName\n    tags\n    __typename\n        \n      }\n      related {\n        \n    id\n    title\n    visibility\n    notes\n      author {\n        \n    id\n    displayName\n    tags\n    __typename\n        \n      }\n      related {\n        \n    id\n    title\n    visibility\n    notes\n      author {\n        \n    id\n    displayName\n    tags\n    __typename\n        \n      }\n      related {\n        \n    id\n    title\n    visibility\n    notes\n    __typename\n        \n      }\n    __typename\n        \n      }\n    __typename\n        \n      }\n    __typename\n    \n  }\n}\n"
+      },
+      "mutations": {
+        "createEntry": "\nmutation CreateEntry \n  (\n      $input:EntryInput!\n  )\n{\n  createEntry\n  (\n      input:$input\n  )\n \n   {\n    \n    id\n    title\n    visibility\n    notes\n      author {\n        \n    id\n    displayName\n    tags\n    __typename\n        \n      }\n      related {\n        \n    id\n    title\n    visibility\n    notes\n      author {\n        \n    id\n    displayName\n    tags\n    __typename\n        \n      }\n      related {\n        \n    id\n    title\n    visibility\n    notes\n      author {\n        \n    id\n    displayName\n    tags\n    __typename\n        \n      }\n      related {\n        \n    id\n    title\n    visibility\n    notes\n    __typename\n        \n      }\n    __typename\n        \n      }\n    __typename\n        \n      }\n    __typename\n    \n  }\n}\n",
+        "deleteEntry": "\nmutation DeleteEntry \n  (\n      $id:ID!\n  )\n{\n  deleteEntry\n  (\n      id:$id\n  )\n \n   {\n    \n    id\n    title\n    visibility\n    notes\n      author {\n        \n    id\n    displayName\n    tags\n    __typename\n        \n      }\n      related {\n        \n    id\n    title\n    visibility\n    notes\n      author {\n        \n    id\n    displayName\n    tags\n    __typename\n        \n      }\n      related {\n        \n    id\n    title\n    visibility\n    notes\n      author {\n        \n    id\n    displayName\n    tags\n    __typename\n        \n      }\n      related {\n        \n    id\n    title\n    visibility\n    notes\n    __typename\n        \n      }\n    __typename\n        \n      }\n    __typename\n        \n      }\n    __typename\n    \n  }\n}\n",
+        "reviewEntry": "\nmutation ReviewEntry \n  (\n      $id:ID!,\n      $accepted:Boolean!\n  )\n{\n  reviewEntry\n  (\n      id:$id,\n      accepted:$accepted\n  )\n \n   {\n    \n    accepted\n      entry {\n        \n    id\n    title\n    visibility\n    notes\n      author {\n        \n    id\n    displayName\n    tags\n    __typename\n        \n      }\n      related {\n        \n    id\n    title\n    visibility\n    notes\n      author {\n        \n    id\n    displayName\n    tags\n    __typename\n        \n      }\n      related {\n        \n    id\n    title\n    visibility\n    notes\n    __typename\n        \n      }\n    __typename\n        \n      }\n    __typename\n        \n      }\n    warnings\n    __typename\n    \n  }\n}\n"
+      },
+      "subscriptions": {
+        "onCreateEntry": "\nsubscription OnCreateEntry \n  (\n      $visibility:Visibility\n  )\n{\n  onCreateEntry\n  (\n      visibility:$visibility\n  )\n \n   {\n    \n    id\n    title\n    visibility\n    notes\n      author {\n        \n    id\n    displayName\n    tags\n    __typename\n        \n      }\n      related {\n        \n    id\n    title\n    visibility\n    notes\n      author {\n        \n    id\n    displayName\n    tags\n    __typename\n        \n      }\n      related {\n        \n    id\n    title\n    visibility\n    notes\n      author {\n        \n    id\n    displayName\n    tags\n    __typename\n        \n      }\n      related {\n        \n    id\n    title\n    visibility\n    notes\n    __typename\n        \n      }\n    __typename\n        \n      }\n    __typename\n        \n      }\n    __typename\n    \n  }\n}\n",
+        "onDeleteEntry": "\nsubscription OnDeleteEntry \n{\n  onDeleteEntry\n \n   {\n    \n    id\n    title\n    visibility\n    notes\n      author {\n        \n    id\n    displayName\n    tags\n    __typename\n        \n      }\n      related {\n        \n    id\n    title\n    visibility\n    notes\n      author {\n        \n    id\n    displayName\n    tags\n    __typename\n        \n      }\n      related {\n        \n    id\n    title\n    visibility\n    notes\n      author {\n        \n    id\n    displayName\n    tags\n    __typename\n        \n      }\n      related {\n        \n    id\n    title\n    visibility\n    notes\n    __typename\n        \n      }\n    __typename\n        \n      }\n    __typename\n        \n      }\n    __typename\n    \n  }\n}\n"
+      },
+      "fragments": {}
+    }
+  }
+}
