@@ -1,5 +1,53 @@
 # Dependency audit triage
 
+## Focused Handlebars remediation — October 24, 2026
+
+Starting review-branch HEAD: `e035ca80235976b457340e09c79e6472ec19b993`.
+The October 23 results below are historical; use this section and the
+[validation report](DEPENDENCY_REMEDIATION_PASS_1_VALIDATION.md) for current status.
+
+The only dependency change is an exact npm override of `handlebars` to `4.7.10`
+under `@aws-amplify/graphql-docs-generator@4.2.1`. The generator and all other
+installed package versions remain unchanged. This is a project-maintained,
+compatibility-tested mitigation, not upstream certification. No root Handlebars
+dependency, blanket override, audit fix, force flag, or parent migration is used.
+
+Registry metadata still lists docs-generator `4.2.2` with Handlebars `4.7.9`, and
+graphql-generator `0.5.4` pins that docs-generator. The upstream
+[generator changelog](https://github.com/aws-amplify/amplify-codegen/blob/main/packages/graphql-docs-generator/CHANGELOG.md)
+describes the July security update, which predates the October advisories.
+That parent update is insufficient. The official
+[Handlebars 4.7.10 release](https://github.com/handlebars-lang/handlebars.js/releases/tag/v4.7.10)
+addresses the newer findings. Remove the override when a supported parent chain
+naturally resolves a patched Handlebars across every importing path, then repeat
+clean-install resolution, audits, generator compatibility and Linux validation.
+
+Fresh standalone audits around this change report **55 -> 53 affected package
+entries: critical 1 -> 0, high 46 -> 45, moderate 8 -> 8**. Production scope
+remains **0 -> 0**. Full audits exit 1 for valid remaining findings; production
+audits exit 0. The removed entries are `handlebars` and its inherited
+`@aws-amplify/graphql-docs-generator` finding. Counts differ from October 23
+because the current advisory dataset changed; the historical 40 is not today's
+before count. Remaining findings are not accepted or bulk-remediated here.
+
+Clean installation preserved the override, and importer checks confirmed the
+single `node_modules/handlebars/dist/handlebars.js` copy at 4.7.10. The real
+generator's fixed trusted templates are exercised with a synthetic
+schema and pre-change expected outputs. No exploit payload, live introspection,
+AWS client, authentication, deployment, or user-data operation is part of these
+tests. Five generator tests (32 parsed/validated operations), 65 reconciliation
+tests, four codec tests, typecheck, lint and production build passed locally.
+The previous Windows worker error did not recur; its cause remains unproven.
+[Linux run 40134500422](https://github.com/unifiedtechworks/UnifiedRange/actions/runs/40134500422)
+also passed all checks and loopback HTTP in both control `dbc5f57` and new
+remediation `1656d7cc243151c9ee42e31598620bef72d6edb7`, using workflow
+`9e1c8fe4d56cd2890b48628f065c65256ccfe232`. Both lockfiles stayed unchanged.
+Exact commits/toolchain/hashes and coverage limits are in the validation report.
+This is ready for the next deployment-validation decision. Amplify packaging,
+actual Lambda bundles/runtime, and hosted
+release QA remain separate requirements; merging to auto-deploying main remains
+outside this authorization.
+
 ## Independent pass 1 validation — October 23, 2026
 
 Implementation `f6fe22a9b879f8c7080e5e8359676f46c9d553a9` was reviewed against

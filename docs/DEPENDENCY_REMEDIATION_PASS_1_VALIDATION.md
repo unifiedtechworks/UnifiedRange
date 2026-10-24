@@ -1,5 +1,223 @@
 # Dependency remediation pass 1 validation
 
+## Handlebars remediation — October 24, 2026
+
+**Disposition: targeted critical finding resolved; local and Linux compatibility
+passed. Ready for the next separately approved deployment-validation decision.
+This does not approve merge, deployment, or remaining dependency risk.**
+
+Starting HEAD: `e035ca80235976b457340e09c79e6472ec19b993`, clean on
+`codex/release-dependency-remediation-1`. Fetched main remained
+`6d268c77b8d694385bd21128bae044ff1feffbb0`. The prior successful run
+[40031472320](https://github.com/unifiedtechworks/UnifiedRange/actions/runs/40031472320)
+is preserved below and does not validate this new dependency change.
+
+### Decision and dependency evidence
+
+Use the authorized exact override `@aws-amplify/graphql-docs-generator@4.2.1`
+-> `handlebars: 4.7.10`. Registry checks still show latest docs-generator 4.2.2
+pinning 4.7.9 and graphql-generator 0.5.4 pinning docs-generator 4.2.2.
+The [upstream generator changelog](https://github.com/aws-amplify/amplify-codegen/blob/main/packages/graphql-docs-generator/CHANGELOG.md)
+records that July update; it does not resolve the newer October advisories.
+The [official Handlebars 4.7.10 release](https://github.com/handlebars-lang/handlebars.js/releases/tag/v4.7.10)
+is the current stable patched 4.x release. Its iterable `each` behavior change
+is included in the compatibility review; this generator supplies ordinary
+arrays and does not mutate an iterable during rendering.
+
+This is a project-maintained override, not upstream certification. Remove it
+once the supported parent chain naturally adopts a version outside all current
+advisory ranges, with no vulnerable copy on any importer path, and repeat these
+checks without the override. No generator/Amplify/framework version changed.
+`npm install --package-lock-only --ignore-scripts --no-audit --no-fund`
+generated a diff confined to the Handlebars entry (version, official tarball,
+integrity, and its minimist/neo-async dependency ranges); all other locked
+versions stayed identical. No lockfile entries were edited by hand.
+
+The single normal, nonbundled copy changes from `node_modules/handlebars@4.7.7`
+to `node_modules/handlebars@4.7.10`. Every ancestor path listed in the historical
+Handlebars section below remains the same through docs-generator 4.2.1; only
+the leaf changes. `graphql-generator/lib/statements.js` invokes the public
+`generateGraphQLDocuments(schema, options)` entry point. It resolves the same
+docs-generator as form-generator. That entry imports
+`handlebars/dist/handlebars`, compiles fixed bundled template strings with
+`noEscape`/`preventIndent`, and supplies schema-derived data. It neither imports
+an AWS client nor performs network/schema introspection. This inspected benign
+path does not establish whether an advisory was exploitable in every possible
+generation/deployment context.
+
+The full pre-change audit reports 11 Handlebars advisories at this one path.
+An additional GitHub advisory API query for exact `handlebars@4.7.10` returned
+zero current matching advisories. The pre-change 55-entry full audit was also
+reconfirmed with pinned npm 11.9.0 against temporary original manifest/lockfile
+copies, without installing or executing the older dependency tree.
+The complete advisory IDs are:
+
+- [GHSA-3mfm-83xf-c92r](https://github.com/advisories/GHSA-3mfm-83xf-c92r),
+  [GHSA-2w6w-674q-4c4q](https://github.com/advisories/GHSA-2w6w-674q-4c4q),
+  [GHSA-2qvq-rjwj-gvw9](https://github.com/advisories/GHSA-2qvq-rjwj-gvw9),
+  [GHSA-7rx3-28cr-v5wh](https://github.com/advisories/GHSA-7rx3-28cr-v5wh),
+  [GHSA-442j-39wm-28r2](https://github.com/advisories/GHSA-442j-39wm-28r2),
+  [GHSA-xhpv-hc6g-r9c6](https://github.com/advisories/GHSA-xhpv-hc6g-r9c6),
+  [GHSA-9cx6-37pm-9jff](https://github.com/advisories/GHSA-9cx6-37pm-9jff), and
+  [GHSA-xjpj-3mr7-gcpf](https://github.com/advisories/GHSA-xjpj-3mr7-gcpf):
+  reported ranges end before 4.7.9.
+- [GHSA-xw65-4hp5-5hc7](https://github.com/advisories/GHSA-xw65-4hp5-5hc7),
+  [GHSA-8r5x-fm3f-whwj](https://github.com/advisories/GHSA-8r5x-fm3f-whwj), and
+  [GHSA-p8wg-vrv2-v86f](https://github.com/advisories/GHSA-p8wg-vrv2-v86f):
+  reported ranges extend through 4.7.9; patched in 4.7.10.
+
+After the override, Handlebars and the inherited docs-generator entry disappear
+from the fresh audit. All other affected package nodes and direct advisory IDs
+are unchanged. Full-tree counts are 55 -> 53 (critical 1 -> 0, high 46 -> 45,
+moderate 8 -> 8); production remains 0 -> 0. The full audit's exit 1 is a valid
+vulnerability report, not a registry failure. The older 40-entry result is
+historical. Remaining findings include Amplify/GraphQL parents, Zod,
+OpenTelemetry, Lodash, Immutable, MySQL, busboy, brace expansion, Browserslist,
+fast-uri, js-yaml, csv-parse and Tailwind/PostCSS tooling. No tree-wide security
+clearance or residual-risk acceptance is implied.
+
+### Offline generator compatibility
+
+`scripts/graphql-generator-compatibility.test.mjs` calls the installed public
+entry point used by the parent; it does not reimplement generator behavior.
+It resolves from the tested source checkout's graphql-generator and also checks
+form-generator resolves the same docs-generator. The test verifies the actual
+distribution module's Handlebars version, installed manifest, and every
+lockfile Handlebars copy. CI supplies an independent expected version per job.
+
+The adjacent synthetic schema has three queries, three mutations, and two
+subscriptions, with nested/recursive models, enum/optional/list fields, list
+arguments, and a custom mutation result. Subscriptions cover the generator's
+supported model-operation output; no active application subscription client was
+identified in the source scan. Four scenarios cover defaults, metadata/depth 4,
+typename-disabled/depth 3, and locally constructed introspection/depth 4.
+All 32 generated operations are parsed and validated against the synthetic
+schema and compared byte-for-byte with benign pre-change expected output.
+The expected JSON records its pre-change source, generator and Handlebars
+versions; tests cannot regenerate it. No intentional output change is expected.
+
+Baseline capture ran with an allowlisted child environment, fresh HOME/profile,
+and nonexistent AWS/npm credential paths. Output was first written to temporary
+storage, then reviewed and saved as the synthetic fixture. No live introspection,
+untrusted template, exploit payload, AWS credential, token, production schema,
+or generated application source was used. The test itself only returns results
+in memory. These tests do not cover all schema shapes, S3 fragments, other
+language formatters, deployment synthesis, actual Lambda bundles or hosted auth.
+
+### Current verification
+
+Local ordinary-host checks explicitly used Node 24.14.0 and npm 11.9.0 from
+their executable paths, with allowlisted child environments and temporary
+HOME/profile/credential-config paths. This avoids the ordinary host's different
+default Node selection. No concurrent installs/builds ran in this checkout.
+
+- `npm ci`: passed, exit 0; 1,269 packages installed. Peer/deprecation warnings
+  remain; no force or legacy-peer-deps flag was supplied.
+- `npm explain handlebars` and `npm ls handlebars --all`: passed, exit 0;
+  one overridden 4.7.10 copy, preserved after the clean install.
+- Standalone full/production audits repeated after installation: exits 1/0,
+  respectively, confirming 53/0 findings. Install-summary counts differed;
+  standalone reports are used throughout this document.
+- Generator tests: 5/5 passed. Initial resolution assertion attempted to read
+  form-generator's unexported package manifest; it was corrected to resolve
+  from its public exported entry, then passed. All four output comparisons
+  passed before and after that test-only correction.
+- Reconciliation: 65/65 passed; codec: 4/4 passed; backend typecheck and lint:
+  passed, exit 0.
+- A structured lockfile comparison found exactly one changed package entry,
+  `node_modules/handlebars`; no other locked version/metadata changed.
+
+- Windows `npm run build`: passed, exit 0 on Next 16.4.3/Turbopack. The earlier
+  worker-startup error did not recur with this ordinary-host clean install and
+  pinned toolchain. Its prior root cause remains unproven; this is not a claim
+  that Handlebars fixed that issue. No compiler/configuration change was made.
+- `git diff --check` and staged whitespace checks: passed.
+
+Source remediation commit: `1656d7cc243151c9ee42e31598620bef72d6edb7`
+(`Remediate Amplify Handlebars dependency`). It changes only package.json,
+package-lock.json, the generator test and its two fixtures. The separate
+workflow/support commit is `9e1c8fe4d56cd2890b48628f065c65256ccfe232`.
+Both were pushed only to the existing review branch.
+
+The new Linux comparison uses control `dbc5f575eb636a7da279a390bd2b6f3629e8fce7`
+and candidate `1656d7cc243151c9ee42e31598620bef72d6edb7`, with the latter also
+the separately identified immutable test-harness commit. Generator test/fixtures
+are supplemental in control. Both jobs resolve imports from their own source
+checkout after a clean install; the harness checkout has no installed packages.
+The prior main-versus-pass-1 comparison remains separate below.
+
+The workflow retains Ubuntu 24.04 x64, exact Node/npm versions, the same official
+action SHA pins, read-only contents permission, no OIDC/environment/secrets,
+nonpersisted checkout credentials, credential-free application environments,
+no caches/artifacts, bounded timeouts and two jobs with fail-fast disabled.
+Its trigger remains restricted to the review branch and the two CI files.
+Before pushing, read-only checks confirmed automatic Amplify branch creation
+off, previews off, and only main connected; the review branch was unconnected.
+
+### New Linux comparison — passed
+
+[Run 40134500422](https://github.com/unifiedtechworks/UnifiedRange/actions/runs/40134500422)
+completed successfully on its first attempt, October 24, 2026,
+14:30:15–14:33:19 America/Los_Angeles, workflow commit
+`9e1c8fe4d56cd2890b48628f065c65256ccfe232`. No rerun was needed.
+
+- [Control job 120993038290](https://github.com/unifiedtechworks/UnifiedRange/actions/runs/40134500422/job/120993038290):
+  source `dbc5f575eb636a7da279a390bd2b6f3629e8fce7`.
+- [Candidate job 120993038387](https://github.com/unifiedtechworks/UnifiedRange/actions/runs/40134500422/job/120993038387):
+  source `1656d7cc243151c9ee42e31598620bef72d6edb7`.
+- Both: Ubuntu 24.04.5 LTS x64, image `ubuntu24 / 20261023.334.3`,
+  Node 24.14.0 and npm 11.9.0. This image revision differs from the October 23
+  run; both new jobs used the same image. It does not establish Amplify parity.
+
+Every command/check in this table exited **0** in both jobs:
+
+| Check | Control | Candidate |
+| --- | --- | --- |
+| `uname -a`, Node/npm version checks and npm pin | passed | passed |
+| `npm ci` | passed | passed |
+| Installed/optional native versions | 1,691 matched; SWC/Sharp loaded | 1,691 matched; SWC/Sharp loaded |
+| Importer-resolved Handlebars | 4.7.7 | 4.7.10 |
+| `node --test scripts/graphql-generator-compatibility.test.mjs` | 5/5; supplemental harness | 5/5 |
+| `npm run test:public-image-reconciliation` | 65/65 | 65/65 |
+| `node --test scripts/public-image-codec-compatibility.test.mjs` | 4/4 | 4/4 |
+| `npm run amplify:typecheck` | passed | passed |
+| `npm run lint` | passed | passed |
+| `npm run build` | passed | passed |
+| Loopback production HTTP `/` and `/auth/sign-in` | HTTP 200, expected HTML | HTTP 200, expected HTML |
+| `git diff --check` | passed | passed |
+| `git diff --exit-code -- package.json package-lock.json` | passed | passed |
+| Before/after manifest and lockfile hashes | identical | identical |
+
+Both importer checks resolved `node_modules/handlebars/dist/handlebars.js`
+within their own checkout. Both generated identical reviewed outputs for all
+32 operations. Both native checks loaded Sharp 0.35.5/libvips 8.18.7 and SWC;
+all required Linux x64 GNU optional-package versions matched their lock entries.
+HTTP checks were bounded, loopback-only, with no browser JavaScript or sign-in.
+
+| File | Control SHA-256 before/after | Candidate SHA-256 before/after |
+| --- | --- | --- |
+| `package.json` | `b686fe09ca70f686fc66933cdf9a55ef7c5c8b54c0dd53383b137ce048f3367b` | `2983b86da50eca4a4ee1fdbb59883c8df3a2c095edf7157a9064a5d36c516a8a` |
+| `package-lock.json` | `3f12ec5d463a8b1b2aba54f1ab182fd1361649681641467b1b90a2a2bade583d` | `39571f3d4f9d8fdd4153c8e64e58bda9ac6f89bcbad7bb98906df72b225e6ffe` |
+
+The new remediation's Linux installation/generation/test/build checks are
+cleared for these exact revisions. Amplify Hosting packaging/managed Next
+support, actual Lambda bundles and Node 20 execution, browser/authenticated
+release QA, and the remaining noncritical dependency findings are still separate
+decisions. The earlier Windows failure remains historical and unexplained,
+although this task's Windows build passed. No Handlebars risk acceptance is
+needed to describe the resolved audit entry; no other risk is accepted here.
+
+The results follow-up edits only the two existing reports and does not match
+the CI path filter. No main push/merge, PR, AWS deployment/resource/permission
+change, live operation, cleanup-gate change, or schema/auth/storage change was
+performed. Final documentation commit/push identity is recorded in the task
+completion message; the source and workflow commits above remain immutable.
+
+## Historical pass 1 and first Linux comparison — October 23, 2026
+
+The following records the earlier checkpoints. Its unresolved Handlebars status
+is superseded by the October 24 remediation above; deployment boundaries remain.
+
 Date: October 23, 2026. **Disposition: Linux comparison passed; merge/release remain blocked on the separate hosted validation and deployment-toolchain requirements.** No residual risk is accepted here.
 
 ## Original source review and scope
