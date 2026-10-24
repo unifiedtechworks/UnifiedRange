@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { builtinModules, createRequire } from "node:module";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -17,8 +17,10 @@ for (const expected of ["format: OutputFormat.ESM", "bundleAwsSDK: true", "sourc
 const banner = ["resolve_ssm_params.js", "invoke_ssm_shim.js"].map(file => read(join(functionDir, "lambda-shims", file))).join("").split(/\r\n|\n|\r/).map(line => line.replace(/\/\/.*$/, "")).join("");
 const lock = JSON.parse(read(join(root, "package-lock.json")));
 const reports = [];
-for (const major of [20, 24]) {
-  const dir = join(output, `node${major}`);
+for (const name of readdirSync(join(root, "amplify/functions")).sort()) {
+  const major = 24;
+  const processor = name === "process-public-passport-image";
+  const dir = processor ? join(output, "node24") : join(output, "node24", name);
   mkdirSync(dir, { recursive: true });
   const settings = {
     absWorkingDir: root, bundle: true, platform: "node", format: "esm",
@@ -27,7 +29,7 @@ for (const major of [20, 24]) {
     inject: [join(functionDir, "lambda-shims/cjs_shim.js")],
     banner: { js: banner }, logLevel: "warning",
   };
-  const production = await build({ ...settings, entryPoints: ["amplify/functions/process-public-passport-image/handler.ts"], outfile: join(dir, "index.mjs") });
+  const production = await build({ ...settings, entryPoints: [`amplify/functions/${name}/handler.ts`], outfile: join(dir, "index.mjs") });
   const imports = [...new Set(Object.values(production.metafile.outputs).flatMap(info => info.imports.filter(item => item.external).map(item => item.path)))].sort();
   assert.ok(imports.every(name => builtinModules.includes(name.replace(/^node:/, ""))), `Unexpected unresolved external: ${imports}`);
   assert.ok(!Object.keys(production.metafile.inputs).some(path => path.endsWith(".node")), "Review newly introduced native dependency");
@@ -44,7 +46,7 @@ for (const major of [20, 24]) {
   const bytes = readFileSync(join(dir, "index.mjs"));
   const report = {
     kind: "representative offline bundle; not an Amplify synthesized deployment artifact",
-    runtimeTarget: major, architecture: "x86_64", esbuildVersion,
+    functionName: name, runtimeTarget: major, architecture: "x86_64", esbuildVersion,
     backendFunction: lock.packages["node_modules/@aws-amplify/backend-function"].version,
     cdk: lock.packages["node_modules/aws-cdk-lib"].version,
     bytes: bytes.length, sourceMapBytes: readFileSync(join(dir, "index.mjs.map")).length,
@@ -57,7 +59,10 @@ for (const major of [20, 24]) {
   writeFileSync(join(dir, "metafile.json"), JSON.stringify(production.metafile, null, 2));
   // This second bundle contains the unchanged full handler, SDKs, test fixtures,
   // and boundary mocks. Measure production size from index.mjs above, not here.
-  await build({ ...settings, banner: {}, entryPoints: ["scripts/lambda-runtime/handler-tests.mjs"], external: ["./index.mjs"], outfile: join(dir, "handler-tests.mjs") });
+  if (processor) {
+    await build({ ...settings, banner: {}, entryPoints: ["scripts/lambda-runtime/handler-tests.mjs"], external: ["./index.mjs"], outfile: join(dir, "handler-tests.mjs") });
+    await build({ ...settings, banner: {}, entryPoints: ["scripts/lambda-runtime/all-handler-tests.mjs"], outfile: join(dir, "all-handler-tests.mjs") });
+  }
   reports.push(report);
   console.log(JSON.stringify(report));
 }
