@@ -1,5 +1,386 @@
 # Dependency remediation pass 1 validation
 
+## Prerequisite implementation review — October 25, 2026
+
+**Execution remains blocked; this is not a provisioning approval request.** The
+preceding uncommitted proposal is preserved below as historical context. This
+section supersedes its readiness language. No cost or residual-risk acceptance
+is inferred. No AWS writes, deployment, bootstrap, build job, validation branch,
+or application data operations were performed during this preparation.
+
+### Permission artifacts and exact limitation
+
+`scripts/validation/policies.mjs` produces parameterized IAM JSON review fragments:
+Amplify service trust, exact-principal deployment trust, CloudFormation service
+trust, service/deployment permissions, execution-role IAM permissions, and a
+runtime permissions-boundary fragment. Parameters contain no real account or
+role identifiers. CreateRole requires the reviewed boundary; PassRole names
+exact roles and appropriate services; the executor cannot alter the boundary,
+attach managed policies, change role trust, or assume another role. Explicit
+role paths and resource ARNs, rather than mutable tags, bound the fragments.
+The deployment fragment includes scoped stack deletion and rollback actions.
+The boundary does not grant permissions: resource roles also need identity
+policies. Deny wildcards cover all resources/actions in the named prohibited
+services or operations to prevent escaping restrictions; there are no wildcard
+Allow resources in these fragments. These are restrictive starting fragments,
+**not a complete least-privilege policy or deployable bootstrap template**.
+
+Installed backend 1.23.0 `lib/default_stack_factory.js` constructs
+`ProjectEnvironmentMainStackCreator`; `lib/engine/amplify_stack.js` calls the CDK
+Stack constructor without a custom synthesizer. Public `defineBackend` does not
+accept a stack/synthesizer. Although internal BackendFactory accepts a stack,
+that is not the public supported interface. Installed backend-deployer creates
+the Toolkit with AWS CLI-compatible credentials, imports backend.ts into an
+assembly builder with backend identifier context, and deploys all stacks.
+CLI 1.8.3 pipeline-deploy exposes app/branch/output options, not role-selection
+or qualifier flags. No supported way to select the proposed constrained
+downstream chain was established in this installed workflow.
+
+Actual chain: Amplify service identity -> default CDK deploy/file-publishing
+roles -> default CloudFormation execution role -> generated application/provider
+roles. Prior read-only inspection found the shared execution role has
+AdministratorAccess and no boundary. Restricting only the first identity would
+not fix that escalation path. It must not be assumed or passed. Shared bootstrap,
+live, and sandbox roles must remain untouched. The templates intentionally do
+not grant access to them.
+
+Remaining work requires a supported synthesizer/role-selection solution and a
+reviewed synthesized resource inventory, including generated provider roles,
+their trust and boundary attachment, Cognito identity roles, service-specific
+creation APIs, asset publishing, and rollback/delete dependencies. The fragment's
+runtime actions are deliberately insufficient for this application's complete
+runtime. Generated names currently are not proven to follow its explicit path
+and resource namespace. Do not widen permissions to make it run. A separate
+bootstrap would add deployment/file-publishing/image-publishing/lookup/execution
+roles, asset bucket, ECR repository, bootstrap parameter, policies and possibly
+encryption resources; exact definition and selection are still unresolved.
+These would expand teardown scope and require a revised cost estimate before
+approval. No separate bootstrap is provision-ready here.
+
+References: [CDK synthesizer configuration](https://docs.aws.amazon.com/cdk/v2/guide/customize-synth.html)
+requires matching bootstrap/synthesizer settings; it does not establish that
+Amplify honors arbitrary cdk.json overrides.
+[IAM permissions boundaries](https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_boundaries.html)
+also require review of resource-policy grants; a boundary is not a substitute
+for reviewing the complete chain. Local syntax/assertion checks are not IAM
+simulation or proof that AWS accepts or can deploy these policies.
+
+### Output safeguard and execution boundary
+
+`scripts/validation/guard.mjs` implements strict expected/observed target checks,
+positive expected resource IDs, Cognito client/provider associations, AppSync
+ARN/endpoint, bucket owner/Region, and stack membership. Missing expectations,
+live/sandbox/mixed outputs and unresolved metadata fail. `metadata.mjs` follows
+the Amplify branch's backend.stackArn, traverses nested stacks while checking
+parent/root ancestry, handles paginated resources with bounds, and requests
+read-only Cognito/AppSync/S3 metadata. The S3 call requires expectedBucketOwner.
+Metadata transport is injected and offline-tested; no live transport or SDK
+credential access is installed in the wrapper.
+
+The injectable sequence checks target, clears outputs and .next inside the
+supplied isolated workspace, installs, deploys, generates, verifies, builds,
+re-verifies, and publishes. Failures stop subsequent steps with a fixed redacted
+message and nonzero result. It rejects redirected artifact roots. Do not invoke
+the cleanup helper on this checkout: it is for a separately verified disposable
+build workspace. No committed outputs or .next files were removed here.
+
+`scripts/validation/run.mjs` unconditionally exits 2 with
+PERMISSION_CHAIN_UNRESOLVED, without AWS calls or destructive actions.
+`amplify.validation.yml` invokes it in both backend/frontend phases, omits cache,
+and is only a review artifact. Production amplify.yml is unchanged; repository
+build-spec precedence means this file is not activated by merely adding it.
+The guard core is implemented, but operational integration is **not ready**:
+after the role blocker is resolved, supply a reviewed read-only transport,
+immutable expected configuration outside application outputs, verified disposable
+workspace and checkout/source provenance, and an approved deployment adapter.
+Confirm actual pipeline-deploy output generation ordering and reconcile its
+automatic generation with the adapter. No enable flag bypasses this boundary.
+Expected provisioned app/root/resource IDs must be reviewed or derived from the
+authoritative new stack graph, never copied from the output being validated.
+
+### Verification and provenance
+
+48 offline tests cover correct isolation, live/sandbox/same-Region unrelated
+IDs, mixed auth/API/bucket outputs, missing expectations, wrong target/commit,
+missing/malformed files, stale artifact deletion in temporary directories,
+failure ordering, metadata ancestry, nonzero exit, redacted logs and policy
+constraints. Relevant ESLint and git diff checks passed before commit.
+Tests run with the existing credential-free subprocess wrapper. They do not
+prove live IAM authorization, Hosting publication, or deployed compatibility.
+No application integration changed, so historical Lambda/container suites and
+production builds were not repeated. Dependencies, compiler/runtime settings,
+production build behavior and managed output files remain unchanged.
+
+Application source remains `9db0692a66d7e217643cce63320d97ffb0505af2`.
+Tooling/build-spec and policy-template revision: the preparation commit containing
+this section and scripts/validation (exact SHA recorded in the follow-up below).
+Effective deployment candidate: **not yet created or approved**. A future
+validation branch must have its exact resulting commit and delta reviewed;
+the existing Linux CI run did not test these new files. Observed checkout commit
+must match that effective candidate, not merely a self-declared application SHA.
+
+### Retained experiment bounds; no approval yet
+
+One standard build, no automatic retries, 30-minute expected duration and
+60-minute stop condition; one-day lifetime, estimated $1–3 and $5 review threshold
+remain proposed, not accepted or guaranteed caps. At execution, Seth or an
+explicitly approved foreground operator must record the build start/job ID,
+monitor elapsed time and issue the approved stop-job at 60 minutes, then inspect
+CloudFormation for continuing work. A build stop is not backend cancellation or
+teardown. No unattended watchdog exists. Seth owns teardown within 24 hours;
+Codex can perform it only in a separately authorized active session. Bootstrap
+assets/roles/retained resources must be included if later approved.
+
+No synthetic users, records, uploads, app mutations or direct custom-function
+invocations. Cleanup remains exactly false. Main, live app, personal sandbox,
+and live data are excluded. The bounded signed-out reads and previous spending
+proposal remain subject to owner approval. Remaining dependency findings and
+the Next 16 managed Hosting support gap are not accepted on the owner's behalf.
+Both prerequisites must be operationally ready before an exact-commit bounded
+provisioning request can be finalized.
+
+Read-only pre-push inspection reconfirmed UnifiedRange has only main connected,
+main PR previews disabled, and automatic branch creation disabled. The proposed
+validation app is absent. Initial sandbox network access failed; the authorized
+read-only retry succeeded. The existing review branch is the only push target.
+
+## Bounded isolated deployment approval request — October 25, 2026
+
+**Decision requested, not granted:** one temporary nonproduction compatibility
+experiment, subject to the two execution prerequisites below. No provisioning,
+deployment, branch creation, tests against live APIs, or main merge occurred in
+this documentation-only task. Do not execute the existing candidate unchanged
+as an unguarded deployment.
+
+### Verified source and target
+
+Application candidate: `9db0692a66d7e217643cce63320d97ffb0505af2`.
+Review HEAD: `83d1a8309f112de9ebbb3cdb15b6b46e2a5ade42`, clean before this update,
+on `codex/release-dependency-remediation-1`. Changes after the application SHA
+are tests/workflows/docs only. Fetched origin/main remains
+`6d268c77b8d694385bd21128bae044ff1feffbb0`; the expected main comparison baseline
+has not changed. Existing migrated-source run
+[40144267196](https://github.com/unifiedtechworks/UnifiedRange/actions/runs/40144267196)
+was re-read as successful, not rerun.
+
+Recommend one **new temporary Amplify WEB_COMPUTE app** named
+`unifiedrange-validation-20261025`, branch `codex/validation-node24-20261025`,
+in **us-west-2**, in the existing AWS account verified by STS using the
+`unifiedrange` profile. The exact account number is provided privately in the
+approval request, not in repository documentation. Names are proposed only.
+This is resource separation within a shared account, not an account-level
+security boundary. Do not use the live app/backend or personal developer sandbox.
+
+Read-only inspection found the live UnifiedRange app connected only to main,
+with automatic branch creation and PR previews disabled. No dedicated
+UnifiedRange validation app/backend exists in the inspected Region. Existing
+personal sandbox and unrelated applications are excluded from all actions.
+The new app must have automatic builds, automatic branch creation and previews
+disabled from creation; permit one manual build only after all checks below.
+Connect only the proposed validation branch, never main or the review branch.
+Use the existing approved repository integration, without copying tokens.
+
+### Two prerequisites before any job starts
+
+1. **Constrained deployment permissions.** CDKToolkit exists in us-west-2,
+   status UPDATE_COMPLETE, bootstrap version 32, qualifier hnb659fds, with
+   file/image publishing and deployment roles. However its CloudFormation
+   execution role has AdministratorAccess and no permissions boundary. The
+   live app's service role has AmplifyBackendDeployFullAccess plus logging
+   permissions. Neither is evidence of least privilege for this experiment.
+   A dedicated `UnifiedRangeValidationDeploy20261025` role and constrained
+   execution path must be reviewed and verified before connecting/starting
+   the experiment. Do not reuse or alter the live role, shared bootstrap policy,
+   or personal operator credentials to bypass this prerequisite. The installed
+   pipeline command exposes no execution-role override; the integration with
+   a constrained execution path remains unproven. Stop rather than silently
+   assume a new service role constrains the existing administrator role.
+2. **Fail-closed outputs/build guard.** The candidate tracks amplify_outputs.json
+   and the frontend imports it. Existing amplify.yml runs install, backend
+   deployment and next build without an independent outputs-ownership check.
+   [Repository build settings override console settings](https://docs.aws.amazon.com/amplify/latest/userguide/edit-build-settings.html).
+   Before connection, a narrowly reviewed validation-only packaging commit
+   must remove inherited outputs from the disposable build checkout, pin/log
+   build Node 24.14.0/npm 11.9.0, disable dependency/build cache restoration,
+   verify account/Region/app/branch, and fail unless fresh generated outputs
+   match the new backend. Record that packaging SHA separately and compare its
+   application/resource/dependency files to the exact candidate above. It must
+   change only build safeguards, not application behavior. No such commit or
+   validation branch is created by this request. Approval of the experiment
+   does not waive review of those concrete safeguards before starting the job.
+
+These are specific execution blockers, not a request to repeat migration or
+offline CI. No unrestricted administrator execution exception is proposed.
+
+The dedicated operator/deploy path needs Amplify app/branch/job management for
+this target, CloudFormation operations on its root/nested stacks, publishing
+of its build assets, and provisioning/configuration of the resource categories
+below. Deployment needs IAM role/policy creation and attachment for generated
+roles; restrict names/paths/tags to this target and enforce an appropriate
+permissions boundary, including denial of privilege escalation and live-resource
+access. Scope `iam:PassRole` to the exact approved service/execution/generated
+role ARNs and intended AWS service principals, not `*`; scope STS assumptions
+to that reviewed chain. Permit necessary read/list discovery separately.
+Some service create/list APIs require wildcard resource scope; constrain these
+by supported Region/tag/account conditions and explicitly review exceptions.
+Read-only access succeeded; effective deploy permission, trust and PassRole
+authorization have not been proved by a write attempt. A policy/boundary review
+and supported integration are required, not an administrator fallback.
+
+### Resources covered by the request
+
+Source-confirmed: one email-login Cognito user pool with admin/moderator groups;
+an AppSync schema with user-pool default authorization and a 30-day API key
+mode; 16 models; two explicit secondary indexes; one private image storage
+bucket; eight custom Node 24/x86_64 Lambdas with existing settings, bindings and
+resource-specific permissions. No users or application records are seeded.
+
+The models are UsernameReservation, UserProfile, PublicUserProfileSnapshot,
+EquipmentPassport, ProjectileProfile, OpticSightProfile, RangeSession,
+TargetPhoto, PrivateImageAsset, MaintenanceLogEntry, HuntingChecklist,
+PublicPassportSnapshot, PublicImageAsset, Comment, Reaction and Report. Explicit
+indexes are userProfilesByOwnerId and publicImageAssetsBySnapshotId; generated
+relationship indexes are additional. Expect one model table per model, subject
+to actual generated-resource verification, not a claimed synthesized plan.
+
+Expected framework resources: Cognito app client/identity pool and identity/group
+roles; AppSync resolvers/data sources; DynamoDB indexes and table-management
+providers; root/nested CloudFormation stacks; schema/codegen asset buckets and
+objects; provider Lambdas, waiter/state-machine resources, IAM roles/policies,
+log groups, and managed Hosting/CDN/SSR/build resources. Provider runtimes are
+tooling-controlled, not part of the eight custom runtime changes. Existing
+shared bootstrap infrastructure is a prerequisite, not disposable validation
+infrastructure. Exact physical IDs, provider count/runtimes, retention,
+capabilities and final templates require actual artifact generation.
+
+Exclude VPC/NAT, custom domains/DNS, new accounts, production secrets, scheduled
+cleanup, public S3 policies, live configuration changes, WAF and larger build
+instances. Any new need for those requires a separate decision. Review the new
+stack manifest against these categories; no fabricated standalone synth step.
+
+### One-run cost and lifetime envelope
+
+Prices checked October 25, 2026, USD, no Free Tier or credits assumed. Oregon
+regional rates were checked through the AWS Price List API for S3 Standard,
+CloudWatch Logs, DynamoDB and Lambda. Hosting/AppSync use their published rates.
+
+| Item and assumption | Estimated incremental cost |
+| --- | --- |
+| One standard 4-vCPU/8-GB Amplify build, expected 30 minutes at $0.01/min; stop at 60 minutes | $0.30 expected / $0.60 allowance |
+| At most 100 signed-out GET/HEAD requests, <=1 GB total transfer at $0.15/GB | <=$0.15 |
+| Assume 100 SSR requests, 1 GB allocation for 1 second each; $0.30/million requests + $0.20/GB-hour | ~$0.0056 |
+| <=1 GB Hosting artifacts + <=1 GB S3 assets for 24 hours, $0.023/GB-month each | ~$0.0016 |
+| <=0.25 GB standard logs at $0.50/GB ingestion | $0.125 |
+| Framework deployment allowance: 1,000 Lambda requests/1,000 GB-seconds at $0.20/million and $0.0000166667/GB-second | ~$0.017 |
+| Allowance for incidental 1,000 AppSync operations at $4/million and 1,000 each DynamoDB read/write units at $0.125/$0.625 per million | ~$0.0048 |
+
+The illustrative subtotal is about $0.60 (about $0.90 if the build takes an
+hour). **Plan $1–$3 total**, allowing for asset requests, provider orchestration,
+extra log volume and rounding; this is an estimate, not a bill guarantee.
+Request **$5 incremental experiment spend maximum before renewed approval**;
+stop new activity when incurred or forecast cost reaches it. Billing lag and
+unexpected public traffic can overshoot it. No alert/budget is represented as
+a hard cap, and none is being created in this task. Review usage before/after
+the run and after billing settles. No retry or second build allowance: failure
+requiring another build, implementation change, or >60 minutes needs approval.
+
+Sources: [Amplify](https://aws.amazon.com/amplify/pricing/),
+[S3](https://aws.amazon.com/s3/pricing/),
+[CloudWatch](https://aws.amazon.com/cloudwatch/pricing/),
+[Lambda](https://aws.amazon.com/lambda/pricing/),
+[AppSync](https://aws.amazon.com/appsync/pricing/), and
+[DynamoDB](https://aws.amazon.com/dynamodb/pricing/).
+
+Lifetime: **24 hours from first resource creation**, teardown sooner on failure
+or completion. Seth is the accountable teardown owner; Codex performs teardown
+in the explicitly approved foreground session, or Seth does so if that session
+ends. No scheduled/background teardown is promised. Reserve time for teardown
+inside the window; any extension requires approval.
+
+Idle costs can persist: stored Hosting/S3 artifacts, DynamoDB data/indexes and
+backups, retained logs, and unsolicited request traffic. On-demand tables are
+the installed tooling default; verify no unexpected provisioned capacity,
+PITR/backups, provisioned Lambda concurrency or paid caches. Retained S3 costs
+$0.023/GB-month, DynamoDB Standard storage $0.25/GB-month without the free
+allowance, and logs $0.03/GB-month. Thus even 0.25 GB retained logs adds about
+$0.0075/month; log retention is not proof of log-group deletion. Extra retained
+resources after partial teardown keep accruing until removed or expired.
+
+### Allowed first-stage validation, and excluded writes
+
+After prerequisites and explicit approval: one clean install/deploy/build,
+actual backend asset/template generation and checksum capture, frontend
+packaging/SSR adaptation, and read-only inspection of all eight deployed
+Node 24/x86_64 functions, environment bindings, tables/bucket, IAM and AppSync
+authorization. Verify cleanup's environment value is exactly `false`.
+Log build Node/npm/image separately from custom Lambda runtime/version and
+Hosting SSR runtime; do not infer SSR version from custom functions.
+
+Before frontend build/publish, compare fresh outputs against the new root/
+nested-stack resource inventory: Cognito pools/client, API, Region and S3
+bucket must belong exclusively to this target, and none may equal live/sandbox
+resources. Validate required structure and nonempty values without dumping keys
+or URLs into public logs. Missing, stale or mismatched outputs must fail the
+build; no committed-output fallback. Capture a private outputs checksum and
+sanitized ownership check. Verify resulting client assets use that configuration.
+
+Protect the temporary Hosting branch with access control before it serves
+traffic; use an experiment-only access credential stored privately, not a live
+secret. Signed-out means no application/Cognito login. Allow <=100 GET/HEAD
+requests total to the new site's landing/sign-in/static asset paths, <=1 GB
+transfer, no load tests and no browser automation that performs mutations.
+Check HTTP status, redirects, asset loading and unintended backend connections.
+Do not invoke custom functions or cleanup mutations as part of this first stage.
+
+**No synthetic identities, records, uploads or explicit function invocations
+are included in the approval request.** An optional later extension would be
+limited to two test Cognito users, <=10 new fixture records, two JPEG/PNG uploads
+<=1 MiB each and <=10 processor/verifier/resolver invocations. These create users,
+records/objects and possibly derivatives/status updates; each must be explicitly
+included in a subsequent approval, with deletion of those fixtures acknowledged.
+No moderation/removal or cleanup-retry invocation, and no cleanup gate enablement,
+is included even in that optional extension. Full authenticated release QA is
+still a separate later milestone.
+
+### Risk decisions, stop conditions and teardown
+
+AWS supports custom Lambda Node 24. Current
+[Hosting Node guidance](https://docs.aws.amazon.com/amplify/latest/userguide/ssr-supported-features.html)
+also lists Node 24 and says SSR major follows build Node major. However,
+[managed Next.js support](https://docs.aws.amazon.com/amplify/latest/userguide/ssr-amplify-support.html)
+still documents versions 12–15; this candidate uses **Next.js 16.4.3**.
+The support gap is material: actual packaging/deployment may fail or behave
+outside documented support. No automatic downgrade or hosting-architecture
+change is approved. CI success does not establish managed deployment support.
+
+Latest dated dependency evidence is the October 24 run 40144267196 npm ci
+summary: 45 high, 5 moderate, zero critical. This was not a fresh October 25
+full audit; older explicit full-audit totals below differ and remain historical.
+Approval would accept exposure only for this bounded isolated experiment,
+not resolve findings, approve merge, or accept public-release risk.
+
+Stop before proceeding on wrong account/Region/app/branch/SHA, outputs linked
+to live data, cleanup value other than exact false, unexpected IAM expansion,
+administrator-role fallback, unrelated resources, unapproved spend/retries,
+or a build/package/deployment failure needing a new implementation decision.
+Keep auto-builds off, stop any running validation job, retain/enable access
+restriction to stop test traffic, and perform scoped teardown. Do not alter
+the live app, shared bootstrap or main; do not roll back to deprecated Node 20.
+
+Teardown uses the recorded validation resource manifest and stack ancestry,
+not a broad account/name-prefix deletion. Delete the validation backend and
+Hosting branch/app, then verify stack deletion/events and explicitly enumerate
+leftovers (tables/backups, buckets/versions, logs, roles and provider resources).
+Installed Storage uses auto-delete objects with DESTROY unless keepOnDelete
+is requested; deletion can therefore erase every object in that new bucket.
+Framework schema/codegen buckets also use DESTROY. Actual table/provider
+retention must be inspected, not assumed. Deleting an Amplify app alone is not
+proof that backend or retained resources disappeared. Remove only explicitly
+approved validation leftovers; never empty a shared bootstrap bucket or delete
+live/sandbox resources. Record any retained resource and continuing cost, and
+confirm no new builds, no serving validation endpoint, no unintended resources,
+and delayed billing follow-up. This teardown scope must be part of approval.
+
 ## Node 24 custom-function migration — October 24, 2026
 
 This section supersedes the earlier proposal's outstanding source-runtime

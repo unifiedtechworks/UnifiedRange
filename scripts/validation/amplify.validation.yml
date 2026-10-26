@@ -1,0 +1,19 @@
+# Review artifact only. Does not replace the repository production amplify.yml.
+# This wrapper deliberately exits 2 until the permission-chain blocker is fixed.
+version: 1
+backend:
+  phases:
+    build:
+      commands:
+        - node scripts/validation/run.mjs
+frontend:
+  phases:
+    build:
+      commands:
+        - node scripts/validation/run.mjs
+  artifacts:
+    baseDirectory: .next
+    files:
+      - '**/*'
+  cache:
+    paths: []
