@@ -112,8 +112,9 @@ production builds were not repeated. Dependencies, compiler/runtime settings,
 production build behavior and managed output files remain unchanged.
 
 Application source remains `9db0692a66d7e217643cce63320d97ffb0505af2`.
-Tooling/build-spec and policy-template revision: the preparation commit containing
-this section and scripts/validation (exact SHA recorded in the follow-up below).
+Tooling/build-spec and policy-template revision:
+`90dc1ecb53d202389d073679dbe8640969efa6fd`. A subsequent documentation-only commit
+records this identity; it does not change the tested tooling or policy fragments.
 Effective deployment candidate: **not yet created or approved**. A future
 validation branch must have its exact resulting commit and delta reviewed;
 the existing Linux CI run did not test these new files. Observed checkout commit
